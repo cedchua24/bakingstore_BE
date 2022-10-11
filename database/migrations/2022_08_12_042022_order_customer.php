@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('order_customer', function (Blueprint $table) {
             $table->id();
             $table->integer('order_customer_transaction_id');
-            $table->integer('product_id');
+            $table->integer('mark_up_id');
             $table->double('price');
             $table->integer('quantity');
             $table->double('total_price');

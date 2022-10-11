@@ -57,9 +57,12 @@ Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::resource('/orderCustomers', 'App\Http\Controllers\OrderCustomerController');
 Route::get('/orderCustomers/fetchOrderByTransactionId/{id}', [OrderCustomerController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderCustomers/fetchOrderByProductId/{id}', [OrderCustomerController::class, 'fetchOrderByProductId']);
+Route::post('/orderCustomers/saveCustomerTransaction', [OrderCustomerController::class, 'saveCustomerTransaction']);
+// Route::post('/orderCustomers/saveCustomerTransaction', 'OrderCustomerController@request');
 
 
 Route::resource('/orderCustomerTransaction', 'App\Http\Controllers\OrderCustomerTransactionController');
+Route::get('/orderCustomerTransaction/fetchOrderByTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderCustomerTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderCustomerTransaction/setToCompleteTransaction/{id}', [OrderCustomerTransactionController::class, 'setToCompleteTransaction']);
 

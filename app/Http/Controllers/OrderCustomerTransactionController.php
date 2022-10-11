@@ -21,7 +21,7 @@ class OrderCustomerTransactionController extends Controller
             //  'order_customer_transaction.order_date', 'supplier.supplier_name', 'order_customer_transaction.status')    
             // ->get();
             // return response()->json($data);   
-            //
+
         $orderCustomerTransaction = OrderCustomerTransaction::all();
         // return view('categories.index')->with('categories', $categories);
         return response()->json($orderCustomerTransaction);
