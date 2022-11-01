@@ -89,25 +89,25 @@ class OrderCustomerTransactionController extends Controller
      * @param  \App\Models\orderCustomerTransaction  $orderCustomerTransaction
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, OrderCustomerTransaction $orderCustomerTransaction)
+    public function update(Request $request, $order_customer_transaction_id)
     {
-        $orderCustomerTransaction = OrderCustomerTransaction::find($orderCustomerTransaction->id);
+        $orderCustomerTransaction = OrderCustomerTransaction::find($order_customer_transaction_id);
 
         $total_transaction_price = DB::table('order_customer')
             ->join('order_customer_transaction', 'order_customer_transaction.id', '=', 'order_customer.order_customer_transaction_id')
-            ->where('order_customer_transaction.id', $request->id)
+            ->where('order_customer_transaction.id', $order_customer_transaction_id)
             ->sum('order_customer.total_price');
         
-        $orderCustomerTransaction->supplier_id = $request->input('supplier_id');
-        $orderCustomerTransaction->withTax = $request->input('withTax');
-        $orderCustomerTransaction->total_transaction_price = $total_transaction_price;
-        // $orderCustomerTransaction->total_transaction_price = 3000;
-        $orderCustomerTransaction->order_date = $request->input('order_date');
-        $orderCustomerTransaction->status = $request->input('status');
+        // $orderCustomerTransaction->supplier_id = $request->input('supplier_id');
+        // $orderCustomerTransaction->withTax = $request->input('withTax');
+        $orderCustomerTransaction->total_transaction_price = $total_transaction_price; 
+        // $orderCustomerTransaction->order_date = $request->input('order_date');
+        // $orderCustomerTransaction->status = $request->input('status');
         $orderCustomerTransaction->save();
       
 
-        return response()->json($orderCustomerTransaction);
+         return response()->json($orderCustomerTransaction);
+        //  return $order_customer_transaction_id;
     }
 
         public function setToCompleteTransaction($id)

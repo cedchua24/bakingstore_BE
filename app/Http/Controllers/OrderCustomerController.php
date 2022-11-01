@@ -169,9 +169,6 @@ class OrderCustomerController extends Controller
     public function update(Request $request, OrderCustomer $orderCustomer)
     {
         $orderCustomer = OrderCustomer::find($orderCustomer->id);
-
-        $orderCustomer->order_customer_transaction_id = $request->input('order_customer_transaction_id');
-        $orderCustomer->product_id = $request->input('product_id');
         $orderCustomer->price = $request->input('price');
         $orderCustomer->quantity = $request->input('quantity');
         $orderCustomer->total_price = $request->input('price') * $request->input('quantity');
@@ -192,7 +189,19 @@ class OrderCustomerController extends Controller
     {
         $orderCustomer = OrderCustomer::find($orderCustomer->id);
         $orderCustomer->delete();
+
+        $orderCustomerTransaction = OrderCustomerTransaction::find($orderCustomer->order_customer_transaction_id);
+
+        $total_transaction_price = DB::table('order_customer')
+            ->join('order_customer_transaction', 'order_customer_transaction.id', '=', 'order_customer.order_customer_transaction_id')
+            ->where('order_customer_transaction.id', $orderCustomer->order_customer_transaction_id)
+            ->sum('order_customer.total_price');
+        
+
+        $orderCustomerTransaction->total_transaction_price = $total_transaction_price; 
+
+        $orderCustomerTransaction->save();
  
         return response()->json($orderCustomer);
     }
-}
+}  
