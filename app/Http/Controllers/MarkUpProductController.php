@@ -17,8 +17,9 @@ class MarkUpProductController extends Controller
     { 
             $data = DB::table('mark_up_product as mup')
             ->join('products as p', 'mup.product_id', '=', 'p.id')
+            ->join('category as c', 'p.category_id', '=', 'c.id')
             ->select('mup.id', 'mup.product_id', 'mup.price',
-             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name', 'p.weight')
+             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name', 'p.weight', 'p.stock', 'p.category_id', 'c.category_name')
              ->where('mup.status', 1)
             ->get();
             return response()->json($data);   

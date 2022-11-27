@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderCustomer;
+use App\Models\Product;
 use App\Models\OrderCustomerTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -101,8 +102,13 @@ class OrderCustomerController extends Controller
                     $orderCustomer->quantity = $row['quantity'];
                     $orderCustomer->total_price = $row['total_price'];
                     $orderCustomer->discount = $row['discount'];
+                    $orderCustomer->save(); 
 
-                    $orderCustomer->save();
+                    // update stock
+                    $id = $row['product_id'];
+                    $product = Product::find($id);
+                    $product->stock = $product->stock - $row['quantity'];
+                    $product->save();
             }
         
        return  $orderCustomerTransaction->id;
