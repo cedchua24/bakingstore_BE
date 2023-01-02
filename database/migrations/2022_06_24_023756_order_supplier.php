@@ -20,6 +20,7 @@ return new class extends Migration
             $table->double('price');
             $table->integer('quantity');
             $table->double('total_price');
+            $table->integer('stock_remaining');
             $table->timestamps();
         });
     }

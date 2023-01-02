@@ -41,6 +41,8 @@ Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
+Route::resource('/warehouse', 'App\Http\Controllers\WarehouseController');
+Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 
 Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplierTransactionController');
 Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderSupplierTransactionController::class, 'fetchByOrderSupplierTransactionId']);
@@ -95,4 +97,4 @@ Route::put('/orderCustomerTransaction/setToCompleteTransaction/{id}', [OrderCust
 // Route::post('/categories', 'App\Http\Controllers\CategoryController@store');
 // Route::put('/categories/{category}', 'App\Http\Controllers\CategoryController@update');
 // Route::delete('/categories/{category}', 'App\Http\Controllers\CategoryController@destroy');
-// Route::get('/categories/getId/{category_name}', 'App\Http\Controllers\CategoryController@getId');
+// Route::get('/categories/getId/{category_name}', 'App\Http\Controllers\CategoryController@getId');5

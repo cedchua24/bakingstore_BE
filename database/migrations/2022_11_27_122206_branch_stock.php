@@ -13,18 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('mark_up_product', function (Blueprint $table) {
+        Schema::create('branch_stock', function (Blueprint $table) {
             $table->id();
-            $table->integer('product_id');
-            $table->integer('branch_stock_id');
-            $table->double('price');
-            $table->string('mark_up_option');
-            $table->double('mark_up_price');
-            $table->double('new_price');
+            $table->integer('branch_stock_transaction_id');
+            $table->integer('branch_stock');
             $table->integer('status');
             $table->timestamps();
         });
-
     }
 
     /**
@@ -34,6 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('mark_up_product');
+         Schema::dropIfExists('branch_stock');
     }
 };

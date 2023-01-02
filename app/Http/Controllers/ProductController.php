@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,8 +65,9 @@ class ProductController extends Controller
         $product->stock = $request->input('stock');
         $product->weight = $request->input('weight');
         $product->quantity = $request->input('quantity');
-
         $product->save();
+
+
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($product);
     }
