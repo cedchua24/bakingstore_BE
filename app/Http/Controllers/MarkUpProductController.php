@@ -18,8 +18,11 @@ class MarkUpProductController extends Controller
             $data = DB::table('mark_up_product as mup')
             ->join('products as p', 'mup.product_id', '=', 'p.id')
             ->join('category as c', 'p.category_id', '=', 'c.id')
+            ->join('branch_stock_transaction as b', 'b.id', '=', 'mup.branch_stock_transaction_id')
+            ->join('warehouse as w', 'w.id', '=', 'b.warehouse_id')
             ->select('mup.id', 'mup.product_id', 'mup.price',
-             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name', 'p.weight', 'p.stock', 'p.category_id', 'c.category_name')
+             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name',
+              'p.weight', 'p.stock', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id')
              ->where('mup.status', 1)
             ->get();
             return response()->json($data);   
@@ -57,6 +60,7 @@ class MarkUpProductController extends Controller
         $markUpProduct->mark_up_option = $request->input('mark_up_option');
         $markUpProduct->mark_up_price = $request->input('mark_up_price');
         $markUpProduct->new_price = $request->input('new_price');
+        $markUpProduct->branch_stock_transaction_id = $request->input('branch_stock_transaction_id');
         $markUpProduct->status = 1;
 
         $markUpProduct->save();

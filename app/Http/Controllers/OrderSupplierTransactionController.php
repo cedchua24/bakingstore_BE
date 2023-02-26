@@ -20,7 +20,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status')    
+             'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->get();
             return response()->json($data);   
     }
@@ -57,6 +57,7 @@ class OrderSupplierTransactionController extends Controller
         $orderSupplierTransaction->withTax = $request->input('withTax');
         $orderSupplierTransaction->total_transaction_price = $request->input('total_transaction_price');
         $orderSupplierTransaction->status = $request->input('status');
+        $orderSupplierTransaction->stock_status = 0;
         $orderSupplierTransaction->order_date = $request->input('order_date');
           
         $orderSupplierTransaction->save();

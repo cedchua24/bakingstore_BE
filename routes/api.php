@@ -8,6 +8,14 @@ use App\Http\Controllers\OrderCustomerController;
 use App\Http\Controllers\OrderSupplierController;
 use App\Http\Controllers\OrderCustomerTransactionController;
 use App\Http\Controllers\OrderSupplierTransactionController;
+use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ShopTypeController;
+use App\Http\Controllers\ShopOrderTransactionController;
+use App\Http\Controllers\ShopOrderController;
+use App\Http\Controllers\BranchStockTransactionController;
+
+
 
 // Route::middleware('auth:sanctum')->group(function () {
 // Route::post('/register', [AuthController::class, 'register']);
@@ -41,7 +49,6 @@ Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
-Route::resource('/warehouse', 'App\Http\Controllers\WarehouseController');
 Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 
 Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplierTransactionController');
@@ -67,6 +74,28 @@ Route::resource('/orderCustomerTransaction', 'App\Http\Controllers\OrderCustomer
 Route::get('/orderCustomerTransaction/fetchOrderByTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderCustomerTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderCustomerTransaction/setToCompleteTransaction/{id}', [OrderCustomerTransactionController::class, 'setToCompleteTransaction']);
+
+Route::resource('/warehouse', 'App\Http\Controllers\WarehouseController');
+Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, 'fetchWarehouseStock']);
+
+Route::resource('/shop', 'App\Http\Controllers\ShopController');
+Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
+
+Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
+Route::get('/shopOrderTransaction/fetchShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
+Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
+Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
+
+Route::resource('/shopOrder', 'App\Http\Controllers\ShopOrderController');
+Route::get('/shopOrder/fetchShopOrderDTO/{id}', [ShopOrderController::class, 'fetchShopOrderDTO']);
+Route::get('/shopOrder/fetchShopOrder/{id}', [ShopOrderController::class, 'fetchShopOrder']);
+Route::delete('/shopOrder/delete/{user}', [ShopOrderController::class, 'delete']);
+
+Route::resource('/branchStockTransaction', 'App\Http\Controllers\BranchStockTransactionController');
+Route::get('/branchStockTransaction/fetchBranchStockWarehouseList/{id}', [BranchStockTransactionController::class, 'fetchBranchStockWarehouseList']);
+
+
+Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 
 
 

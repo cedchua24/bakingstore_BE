@@ -127,8 +127,8 @@ class OrderCustomerController extends Controller
         return  response()->json($orderCustomer);
     }
 
-         public function fetchOrderByTransactionId($id)
-    {
+    public function fetchOrderByTransactionId($id)
+      {
         $data = DB::table('order_customer')
             ->join('order_customer_transaction', 'order_customer_transaction.id', '=', 'order_customer.order_customer_transaction_id')
             ->join('mark_up_product', 'mark_up_product.id', '=', 'order_customer.mark_up_id')
@@ -138,7 +138,7 @@ class OrderCustomerController extends Controller
             ->where('order_customer_transaction.id', $id)
             ->get();
             return response()->json($data);   
-    }
+      }
 
 
      public function fetchOrderByProductId($id)

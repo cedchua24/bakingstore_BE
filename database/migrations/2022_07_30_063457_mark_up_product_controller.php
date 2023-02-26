@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('mark_up_product', function (Blueprint $table) {
             $table->id();
             $table->integer('product_id');
-            $table->integer('branch_stock_id');
+            $table->integer('branch_stock_transaction_id');
             $table->double('price');
             $table->string('mark_up_option');
             $table->double('mark_up_price');

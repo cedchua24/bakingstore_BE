@@ -6,6 +6,7 @@ use App\Models\BranchStock;
 use App\Models\BranchStockTransaction;
 use App\Models\Product;
 use App\Models\OrderSupplier;
+use App\Models\OrderSupplierTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -69,9 +70,8 @@ class BranchStockController extends Controller
         }
 
         $branchStock = new BranchStock;
-        $branchStock->warehouse_id = $request->input('warehouse_id');
-        $branchStock->product_id = $request->input('product_id');
         $branchStock->branch_stock = $request->input('branch_stock');
+        $branchStock->branch_stock_transaction_id = $branchStockTransaction->id;
         $branchStock->status = 1;
         $branchStock->save();
 
@@ -83,8 +83,20 @@ class BranchStockController extends Controller
         $orderSupplier->stock_remaining = ($orderSupplier->stock_remaining - $request->input('branch_stock'));
         $orderSupplier->save();
 
+        $updateStock = DB::table('order_supplier')
+            ->select('order_supplier.id')    
+            ->where('order_supplier.order_supplier_transaction_id', $orderSupplier->order_supplier_transaction_id)
+            ->where('order_supplier.stock_remaining', '>', 0)
+            ->first();
+
+         if ($updateStock == null) {
+           $orderSupplierTransaction = OrderSupplierTransaction::find($orderSupplier->order_supplier_transaction_id);
+           $orderSupplierTransaction->stock_status = 1;
+           $orderSupplierTransaction->save();
+         }
+
         $response = [
-            'id' => $orderSupplier->id,
+            'id' => $updateStock,
             'stock' => $orderSupplier->stock_remaining,
             'code' => 200,
             'message' => "Successfully Added"

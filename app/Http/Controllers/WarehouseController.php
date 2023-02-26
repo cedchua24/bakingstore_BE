@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WarehouseController extends Controller
 {
@@ -16,6 +17,19 @@ class WarehouseController extends Controller
     {
         $warehouse = Warehouse::all();
         return response()->json($warehouse);
+    }
+
+    public function fetchWarehouseStock($id)
+    {
+        $data = DB::table('branch_stock_transaction')
+            ->join('warehouse', 'warehouse.id', '=', 'branch_stock_transaction.warehouse_id')
+            ->join('products', 'products.id', '=', 'branch_stock_transaction.product_id')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->select('branch_stock_transaction.id', 'branch_stock_transaction.branch_stock_transaction', 'warehouse.warehouse_name',  'products.product_name',
+             'products.price', 'products.weight', 'products.quantity', 'category.category_name')    
+            ->where('branch_stock_transaction.warehouse_id', $id)
+            ->get();
+            return response()->json($data);   
     }
 
     /**
