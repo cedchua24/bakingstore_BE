@@ -164,46 +164,51 @@ class ShopOrderTransactionController extends Controller
         return response()->json($shopOrderTransaction);
     }
 
-    public function cancel(Request $request, ShopOrder $shopOrder)
+    public function deleteShopOrderTransaction(Request $request, ShopOrderTransaction $shopOrderTransaction)
+    {
+             return response()->json($request);
+    }
+
+    public function cancel(Request $request, ShopOrderTransaction $shopOrderTransaction)
     {
   
-        $shopOrderDelete = ShopOrder::find($shopOrder->id);
-        $shopOrderDelete->delete();
+        // $shopOrderDelete = ShopOrder::find($shopOrder->id);
+        // $shopOrderDelete->delete();
    
-        $data = DB::table('shop_order')
-          ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
-          ->where('shop_order.shop_transaction_id', $shopOrder->shop_transaction_id)
-          ->first();
+        // $data = DB::table('shop_order')
+        //   ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
+        //   ->where('shop_order.shop_transaction_id', $shopOrder->shop_transaction_id)
+        //   ->first();
 
-         if ($data->shop_order_transaction_total_price == null) {
-           $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
-           $shopOrderTransaction->shop_order_transaction_total_quantity = 0;
-           $shopOrderTransaction->shop_order_transaction_total_price = 0;
-           $shopOrderTransaction->save();    
-         } else {
-           $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
-           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
-           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
-           $shopOrderTransaction->save();           
-         }
+        //  if ($data->shop_order_transaction_total_price == null) {
+        //    $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
+        //    $shopOrderTransaction->shop_order_transaction_total_quantity = 0;
+        //    $shopOrderTransaction->shop_order_transaction_total_price = 0;
+        //    $shopOrderTransaction->save();    
+        //  } else {
+        //    $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
+        //    $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
+        //    $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
+        //    $shopOrderTransaction->save();           
+        //  }
           
 
-        $reduced_stock_id = DB::table('reduced_stock')
-          ->select(DB::raw('id'))    
-          ->where('reduced_stock.shop_order_id', $shopOrder->id)
-          ->first();
-        $reducedStock = ReducedStock::find($reduced_stock_id->id);
-        $reducedStock->delete();
+        // $reduced_stock_id = DB::table('reduced_stock')
+        //   ->select(DB::raw('id'))    
+        //   ->where('reduced_stock.shop_order_id', $shopOrder->id)
+        //   ->first();
+        // $reducedStock = ReducedStock::find($reduced_stock_id->id);
+        // $reducedStock->delete();
 
-        $branchStockTransaction = BranchStockTransaction::find($shopOrder->branch_stock_transaction_id);
-        $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction + $shopOrder->shop_order_quantity);
-        $branchStockTransaction->save();
+        // $branchStockTransaction = BranchStockTransaction::find($shopOrder->branch_stock_transaction_id);
+        // $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction + $shopOrder->shop_order_quantity);
+        // $branchStockTransaction->save();
 
-        $product = Product::find($shopOrder->product_id);
-        $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
-        $product->save();
+        // $product = Product::find($shopOrder->product_id);
+        // $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
+        // $product->save();
 
-        return response()->json($data);
+        return response()->json($shopOrderTransaction);
     }
 
 

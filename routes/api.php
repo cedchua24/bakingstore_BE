@@ -85,6 +85,9 @@ Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransact
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
+Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);
+Route::delete('/shopOrderTransaction/deleteShopOrderTransaction/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'deleteShopOrderTransaction']);
+
 
 Route::resource('/shopOrder', 'App\Http\Controllers\ShopOrderController');
 Route::get('/shopOrder/fetchShopOrderDTO/{id}', [ShopOrderController::class, 'fetchShopOrderDTO']);
