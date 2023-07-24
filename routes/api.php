@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use app\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderCustomerController;
 use App\Http\Controllers\OrderSupplierController;
+use App\Http\Controllers\ProductTransaction;
 use App\Http\Controllers\OrderCustomerTransactionController;
 use App\Http\Controllers\OrderSupplierTransactionController;
 use App\Http\Controllers\WarehouseController;
@@ -47,7 +48,10 @@ Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');
 Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
+Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
+Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
+Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
 Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 
@@ -71,6 +75,7 @@ Route::post('/orderCustomers/saveCustomerTransaction', [OrderCustomerController:
 
 
 Route::resource('/orderCustomerTransaction', 'App\Http\Controllers\OrderCustomerTransactionController');
+Route::get('/orderCustomerTransaction/fetchCustomerOrderTransaction/{id}', [OrderCustomerTransactionController::class, 'fetchCustomerOrderTransaction']);
 Route::get('/orderCustomerTransaction/fetchOrderByTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderCustomerTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderCustomerTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderCustomerTransaction/setToCompleteTransaction/{id}', [OrderCustomerTransactionController::class, 'setToCompleteTransaction']);
@@ -80,10 +85,16 @@ Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, '
 
 Route::resource('/shop', 'App\Http\Controllers\ShopController');
 Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
+Route::get('/shop/fetcOnlineShopList/{id}', [ShopController::class, 'fetcOnlineShopList']);
+Route::get('/shop/fetchPhysicalStoreList/{id}', [ShopController::class, 'fetchPhysicalStoreList']);
+Route::get('/shop/fetchOnlineOrderList/{id}', [ShopController::class, 'fetchOnlineOrderList']);
+Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
-Route::get('/shopOrderTransaction/fetchShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
+Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
 Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);
 Route::delete('/shopOrderTransaction/deleteShopOrderTransaction/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'deleteShopOrderTransaction']);

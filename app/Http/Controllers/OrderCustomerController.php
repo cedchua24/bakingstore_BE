@@ -43,41 +43,95 @@ class OrderCustomerController extends Controller
      */
     public function store(Request $request)
     {
-        // $this->validate($request, [
-        //     'product_id' => 'required',
-        //     'price' => 'required',
-        //     'total_price' => 'required',
-        //     'quantity' => 'required'
-        // ]);
+        $orderCustomer = new OrderCustomer; 
+        $orderCustomer->shop_transaction_id	= $request->input('shop_transaction_id');
+        $orderCustomer->branch_stock_transaction_id	= $request->input('branch_stock_transaction_id');
+        $orderCustomer->product_id = $request->input('product_id');
+        $orderCustomer->shop_order_quantity = $request->input('shop_order_quantity');
+        $orderCustomer->shop_order_price = $request->input('shop_order_price');
+        $orderCustomer->shop_order_total_price = $request->input('shop_order_total_price');
+        $orderCustomer->save();
 
-        // $orderCustomer = new OrderCustomer;
-        // $orderCustomer->order_customer_transaction_id = 0;
-        // $orderCustomer->product_id = $request->input('product_id');
-        // $orderCustomer->price = $request->input('price');
-        // $orderCustomer->quantity = $request->input('quantity');
-        // $orderCustomer->total_price = $request->input('total_price');
-        // $orderCustomer->discount = $request->input('discount');
+        $data = DB::table('shop_order')
+          ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
+          ->where('shop_order.shop_transaction_id', $request->input('shop_transaction_id'))
+          ->first();
+    
 
-        // $orderCustomer->save();
+        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_transaction_id'));
+        $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
+        $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
+        $shopOrderTransaction->save();
 
-        // return  response()->json($orderCustomer);
-            $data = $request ->json()->all();
-                
-    //     foreach ($data as $row) {
-    //         // $result = $row['id'];
-    //         $orderCustomer = new OrderCustomer;
-    //         $orderCustomer->order_customer_transaction_id = 0;
-    //         $orderCustomer->product_id = $row['product_id'];
-    //         $orderCustomer->price = $row['price'];
-    //         $orderCustomer->quantity = $row['quantity'];
-    //         $orderCustomer->total_price = $row['total_price'];
-    //         $orderCustomer->discount = $row['discount'];
+        $reducedStock = new ReducedStock;
+        $reducedStock->shop_order_id = $orderCustomer->id;
+        $reducedStock->product_id = $request->input('product_id');
+        $reducedStock->reduced_stock = $request->input('shop_order_quantity');
+        $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
+        $reducedStock->save();
 
-    //          $orderCustomer->save();
-    //    }
+        $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
+        $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
+        $branchStockTransaction->save();
+
         
-       return  $data;
+        $product = Product::find($request->input('product_id'));
+        $product->stock = ($product->stock - $request->input('shop_order_quantity'));
+        $product->save();
 
+
+        return  response()->json($orderCustomer);
+
+
+    }
+     public function saveCustomerTransactionV2(Request $request)
+    {
+        $this->validate($request, [
+            'shop_transaction_id' => 'required'
+        ]);
+
+        // $item = UserProfile::create($data);
+
+        // Create Post
+        $orderCustomer = new OrderCustomer; 
+        $orderCustomer->shop_transaction_id	= $request->input('shop_transaction_id');
+        $orderCustomer->mark_up_id = 0;
+        $orderCustomer->branch_stock_transaction_id	= $request->input('branch_stock_transaction_id');
+        $orderCustomer->product_id = $request->input('product_id');
+        $orderCustomer->shop_order_quantity = $request->input('shop_order_quantity');
+        $orderCustomer->shop_order_price = $request->input('shop_order_price');
+        $orderCustomer->shop_order_total_price = $request->input('shop_order_total_price');
+        $orderCustomer->save();
+
+        $data = DB::table('shop_order')
+          ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
+          ->where('shop_order.shop_transaction_id', $request->input('shop_transaction_id'))
+          ->first();
+    
+
+        $orderCustomerTransaction = OrderCustomerTransaction::find($request->input('shop_transaction_id'));
+        $orderCustomerTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
+        $orderCustomerTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
+        $orderCustomerTransaction->save();
+
+        $reducedStock = new ReducedStock;
+        $reducedStock->shop_order_id = $orderCustomer->id;
+        $reducedStock->product_id = $request->input('product_id');
+        $reducedStock->reduced_stock = $request->input('shop_order_quantity');
+        $reducedStock->reduced_stock_by_shop_id = $orderCustomerTransaction->shop_id;
+        $reducedStock->save();
+
+        $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
+        $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
+        $branchStockTransaction->save();
+
+        
+        $product = Product::find($request->input('product_id'));
+        $product->stock = ($product->stock - $request->input('shop_order_quantity'));
+        $product->save();
+
+
+        return  response()->json($product);
 
     }
 
@@ -98,6 +152,7 @@ class OrderCustomerController extends Controller
                     $orderCustomer = new OrderCustomer;
                     $orderCustomer->order_customer_transaction_id = $orderCustomerTransaction->id;
                     $orderCustomer->mark_up_id = $row['mark_up_id'];
+                    $orderCustomer->branch_stock_transaction_id = 0;
                     $orderCustomer->price = $row['price'];
                     $orderCustomer->quantity = $row['quantity'];
                     $orderCustomer->total_price = $row['total_price'];
@@ -111,7 +166,12 @@ class OrderCustomerController extends Controller
                     $product->save();
             }
         
-       return  $orderCustomerTransaction->id;
+          $response = [
+              'data' => $orderCustomerTransaction,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+       return  $response;
 
     }
 

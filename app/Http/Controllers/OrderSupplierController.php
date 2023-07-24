@@ -57,8 +57,12 @@ class OrderSupplierController extends Controller
         $orderSupplier->quantity = $request->input('quantity');
         $orderSupplier->total_price = $request->input('price') * $request->input('quantity');
         $orderSupplier->stock_remaining = $request->input('quantity');
-
+ 
         $orderSupplier->save();
+
+        $products = Product::find($request->input('product_id'));
+        $products->price = $request->input('price');
+        $products->save();
 
         return  response()->json($orderSupplier);
     }

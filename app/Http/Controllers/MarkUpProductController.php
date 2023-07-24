@@ -21,9 +21,10 @@ class MarkUpProductController extends Controller
             ->join('branch_stock_transaction as b', 'b.id', '=', 'mup.branch_stock_transaction_id')
             ->join('warehouse as w', 'w.id', '=', 'b.warehouse_id')
             ->select('mup.id', 'mup.product_id', 'mup.price',
-             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name',
-              'p.weight', 'p.stock', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id')
+             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name', 'p.quantity',
+              'p.weight', 'p.stock','p.stock_pc', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')
              ->where('mup.status', 1)
+             ->where('p.stock', '!=', 0)
             ->get();
             return response()->json($data);   
     }
@@ -62,6 +63,7 @@ class MarkUpProductController extends Controller
         $markUpProduct->new_price = $request->input('new_price');
         $markUpProduct->branch_stock_transaction_id = $request->input('branch_stock_transaction_id');
         $markUpProduct->status = 1;
+        $markUpProduct->business_type = $request->input('business_type');
 
         $markUpProduct->save();
         return  response()->json($markUpProduct);

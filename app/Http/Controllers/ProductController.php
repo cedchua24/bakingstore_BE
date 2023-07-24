@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use App\Models\Product;
+use App\Models\ProductPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +24,7 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id','category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
             ->get();
             return response()->json($data);   
     }
@@ -64,12 +65,33 @@ class ProductController extends Controller
         $product->price = $request->input('price');
         $product->stock = $request->input('stock');
         $product->weight = $request->input('weight');
+        $product->packaging = $request->input('packaging');
         $product->quantity = $request->input('quantity');
+
+        if ($request->input('quantity') > 1) {
+            $product->stock_pc = $request->input('quantity') * $request->input('stock');
+        } else {
+            $product->stock_pc = null;
+        }
+
         $product->save();
 
+        
+        $productPrice = new ProductPrice;
+        $productPrice->product_id = $product->id;
+        $productPrice->product_price = $product->price;
+        $productPrice->status = 1;
+        $productPrice->save();
+
+        $response = [
+              'id' => $product->id,
+              'stock' => $product->stock,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
 
         // return redirect('/categories')->with('success', 'Categories Created');
-        return  response()->json($product);
+        return  response()->json($response);
     }
 
     /**
@@ -116,6 +138,10 @@ class ProductController extends Controller
         $products->stock = $request->input('stock');
         $products->weight = $request->input('weight');
         $products->quantity = $request->input('quantity');
+
+        if ($request->input('quantity') > 1) {
+          $products->stock_pc = $request->input('quantity') * $request->input('stock');  
+        }
 
         $products->save();
       

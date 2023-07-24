@@ -29,6 +29,51 @@ class ShopController extends Controller
         return response()->json($data);   
     }
 
+        public function fetcOnlineShopList()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description')
+          ->where('shop_type.id', 2)  
+          ->get();
+        return response()->json($data);   
+    }
+
+      public function fetchPhysicalStoreList()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description')
+          ->whereIn('shop_type.id', [1,2])    
+          ->get();
+        return response()->json($data);   
+    }
+
+      public function fetchOnlineOrderList()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description')
+          ->where('shop_type.id', 3)  
+          ->get();
+        return response()->json($data);   
+    }
+
+     public function test()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description')
+          ->where('shop_type.id', 3)  
+          ->first();
+        return response()->json($data);   
+    }
+
+
 
 
     /**

@@ -27,6 +27,18 @@ class OrderCustomerTransactionController extends Controller
         return response()->json($orderCustomerTransaction);
     }
 
+    public function fetchCustomerOrderTransaction($id)
+    {
+        $data = DB::table('order_customer_transaction as oct')
+            ->join('customer as c', 'c.id', '=', 'oct.customer_id')
+            ->select('c.first_name', 'c.last_name',
+             'c.address','c.email','oct.updated_at','oct.created_at',
+             'oct.customer_id',  'oct.total_transaction_price', 'oct.status')    
+            ->where('oct.id', $id)
+            ->first();
+            return response()->json($data);   
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -45,16 +57,30 @@ class OrderCustomerTransactionController extends Controller
      */
     public function store(Request $request)
     {
+        // $this->validate($request, [
+        //     'total_transaction_price' => 'required'
+        // ]); 
+        // $orderCustomerTransaction = new OrderCustomerTransaction;
+        // $orderCustomerTransaction->customer_id = 0;
+        // $orderCustomerTransaction->total_transaction_price = $request->input('total_transaction_price');
+        // $orderCustomerTransaction->status = 0;
+          
+        // $orderCustomerTransaction->save();                    
+        // return  response()->json($orderCustomerTransaction);
+
         $this->validate($request, [
-            'total_transaction_price' => 'required'
+            'customer_id' => 'required'
         ]); 
         $orderCustomerTransaction = new OrderCustomerTransaction;
-        $orderCustomerTransaction->customer_id = 0;
-        $orderCustomerTransaction->total_transaction_price = $request->input('total_transaction_price');
+        $orderCustomerTransaction->customer_id = $request->input('customer_id');
+        $orderCustomerTransaction->total_transaction_price = 0;
         $orderCustomerTransaction->status = 0;
           
         $orderCustomerTransaction->save();                    
         return  response()->json($orderCustomerTransaction);
+
+
+        
     }
 
     /**

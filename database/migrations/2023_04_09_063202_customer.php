@@ -13,15 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('order_customer', function (Blueprint $table) {
+        Schema::create('customer', function (Blueprint $table) {
             $table->id();
-            $table->integer('order_customer_transaction_id');
-             $table->integer('branch_stock_transaction_id');  
-            $table->integer('mark_up_id');
-            $table->double('price');
-            $table->integer('quantity');
-            $table->double('total_price');
-            $table->double('discount');
+            $table->string('first_name');
+            $table->string('last_name');  
+            $table->integer('contact_number');
+            $table->string('email');
+            $table->string('address');
             $table->timestamps();
         });
     }
@@ -33,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-       Schema::dropIfExists('order_customer');
+        Schema::dropIfExists('customer');
     }
 };

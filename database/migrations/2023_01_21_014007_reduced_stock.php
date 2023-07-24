@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('reduced_stock', function (Blueprint $table) {
             $table->id();
             $table->integer('shop_order_id');
-            $table->integer('product_id');
+            $table->integer('mark_up_product_id');
             $table->integer('reduced_stock');
             $table->integer('reduced_stock_by_shop_id');
             $table->timestamps();

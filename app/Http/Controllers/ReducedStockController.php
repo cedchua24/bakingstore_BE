@@ -37,14 +37,14 @@ class ReducedStockController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'product_id' => 'required'
+            'mark_up_product_id' => 'required'
         ]);
 
         // $item = UserProfile::create($data);
 
         // Create Post
         $reducedStock = new ReducedStock;
-        $reducedStock->product_id = $request->input('product_id');
+        $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
         $reducedStock->reduced_stock = $request->input('reduced_stock');
         $reducedStock->reduced_stock_by_shop_id = $request->input('reduced_stock_by_shop_id');
         $reducedStock->save();
@@ -86,7 +86,7 @@ class ReducedStockController extends Controller
     {
         $reducedStock = ReducedStock::find($reducedStock->id);
         
-        $reducedStock->product_id = $request->input('product_id');
+        $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
         $reducedStock->reduced_stock = $request->input('reduced_stock');
         $reducedStock->reduced_stock_by_shop_id = $request->input('reduced_stock_by_shop_id');
         $reducedStock->save();

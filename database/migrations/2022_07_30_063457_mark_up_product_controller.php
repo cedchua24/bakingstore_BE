@@ -22,6 +22,7 @@ return new class extends Migration
             $table->double('mark_up_price');
             $table->double('new_price');
             $table->integer('status');
+            $table->string('business_type');
             $table->timestamps();
         });
 

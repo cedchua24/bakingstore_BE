@@ -28,9 +28,10 @@ class ShopOrderController extends Controller
     {
         
         $data = DB::table('shop_order')
-            ->join('products', 'products.id', '=', 'shop_order.product_id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
+            ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
-             'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id')    
+             'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'mup.business_type')    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -39,7 +40,8 @@ class ShopOrderController extends Controller
        public function fetchShopOrderDTO($id)
     {
         $data = DB::table('shop_order')
-            ->join('products', 'products.id', '=', 'shop_order.product_id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
+            ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id')    
             ->where('shop_order.shop_transaction_id', $id)
@@ -79,9 +81,10 @@ class ShopOrderController extends Controller
         // $item = UserProfile::create($data);
 
         // Create Post
-        $shopOrder = new ShopOrder;
+        $shopOrder = new ShopOrder; 
         $shopOrder->shop_transaction_id	= $request->input('shop_transaction_id');
         $shopOrder->branch_stock_transaction_id	= $request->input('branch_stock_transaction_id');
+        $shopOrder->mark_up_product_id = $request->input('mark_up_product_id');
         $shopOrder->product_id = $request->input('product_id');
         $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
         $shopOrder->shop_order_price = $request->input('shop_order_price');
@@ -101,7 +104,7 @@ class ShopOrderController extends Controller
 
         $reducedStock = new ReducedStock;
         $reducedStock->shop_order_id = $shopOrder->id;
-        $reducedStock->product_id = $request->input('product_id');
+        $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
         $reducedStock->reduced_stock = $request->input('shop_order_quantity');
         $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
         $reducedStock->save();
@@ -110,13 +113,21 @@ class ShopOrderController extends Controller
         $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
         $branchStockTransaction->save();
 
-        
         $product = Product::find($request->input('product_id'));
-        $product->stock = ($product->stock - $request->input('shop_order_quantity'));
-        $product->save();
+        if ($request->input('business_type') === 'WHOLESALE') {
+          $product->stock = ($product->stock - $request->input('shop_order_quantity'));
+          $product->stock_pc = $product->stock_pc - ($product->weight * $request->input('shop_order_quantity')) ;
+          $product->save();
+        } else {
+          $newStock = $product->stock_pc - $request->input('shop_order_quantity');
+          $product->stock_pc = $newStock;
+          $product->stock = ($newStock / $product->weight);
+          $product->save();
+        }
 
 
-        return  response()->json($shopOrder);
+
+        return  response()->json($request);
     }
 
     /**
@@ -240,7 +251,8 @@ class ShopOrderController extends Controller
           
 
         $reduced_stock_id = DB::table('reduced_stock')
-          ->select(DB::raw('id'))    
+          ->join('mark_up_product as mup', 'mup.id', '=', 'reduced_stock.mark_up_product_id')
+          ->select('reduced_stock.id', 'mup.business_type')    
           ->where('reduced_stock.shop_order_id', $shopOrder->id)
           ->first();
         $reducedStock = ReducedStock::find($reduced_stock_id->id);
@@ -250,11 +262,23 @@ class ShopOrderController extends Controller
         $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction + $shopOrder->shop_order_quantity);
         $branchStockTransaction->save();
 
-        $product = Product::find($shopOrder->product_id);
-        $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
-        $product->save();
+        // $product = Product::find($shopOrder->product_id);
+        // $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
+        // $product->save();
 
-        return response()->json($data);
+         $product = Product::find($shopOrder->product_id);
+        if ($reduced_stock_id->business_type === 'WHOLESALE') {
+          $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
+          $product->stock_pc = $product->stock_pc + ($product->weight * $shopOrder->shop_order_quantity);
+          $product->save();
+        } else {
+          $newStock = $product->stock_pc + $shopOrder->shop_order_quantity;
+          $product->stock_pc = $newStock;
+          $product->stock = ($newStock / $product->weight);
+          $product->save();
+        }
+
+        return response()->json($reduced_stock_id);
     }
 
     

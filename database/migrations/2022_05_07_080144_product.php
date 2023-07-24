@@ -20,7 +20,9 @@ return new class extends Migration
             $table->string('product_name');
             $table->double('price');
             $table->integer('stock');
+            $table->integer('stock_pc');
             $table->integer('weight');
+            $table->string('packaging');
             $table->integer('quantity');
             $table->timestamps();
         });

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('shop_transaction_id');
             $table->integer('branch_stock_transaction_id');  
             $table->integer('product_id');
+            $table->integer('mark_up_product_id');
             $table->integer('shop_order_quantity');
             $table->integer('shop_order_price');
             $table->double('shop_order_total_price');

@@ -26,25 +26,91 @@ class ShopOrderTransactionController extends Controller
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name',
+             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+            ->where('shop.shop_type_id', '!=', 3)
+             ->get();
+            return response()->json($data);   
+    }
+
+   public function fetchOnlineShopOrderTransactionList($id)
+    {
+        $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
+             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+             ->where('shop.shop_type_id', 3)
             ->get();
             return response()->json($data);   
     }
 
     public function fetchShopOrderTransaction($id)
     {
-        $data = DB::table('shop_order_transaction')
+
+         $shopOrderTransaction = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('shop_type as st', 'st.id', '=', 's.shop_type_id')
+            ->select('st.id')    
+            ->where('sot.id', $id)
+            ->first();
+
+        switch ($shopOrderTransaction->id) {
+        case 1:
+           $data = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name',
+             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
             ->where('shop_order_transaction.id', $id)
             ->first();
+            break;
+        case 2:
+           $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+            ->where('shop_order_transaction.id', $id)
+            ->first();
+            break;
+        case 3 :
+          $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id',
+             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+            ->where('shop_order_transaction.id', $id)
+            ->first();
+            break;
+        default:
+            echo "Error";
+        }
             return response()->json($data);   
+    }
+
+        public function fetchOnlineShopOrderTransaction($id)
+    {
+        // $data = DB::table('shop_order_transaction')
+        //     ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+        //     ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
+        //     ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+        //      'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+        //      'shop_order_transaction.updated_at',  'shop.shop_name',
+        //      'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+        //     ->where('shop_order_transaction.id', $id)
+        //     ->first();
+            return response()->json($shopOrderTransaction);   
     }
 
         public function fetchShopOrderTransactionList()
