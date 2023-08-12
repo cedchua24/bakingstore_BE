@@ -31,7 +31,7 @@ class ShopOrderController extends Controller
             ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
-             'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'mup.business_type')    
+             'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'mup.business_type', 'mup.id as mark_up_product_id')    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -166,9 +166,20 @@ class ShopOrderController extends Controller
         $shopOrder = ShopOrder::find($shopOrder->id);
         $product = Product::find($request->input('product_id'));
         
-        $newStocks = ($request->input('shop_order_quantity') - $shopOrder->shop_order_quantity);
+        $newStocks = ($shopOrder->shop_order_quantity - $request->input('shop_order_quantity'));
+        $newStocks_pc = 0;
+        $currentStock = 0;
+         
 
-        if ($request->input('shop_order_quantity') > $product->stock) {
+        if ($request->input('business_type') === 'WHOLESALE') {
+           $currentStock = $product->stock;
+           $newStocks_pc = ($shopOrder->shop_order_quantity * $product->weight) - ($request->input('shop_order_quantity') * $product->weight);
+        } else {
+          $currentStock = $product->stock_pc;
+          $newStocks_pc =  $product->stock_pc - ($request->input('shop_order_quantity') - $shopOrder->shop_order_quantity);
+        }
+       
+        if ($request->input('shop_order_quantity') > $currentStock) {
           $response = [
             'id' => $request->input('product_id'),
             'stock' => $product->stock,
@@ -197,7 +208,7 @@ class ShopOrderController extends Controller
 
           $reducedStock = new ReducedStock;
           $reducedStock->shop_order_id = $shopOrder->id;
-          $reducedStock->product_id = $request->input('product_id');
+          $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
           $reducedStock->reduced_stock = $request->input('shop_order_quantity');
           $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
           $reducedStock->save();
@@ -207,12 +218,29 @@ class ShopOrderController extends Controller
           $branchStockTransaction->save();
 
         
-          $product->stock = ($product->stock + $newStocks);   
-          $product->save();
+        if ($request->input('business_type') === 'WHOLESALE') {
+           $product->stock = ($product->stock + $newStocks);
+          if ($product->stock_pc != null) {
+              $product->stock_pc = $product->stock_pc + $newStocks_pc;
+          }   
+          
+        } else {
+          if ($product->stock_pc != null) {
+            $stock_pc = ($product->stock_pc + $shopOrder->shop_order_quantity) - $request->input('shop_order_quantity');
+            $retailStock = ($shopOrder->shop_order_quantity / $product->weight) + $product->stock;   
+            $stock = $retailStock - ($request->input('shop_order_quantity') / $product->weight); 
+            //
+            $product->stock_pc = $stock_pc;
+            $product->stock = $stock;
+          } 
+        }  
 
-          $response = [
+          $product->save();
+          
+
+            $response = [
               'id' => $request->input('product_id'),
-              'stock' => $product->stock,
+              'stock' => $product,
               'code' => 200,
               'message' => "Successfully Added"
           ];

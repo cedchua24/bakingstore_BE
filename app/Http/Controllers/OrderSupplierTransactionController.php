@@ -140,10 +140,16 @@ class OrderSupplierTransactionController extends Controller
             ->where('order_supplier_transaction.id', $id)
             ->get();
 
-            foreach ($total_transaction_price as $row) {
+            foreach ($total_transaction_price as $row) { 
                 $product = Product::find($row->product_id);
                 $initialStock = $product->stock;
                 $product->stock = ($initialStock + $row->quantity);
+                    if ($product->stock_pc != NULL) {
+                        $newStock = 0;
+                        $newStock = $product->weight * $row->quantity;  
+                        $product->stock_pc = $product->stock_pc + $newStock;
+                    }
+
                 $product->save();
             }
 
