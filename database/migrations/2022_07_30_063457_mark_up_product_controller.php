@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('mark_up_option');
             $table->double('mark_up_price');
             $table->double('new_price');
+            $table->double('profit');
             $table->integer('status');
             $table->string('business_type');
             $table->timestamps();

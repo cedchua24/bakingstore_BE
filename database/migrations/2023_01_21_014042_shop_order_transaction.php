@@ -18,9 +18,11 @@ return new class extends Migration
             $table->integer('shop_id');
             $table->integer('shop_order_transaction_total_quantity');
             $table->double('shop_order_transaction_total_price');
+            $table->double('profit');
             $table->integer('requestor');
             $table->integer('checker');
             $table->integer('status');
+            $table->date('date');
             $table->timestamps();
         });
     }

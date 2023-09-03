@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('shop_order_quantity');
             $table->integer('shop_order_price');
             $table->double('shop_order_total_price');
+            $table->double('shop_order_profit');
             $table->timestamps();
         });
     }

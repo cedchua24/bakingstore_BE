@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ShopOrderTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 
 class ShopOrderTransactionController extends Controller
@@ -18,33 +19,152 @@ class ShopOrderTransactionController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+     
     public function index()
     {
-        $data = DB::table('shop_order_transaction')
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
+            ->where('shop.shop_type_id', '!=', 3)
+           
+            ->orderBy('shop_order_transaction.date', 'DESC')
+            ->get();
+         
+
+            $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
+            ->where('shop.shop_type_id', '!=', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+
+
+        
+            return response()->json($response);   
+    }
+
+       public function fetchShopOrderTransactionListByDate($date)
+    {
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
-             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
-            ->where('shop.shop_type_id', '!=', 3)
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
+             ->where('shop.shop_type_id', '!=', 3)
+             ->where('shop_order_transaction.date', $date)
+             ->orderBy('shop_order_transaction.date', 'DESC')
              ->get();
-            return response()->json($data);   
+
+
+            $data = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->where('shop.shop_type_id', '!=', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.date', $date)
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+             
+            return response()->json($response);    
     }
 
-   public function fetchOnlineShopOrderTransactionList($id)
+   public function fetchOnlineShopOrderTransactionList()
     {
-        $data = DB::table('shop_order_transaction')
+        $currentTime = Carbon::now();
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit')    
              ->where('shop.shop_type_id', 3)
+             ->where('shop_order_transaction.date', date('Y-m-d'))
+             ->orderBy('shop_order_transaction.date', 'DESC')
+             ->get();
+            
+            $data = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))  
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            ->where('shop.shop_type_id', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+       public function fetchOnlineShopOrderTransactionListByDate($date)
+    {
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
+             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+             'shop_order_transaction.date', 'shop_order_transaction.profit')    
+             ->where('shop.shop_type_id', 3)
+             ->orderBy('shop_order_transaction.date', 'DESC')
             ->get();
-            return response()->json($data);   
+
+            $data = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit')) 
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')   
+            ->where('shop.shop_type_id', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.date', $date)
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+
+            return response()->json($response);   
     }
 
     public function fetchShopOrderTransaction($id)
@@ -160,7 +280,9 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->shop_order_transaction_total_price = $request->input('shop_order_transaction_total_price');
         $shopOrderTransaction->requestor = $request->input('requestor');
         $shopOrderTransaction->checker = $request->input('checker');
+        $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);
     }

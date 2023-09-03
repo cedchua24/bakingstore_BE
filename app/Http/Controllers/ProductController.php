@@ -29,6 +29,19 @@ class ProductController extends Controller
             return response()->json($data);   
     }
 
+            public function fetchProductByCategoryId($id)
+    {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id','category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
+            ->where('category.id', $id)
+            ->get();
+            return response()->json($data);    
+    }
+
     /**
      * Show the form for creating a new resource.
      *

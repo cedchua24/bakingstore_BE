@@ -11,10 +11,13 @@ use App\Http\Controllers\OrderCustomerTransactionController;
 use App\Http\Controllers\OrderSupplierTransactionController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopTypeController;
 use App\Http\Controllers\ShopOrderTransactionController;
 use App\Http\Controllers\ShopOrderController;
 use App\Http\Controllers\BranchStockTransactionController;
+use App\Http\Controllers\MarkUpProductController;
+
 
 
 
@@ -48,6 +51,7 @@ Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');
 Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
+Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
@@ -65,6 +69,7 @@ Route::get('/orderSuppliers/fetchOrderBySupplierId/{id}', [OrderSupplierControll
 Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierController::class, 'fetchOrderByProductId']);
 
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
+Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
 
 
 Route::resource('/orderCustomers', 'App\Http\Controllers\OrderCustomerController');
@@ -93,6 +98,8 @@ Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
+Route::get('/shopOrderTransaction/fetchShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);

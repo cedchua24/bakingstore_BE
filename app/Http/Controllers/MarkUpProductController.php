@@ -21,11 +21,13 @@ class MarkUpProductController extends Controller
             ->join('branch_stock_transaction as b', 'b.id', '=', 'mup.branch_stock_transaction_id')
             ->join('warehouse as w', 'w.id', '=', 'b.warehouse_id')
             ->select('mup.id', 'mup.product_id', 'mup.price',
-             'mup.mark_up_option', 'mup.mark_up_price', 'mup.new_price', 'p.product_name', 'p.quantity',
-              'p.weight', 'p.stock','p.stock_pc', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')
-             ->where('mup.status', 1)
-             ->where('p.stock', '!=', 0)
+             'mup.mark_up_option', 'mup.profit', 'mup.mark_up_price', 'mup.new_price', 'mup.profit', 'mup.mark_up_option', 'p.product_name', 'p.quantity',
+              'p.weight', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')    
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
+            ->where('mup.status', 1)
+            ->where('p.stock', '!=', 0)
             ->get();
+
             return response()->json($data);   
     }
 
@@ -55,19 +57,54 @@ class MarkUpProductController extends Controller
             'new_price' => 'required',
         ]);
 
+           $data = DB::table('mark_up_product as mup')
+           ->join('products as p', 'mup.product_id', '=', 'p.id')
+           ->where('mup.status', 1)
+           ->where('p.id', '=', $request->input('product_id'))
+           ->update(['mup.status' => 0]);
+
         $markUpProduct = new MarkUpProduct;
         $markUpProduct->product_id = $request->input('product_id');
         $markUpProduct->price = $request->input('price');
         $markUpProduct->mark_up_option = $request->input('mark_up_option');
         $markUpProduct->mark_up_price = $request->input('mark_up_price');
         $markUpProduct->new_price = $request->input('new_price');
+        $markUpProduct->profit = $request->input('profit');
         $markUpProduct->branch_stock_transaction_id = $request->input('branch_stock_transaction_id');
         $markUpProduct->status = 1;
         $markUpProduct->business_type = $request->input('business_type');
 
         $markUpProduct->save();
+
         return  response()->json($markUpProduct);
     }
+
+ public function saveMarkUp(Request $request)
+    {
+        $this->validate($request, [
+            'product_id' => 'required',
+            'price' => 'required',
+            'mark_up_option' => 'required',
+            'mark_up_price' => 'required',
+            'new_price' => 'required',
+        ]);
+
+        $markUpProduct = new MarkUpProduct;
+        $markUpProduct->product_id = $request->input('product_id');
+        $markUpProduct->price = $request->input('price');
+        $markUpProduct->mark_up_option = $request->input('mark_up_option');
+        $markUpProduct->mark_up_price = $request->input('mark_up_price');
+        $markUpProduct->new_price = $request->input('new_price');
+        $markUpProduct->profit = $request->input('profit');
+        $markUpProduct->branch_stock_transaction_id = $request->input('branch_stock_transaction_id');
+        $markUpProduct->status = 1;
+        $markUpProduct->business_type = $request->input('business_type');
+
+        $markUpProduct->save();
+
+        return  response()->json($markUpProduct);
+    }
+
 
     /**
      * Display the specified resource.
@@ -75,11 +112,15 @@ class MarkUpProductController extends Controller
      * @param  \App\Models\MarkUpProduct  $markUpProduct
      * @return \Illuminate\Http\Response
      */
-    public function show(MarkUpProduct $markUpProduct)
+    public function show($id)
     {
-        $markUpProduct = MarkUpProduct::find($markUpProduct->id);
-        //return view('categories.show')->with('category', $category);
-        return  response()->json($markUpProduct);
+        $data = DB::table('mark_up_product as mup')
+          ->join('products as p', 'mup.product_id', '=', 'p.id')
+          ->select('p.product_name', 'p.id as product_id', 'p.stock', 'p.stock_pc', 'mup.id', 'mup.price', 'mup.mark_up_price', 'mup.mark_up_option',
+           'mup.new_price', 'mup.profit', 'mup.status', 'mup.business_type')    
+          ->where('mup.id', $id)
+          ->first();
+        return response()->json($data);
     }
 
     /**
@@ -100,15 +141,14 @@ class MarkUpProductController extends Controller
      * @param  \App\Models\MarkUpProduct  $markUpProduct
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, MarkUpProduct $markUpProduct)
+    public function update($id, Request $request)
     {
-        $markUpProduct = MarkUpProduct::find($markUpProduct->id);
+        $markUpProduct = MarkUpProduct::find($id);
         
-        $markUpProduct->price = $request->input('price');
         $markUpProduct->mark_up_option = $request->input('mark_up_option');
         $markUpProduct->mark_up_price = $request->input('mark_up_price');
         $markUpProduct->new_price = $request->input('new_price');
-        $markUpProduct->status = $request->input('status');
+        $markUpProduct->profit = $request->input('profit');
 
         $markUpProduct->save();
     
