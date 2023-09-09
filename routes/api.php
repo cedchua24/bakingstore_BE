@@ -97,6 +97,10 @@ Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
+Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
+Route::get('/shopOrderTransaction/fetchShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReport']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListByDate']);

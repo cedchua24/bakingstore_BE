@@ -30,7 +30,7 @@ class ShopOrderController extends Controller
         $data = DB::table('shop_order')
             ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
             ->join('products', 'products.id', '=', 'mup.product_id')
-            ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
+            ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'mup.business_type', 'mup.id as mark_up_product_id')    
             ->where('shop_order.id', $id)
             ->first();
@@ -196,11 +196,12 @@ class ShopOrderController extends Controller
           $shopOrder->product_id = $request->input('product_id');
           $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
           $shopOrder->shop_order_price = $request->input('shop_order_price');
+          $shopOrder->shop_order_profit = $request->input('shop_order_profit');
           $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
           $shopOrder->save();
 
           $data = DB::table('shop_order')
-            ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
+            ->select(DB::raw('SUM(shop_order_profit) as shop_order_total_profit'), DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
             ->where('shop_order.shop_transaction_id', $request->input('shop_transaction_id'))
             ->first();
           
@@ -209,6 +210,7 @@ class ShopOrderController extends Controller
           $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_transaction_id'));
           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
+          $shopOrderTransaction->profit = $data->shop_order_total_profit;
           $shopOrderTransaction->save();
 
           $reducedStock = new ReducedStock;
@@ -245,7 +247,7 @@ class ShopOrderController extends Controller
 
             $response = [
               'id' => $request->input('product_id'),
-              'stock' => $product,
+              'stock' => $shopOrder,
               'code' => 200,
               'message' => "Successfully Added"
           ];
@@ -265,20 +267,23 @@ class ShopOrderController extends Controller
         $shopOrderDelete = ShopOrder::find($shopOrder->id);
         $shopOrderDelete->delete();
    
+
         $data = DB::table('shop_order')
-          ->select(DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
-          ->where('shop_order.shop_transaction_id', $shopOrder->shop_transaction_id)
-          ->first();
+            ->select(DB::raw('SUM(shop_order_profit) as shop_order_total_profit'), DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
+            ->where('shop_order.shop_transaction_id', $shopOrder->shop_transaction_id)
+            ->first();
 
          if ($data->shop_order_transaction_total_price == null) {
           $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
           $shopOrderTransaction->shop_order_transaction_total_quantity = 0;
           $shopOrderTransaction->shop_order_transaction_total_price = 0;
+          $shopOrderTransaction->profit = $data->shop_order_total_profit;
           $shopOrderTransaction->save();    
          } else {
           $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
+          $shopOrderTransaction->profit = $data->shop_order_total_profit;
           $shopOrderTransaction->save();           
          }
           
