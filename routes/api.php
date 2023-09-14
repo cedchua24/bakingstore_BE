@@ -17,6 +17,9 @@ use App\Http\Controllers\ShopOrderTransactionController;
 use App\Http\Controllers\ShopOrderController;
 use App\Http\Controllers\BranchStockTransactionController;
 use App\Http\Controllers\MarkUpProductController;
+use App\Http\Controllers\ExpensesController;
+use App\Http\Controllers\ExpensesTypeController;
+use App\Http\Controllers\ExpensesCategoryController;
 
 
 
@@ -122,7 +125,9 @@ Route::get('/branchStockTransaction/fetchBranchStockWarehouseList/{id}', [Branch
 
 Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 
-
+Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
+Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
+Route::resource('/expensesCategory', 'App\Http\Controllers\ExpensesCategoryController');
 
 
 
