@@ -20,6 +20,8 @@ use App\Http\Controllers\MarkUpProductController;
 use App\Http\Controllers\ExpensesController;
 use App\Http\Controllers\ExpensesTypeController;
 use App\Http\Controllers\ExpensesCategoryController;
+use App\Http\Controllers\ModeOfPaymentController;
+use App\Http\Controllers\PaymentTypeController;
 
 
 
@@ -128,6 +130,13 @@ Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
 Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
 Route::resource('/expensesCategory', 'App\Http\Controllers\ExpensesCategoryController');
+Route::post('/expenses/fetchExpensesTransactionByDate', [ExpensesController::class, 'fetchExpensesTransactionByDate']);
+Route::get('/expenses/fetchExpensesTransaction/{id}', [ExpensesController::class, 'fetchExpensesTransaction']);
+Route::get('/expenses/fetchExpensesTransactionById/{id}', [ExpensesController::class, 'fetchExpensesTransactionById']);
+
+Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController');
+Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
+Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
 
 
 

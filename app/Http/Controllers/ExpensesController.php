@@ -21,10 +21,93 @@ class ExpensesController extends Controller
 
         $data = DB::table('expenses as e')
             ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
-              'ep.expenses_name')    
+              'ep.expenses_name', 'ec.expenses_category_name')
+               ->where('e.date', date('Y-m-d'))    
             ->get();
             return response()->json($data);   
+    }
+
+           public function fetchExpensesTransaction()
+    {
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->get();
+
+
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $expenses_transaction_list,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+  public function fetchExpensesTransactionByDate(Request $request)
+    {
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('e.date', '>=', $request->input('dateFrom'))
+            ->where('e.date', '<=', $request->input('dateTo'))
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->get();
+
+
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $expenses_transaction_list,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+        public function fetchExpensesTransactionById($date)
+    {
+        $data = DB::table('expenses as e')
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+              'ep.expenses_name', 'ec.expenses_category_name')
+               ->where('e.date', $date)    
+            ->get();
+
+
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))  
+             ->where('e.date', $date)    
+            ->first();
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'expenses' => $expenses_transaction_list,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);    
     }
 
     /**
