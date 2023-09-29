@@ -25,6 +25,7 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id','category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
+            ->orderBy('products.id', 'DESC')
             ->get();
             return response()->json($data);   
     }
@@ -38,6 +39,7 @@ class ProductController extends Controller
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
             ->where('category.id', $id)
+            ->orderBy('products.id', 'DESC')
             ->get();
             return response()->json($data);    
     }
