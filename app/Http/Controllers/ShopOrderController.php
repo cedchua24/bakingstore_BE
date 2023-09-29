@@ -312,7 +312,7 @@ class ShopOrderController extends Controller
          $product = Product::find($shopOrder->product_id);
         if ($reduced_stock_id->business_type === 'WHOLESALE') {
           $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
-          $product->stock_pc = $product->stock_pc + ($product->weight * $shopOrder->shop_order_quantity);
+          $product->stock_pc =  $product->stock * $product->quantity;
           $product->save();
         } else {
           $newStock = $product->stock_pc + $shopOrder->shop_order_quantity;
