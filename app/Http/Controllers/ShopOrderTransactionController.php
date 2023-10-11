@@ -35,8 +35,7 @@ class ShopOrderTransactionController extends Controller
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
             ->where('shop.shop_type_id', '!=', 3)    
             ->where('shop_order_transaction.date', date('Y-m-d'))
-            ->orderBy('shop_order_transaction.date', 'DESC')
-            ->orderBy('shop_order_transaction.status', 'ASC')
+            ->orderBy('shop_order_transaction.id', 'DESC')
             ->get();
          
 
@@ -75,8 +74,7 @@ class ShopOrderTransactionController extends Controller
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
              ->where('shop.shop_type_id', '!=', 3)
              ->where('shop_order_transaction.date', $date)
-             ->orderBy('shop_order_transaction.date', 'DESC')
-             ->orderBy('shop_order_transaction.status', 'ASC')
+             ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
 
 
@@ -113,8 +111,7 @@ class ShopOrderTransactionController extends Controller
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit')    
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', date('Y-m-d'))
-             ->orderBy('shop_order_transaction.date', 'DESC')
-             ->orderBy('shop_order_transaction.status', 'ASC')
+             ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
             
             $data = DB::table('shop_order_transaction')
@@ -330,8 +327,7 @@ class ShopOrderTransactionController extends Controller
              'shop_order_transaction.date', 'shop_order_transaction.profit')    
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', $date)
-             ->orderBy('shop_order_transaction.date', 'DESC')
-             ->orderBy('shop_order_transaction.status', 'ASC')
+             ->orderBy('shop_order_transaction.id', 'DESC')
             ->get();
 
             $data = DB::table('shop_order_transaction')

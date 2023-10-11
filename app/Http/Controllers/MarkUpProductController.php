@@ -24,8 +24,9 @@ class MarkUpProductController extends Controller
              'mup.mark_up_option', 'mup.profit', 'mup.mark_up_price', 'mup.new_price', 'mup.profit', 'mup.mark_up_option', 'p.product_name', 'p.quantity',
               'p.weight', 'p.category_id', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')    
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
-            ->where('mup.status', 1)
+            ->where('mup.status', 1) 
             ->where('p.stock', '!=', 0)
+            ->orderBy('mup.id', 'DESC')
             ->get();
 
             return response()->json($data);   
