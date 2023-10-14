@@ -22,7 +22,7 @@ class ProductController extends Controller
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id','category.category_name',
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
             ->orderBy('products.id', 'DESC')
@@ -35,7 +35,7 @@ class ProductController extends Controller
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id','category.category_name',
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
             ->where('category.id', $id)
@@ -82,6 +82,7 @@ class ProductController extends Controller
         $product->weight = $request->input('weight');
         $product->packaging = $request->input('packaging');
         $product->quantity = $request->input('quantity');
+        $product->variation = $request->input('variation');
 
         if ($request->input('quantity') > 1) {
             $product->stock_pc = $request->input('quantity') * $request->input('stock');

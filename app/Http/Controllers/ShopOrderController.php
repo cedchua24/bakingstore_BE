@@ -31,7 +31,7 @@ class ShopOrderController extends Controller
             ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
-             'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'mup.business_type', 'mup.id as mark_up_product_id')    
+             'shop_order.shop_order_total_price','products.variation', 'products.product_name', 'products.id as product_id', 'mup.business_type', 'mup.id as mark_up_product_id')    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -44,7 +44,7 @@ class ShopOrderController extends Controller
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'products.quantity',
-              'products.weight', 'mup.id as mark_up_product_id', 'mup.business_type')    
+              'products.weight', 'products.packaging', 'products.variation', 'mup.id as mark_up_product_id', 'mup.business_type')    
             ->where('shop_order.shop_transaction_id', $id)
             ->get();
 
