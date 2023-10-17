@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -16,7 +17,11 @@ class CustomerController extends Controller
     {
         $customers = Customer::all();
         // return view('categories.index')->with('categories', $categories);
-        return response()->json($customers);
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address')   
+            ->orderBy('c.first_name', 'asc') 
+            ->get();
+            return response()->json($data); 
     }
 
     /**
