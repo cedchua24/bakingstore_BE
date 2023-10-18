@@ -108,7 +108,8 @@ class ShopOrderTransactionController extends Controller
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
-              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit')    
+              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
+              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online')    
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', date('Y-m-d'))
              ->orderBy('shop_order_transaction.id', 'DESC')
@@ -324,7 +325,7 @@ class ShopOrderTransactionController extends Controller
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
-             'shop_order_transaction.date', 'shop_order_transaction.profit')    
+             'shop_order_transaction.date', 'shop_order_transaction.profit', 'shop_order_transaction.total_cash', 'shop_order_transaction.total_online')    
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', $date)
              ->orderBy('shop_order_transaction.id', 'DESC')
