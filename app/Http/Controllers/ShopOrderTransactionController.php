@@ -417,7 +417,8 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id',
-             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
+             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status'
+             , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
             ->where('shop_order_transaction.id', $id)
             ->first();
             break;
@@ -490,7 +491,8 @@ class ShopOrderTransactionController extends Controller
      */
     public function show(ShopOrderTransaction $shopOrderTransaction)
     {
-        //
+        $shopOrderTransaction = ShopOrderTransaction::find($shopOrderTransaction->id);
+        return  response()->json($shopOrderTransaction);
     }
 
     /**
@@ -519,6 +521,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->shop_order_transaction_total_price = $request->input('shop_order_transaction_total_price');
         $shopOrderTransaction->requestor = $request->input('requestor');
         $shopOrderTransaction->checker = $request->input('checker');
+        $shopOrderTransaction->date = $request->input('date');;
         $shopOrderTransaction->status = 2;
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);

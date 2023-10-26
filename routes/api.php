@@ -57,6 +57,7 @@ Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
+Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
