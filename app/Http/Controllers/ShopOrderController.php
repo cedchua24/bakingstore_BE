@@ -324,7 +324,8 @@ class ShopOrderController extends Controller
 
         
         $response = [
-              'message' => "Successfully Added"
+              'message' => "Successfully Added",
+              '$shopOrder' => $shopOrder
           ];
         return  response()->json($response);
         // return response()->json($reduced_stock_id);

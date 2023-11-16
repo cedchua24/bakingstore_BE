@@ -73,7 +73,7 @@ class ProductTransaction extends Controller
 
          if ($products->quantity > 1) {
           $newStock = 0;
-          $newStock = $products->weight * $request->input('shop_order_quantity');  
+          $newStock = $products->quantity * $request->input('shop_order_quantity');  
           if ($products->stock_pc != null) {
             $products->stock_pc = $products->stock_pc + $newStock;
           }
