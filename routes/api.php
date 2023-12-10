@@ -22,7 +22,7 @@ use App\Http\Controllers\ExpensesTypeController;
 use App\Http\Controllers\ExpensesCategoryController;
 use App\Http\Controllers\ModeOfPaymentController;
 use App\Http\Controllers\PaymentTypeController;
-
+use app\Http\Controllers\CustomerTypeController;
 
 
 
@@ -54,6 +54,7 @@ Route::delete('/register/{user}', [AuthController::class, 'destroy']);
 
 Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');
 Route::resource('/categories', 'App\Http\Controllers\CategoryController');
+Route::resource('/customerTypes', 'App\Http\Controllers\CustomerTypeController');
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
