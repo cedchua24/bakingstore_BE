@@ -113,9 +113,9 @@ class ShopOrderController extends Controller
         $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
         $reducedStock->save();
 
-        $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
-        $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
-        $branchStockTransaction->save();
+        // $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
+        // $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
+        // $branchStockTransaction->save();
 
         $product = Product::find($request->input('product_id'));
         if ($request->input('business_type') === 'WHOLESALE') {
@@ -223,9 +223,9 @@ class ShopOrderController extends Controller
           $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
           $reducedStock->save();
 
-          $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
-          $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
-          $branchStockTransaction->save();
+          // $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
+          // $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
+          // $branchStockTransaction->save();
 
         
         if ($request->input('business_type') === 'WHOLESALE') {
@@ -301,9 +301,9 @@ class ShopOrderController extends Controller
         $reducedStock = ReducedStock::find($reduced_stock_id->id);
        
 
-        $branchStockTransaction = BranchStockTransaction::find($shopOrder->branch_stock_transaction_id);
-        $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction + $shopOrder->shop_order_quantity);
-        $branchStockTransaction->save();
+        // $branchStockTransaction = BranchStockTransaction::find($shopOrder->branch_stock_transaction_id);
+        // $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction + $shopOrder->shop_order_quantity);
+        // $branchStockTransaction->save();
 
         // $product = Product::find($shopOrder->product_id);
         // $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
