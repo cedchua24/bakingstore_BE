@@ -22,12 +22,26 @@ class ProductController extends Controller
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
-            ->orderBy('products.id', 'DESC')
+            ->orderBy('products.updated_at', 'DESC')
             ->get();
             return response()->json($data);   
+    }
+
+      public function fetchByStockWarning()
+    {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging')
+            ->where('products.stock_warning', '>', 'products.stock')
+            ->orderBy('products.id', 'DESC')
+            ->get();
+            return response()->json($data);    
     }
 
             public function fetchProductByCategoryId($id)
@@ -92,6 +106,7 @@ class ProductController extends Controller
         $product->product_name = $request->input('product_name');
         $product->price = $request->input('price');
         $product->stock = $request->input('stock');
+        $product->stock_warning = $request->input('stock_warning');
         $product->weight = $request->input('weight');
         $product->packaging = $request->input('packaging');
         $product->quantity = $request->input('quantity');
@@ -167,15 +182,26 @@ class ProductController extends Controller
         $products->stock = $request->input('stock');
         $products->weight = $request->input('weight');
         $products->quantity = $request->input('quantity');
+        $products->stock_warning = $request->input('stock_warning');
+        $products->updated_at = now();
 
-        if ($request->input('quantity') > 1) {
-          $products->stock_pc = $request->input('quantity') * $request->input('stock');  
+        if ($request->input('pack') == 'Pc') {
+          $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
+          $products->stock  = $products->stock_pc / $products->quantity;
+        } else {
+          $products->stock = $products->stock + $request->input('newStocks');  
+          if ($request->input('quantity') > 1) {
+            $wsStocks = $request->input('quantity') * $request->input('newStocks');
+            $products->stock_pc = $products->stock_pc + $wsStocks;  
+          }
         }
+
+
 
         $products->save();
       
 
-        return response()->json($products);
+        return response()->json($request);
     }
 
     /**

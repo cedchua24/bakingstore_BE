@@ -21,6 +21,7 @@ return new class extends Migration
             $table->double('price');
             $table->integer('stock');
             $table->integer('stock_pc');
+            $table->integer('stock_warning');
             $table->integer('weight');
             $table->string('packaging');
             $table->integer('quantity');

@@ -120,7 +120,8 @@ class ShopOrderController extends Controller
         $product = Product::find($request->input('product_id'));
         if ($request->input('business_type') === 'WHOLESALE') {
           $product->stock = ($product->stock - $request->input('shop_order_quantity'));
-          $product->stock_pc =  $product->stock * $product->quantity;
+          $wsMultiplier = $request->input('shop_order_quantity') * $product->quantity;
+          $product->stock_pc =  $product->stock_pc - $wsMultiplier;
           $product->save();
         } else {
           $newStock = $product->stock_pc - $request->input('shop_order_quantity');

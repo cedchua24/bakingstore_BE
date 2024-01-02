@@ -59,6 +59,7 @@ Route::resource('/customerTypes', 'App\Http\Controllers\CustomerTypeController')
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
+Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
