@@ -183,7 +183,7 @@ class ProductController extends Controller
         $products->weight = $request->input('weight');
         $products->quantity = $request->input('quantity');
         $products->stock_warning = $request->input('stock_warning');
-        $products->updated_at = now();
+        $products->updated_at = now('GMT+8');
 
         if ($request->input('pack') == 'Pc') {
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');

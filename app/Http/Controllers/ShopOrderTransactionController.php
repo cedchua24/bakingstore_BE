@@ -100,7 +100,7 @@ class ShopOrderTransactionController extends Controller
 
    public function fetchOnlineShopOrderTransactionList()
     {
-        $currentTime = Carbon::now();
+        $currentTime = Carbon::now('GMT+8');
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
@@ -481,6 +481,8 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->status = 2;
         $shopOrderTransaction->customer_type_id = $request->input('customer_type_id');
         $shopOrderTransaction->date = $request->input('date');
+        $shopOrderTransaction->updated_at = now('GMT+8');
+        $shopOrderTransaction->created_at = now('GMT+8');
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);
     }
