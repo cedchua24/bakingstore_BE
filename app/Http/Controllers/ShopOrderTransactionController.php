@@ -147,6 +147,14 @@ class ShopOrderTransactionController extends Controller
             ->where('pt.type', 2)
             ->first();
 
+           $payment_type = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->where('sot.date', date('Y-m-d'))
+            ->groupBy('pt.id')
+            ->get();
+
 
            $response = [
               'total_price' =>$data->total_price,
@@ -154,6 +162,7 @@ class ShopOrderTransactionController extends Controller
               'total_cash' =>$cash->total_cash,
               'total_online' =>$online->total_online,
               'data' => $shop_order_transaction_list,
+              'payment' => $payment_type,
               'code' => 200,
               'date' => date('Y-m-d'),
               'message' => "Successfully Added"
@@ -362,6 +371,14 @@ class ShopOrderTransactionController extends Controller
             ->where('pt.type', 2)
             ->first();
 
+           $payment_type = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->where('sot.date', $date)
+            ->groupBy('pt.id')
+            ->get();
+
 
            $response = [
               'total_price' =>$data->total_price,
@@ -369,7 +386,9 @@ class ShopOrderTransactionController extends Controller
               'total_cash' =>$cash->total_cash,
               'total_online' =>$online->total_online,
               'data' => $shop_order_transaction_list,
+              'payment' => $payment_type,
               'code' => 200,
+              'date' => date('Y-m-d'),
               'message' => "Successfully Added"
           ];
 
