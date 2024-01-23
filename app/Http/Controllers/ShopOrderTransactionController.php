@@ -152,6 +152,7 @@ class ShopOrderTransactionController extends Controller
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.date', date('Y-m-d'))
+            ->where('sot.status', 1)
             ->groupBy('pt.id')
             ->get();
 
@@ -376,6 +377,7 @@ class ShopOrderTransactionController extends Controller
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.date', $date)
+            ->where('sot.status', 1)
             ->groupBy('pt.id')
             ->get();
 
