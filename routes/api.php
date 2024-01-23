@@ -140,7 +140,8 @@ Route::get('/expenses/fetchExpensesTransactionById/{id}', [ExpensesController::c
 Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController');
 Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
 Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
-
+Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
+Route::get('/paymentType/fetchEnablePaymentType/{id}', [PaymentTypeController::class, 'fetchEnablePaymentType']);
 
 
 // Route::group(['middleware' => 'auth:sanctum'], function(){

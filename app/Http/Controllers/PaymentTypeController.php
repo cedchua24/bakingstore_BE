@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PaymentType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PaymentTypeController extends Controller
 {
@@ -17,6 +18,16 @@ class PaymentTypeController extends Controller
         $paymentType = PaymentType::all();
         // return view('categories.index')->with('categories', $categories);
         return response()->json($paymentType);
+    }
+
+
+    public function fetchEnablePaymentType()
+    {
+         $data = DB::table('payment_type as pt')
+            ->select('pt.payment_type', 'pt.payment_type_description', 'pt.status', 'pt.type')
+            ->where('pt.status', '=', 1)    
+            ->get();
+            return response()->json($data);   
     }
 
     /**
