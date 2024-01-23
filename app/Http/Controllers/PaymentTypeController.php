@@ -24,7 +24,7 @@ class PaymentTypeController extends Controller
     public function fetchEnablePaymentType()
     {
          $data = DB::table('payment_type as pt')
-            ->select('pt.payment_type', 'pt.payment_type_description', 'pt.status', 'pt.type')
+            ->select('pt.id', 'pt.payment_type', 'pt.payment_type_description', 'pt.status', 'pt.type')
             ->where('pt.status', '=', 1)    
             ->get();
             return response()->json($data);   
