@@ -550,7 +550,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->rider_name = $request->input('rider_name');
         $shopOrderTransaction->is_pickup = $request->input('is_pickup');
-        $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->status = $request->input('status');
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);
     }
