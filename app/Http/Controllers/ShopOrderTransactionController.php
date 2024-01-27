@@ -107,7 +107,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
+             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name')    
@@ -334,7 +334,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id',
+             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
              'shop_order_transaction.date', 'shop_order_transaction.profit', 'shop_order_transaction.total_cash', 'shop_order_transaction.total_online')    
              ->where('shop.shop_type_id', 3)
@@ -500,6 +500,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->checker = $request->input('checker');
         $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->is_pickup = 2;
         $shopOrderTransaction->customer_type_id = $request->input('customer_type_id');
         $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->updated_at = now('GMT+8');
@@ -548,6 +549,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->checker = $request->input('checker');
         $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->rider_name = $request->input('rider_name');
+        $shopOrderTransaction->is_pickup = $request->input('is_pickup');
         $shopOrderTransaction->status = 2;
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);

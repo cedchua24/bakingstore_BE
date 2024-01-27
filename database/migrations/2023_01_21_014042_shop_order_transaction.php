@@ -26,6 +26,7 @@ return new class extends Migration
             $table->integer('status');
             $table->integer('customer_type_id');
             $table->string('rider_name');
+            $table->integer('is_pickup');
             $table->date('date');
             $table->timestamps();
         });
