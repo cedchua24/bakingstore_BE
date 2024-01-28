@@ -500,7 +500,6 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->checker = $request->input('checker');
         $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
-        $shopOrderTransaction->is_pickup = 2;
         $shopOrderTransaction->customer_type_id = $request->input('customer_type_id');
         $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->updated_at = now('GMT+8');

@@ -7,6 +7,7 @@ use App\Models\ReducedStock;
 use App\Models\ShopOrderTransaction;
 use App\Models\BranchStockTransaction;
 use App\Models\Product;
+use App\Models\ModeOfPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -104,6 +105,7 @@ class ShopOrderController extends Controller
         $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
         $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
         $shopOrderTransaction->profit = $data->shop_order_total_profit;
+        $shopOrderTransaction->status = 2;
         $shopOrderTransaction->save();
 
         $reducedStock = new ReducedStock;
@@ -130,7 +132,7 @@ class ShopOrderController extends Controller
           $product->save();
         }
 
-
+       DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
         $response = [
               'message' => "Successfully Added"
@@ -215,6 +217,7 @@ class ShopOrderController extends Controller
           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
           $shopOrderTransaction->profit = $data->shop_order_total_profit;
+          $shopOrderTransaction->status = 2;
           $shopOrderTransaction->save();
 
           $reducedStock = new ReducedStock;
@@ -245,6 +248,9 @@ class ShopOrderController extends Controller
             $product->stock = ($product->stock_pc / $product->quantity);
           } 
         }  
+
+                // delete mode of payment
+        DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
           $product->save();
           
@@ -284,12 +290,14 @@ class ShopOrderController extends Controller
           $shopOrderTransaction->shop_order_transaction_total_quantity = 0;
           $shopOrderTransaction->shop_order_transaction_total_price = 0;
           $shopOrderTransaction->profit = $data->shop_order_total_profit;
+          $shopOrderTransaction->status = 2;
           $shopOrderTransaction->save();    
          } else {
           $shopOrderTransaction = ShopOrderTransaction::find($shopOrder->shop_transaction_id);
           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
           $shopOrderTransaction->profit = $data->shop_order_total_profit;
+          $shopOrderTransaction->status = 2;
           $shopOrderTransaction->save();           
          }
           
@@ -322,6 +330,10 @@ class ShopOrderController extends Controller
           $product->save();
         }
          $reducedStock->delete();
+
+
+        // delete mode of payment
+        DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
         
         $response = [
