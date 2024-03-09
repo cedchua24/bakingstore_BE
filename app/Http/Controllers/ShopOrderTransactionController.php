@@ -245,13 +245,21 @@ class ShopOrderTransactionController extends Controller
     }
 
 
-       public function fetchOnlineShopOrderTransactionListByIdDate()
+       public function fetchOnlineShopOrderTransactionListByIdDate($id, $date)
     {
-        $currentTime = Carbon::now('GMT+8');
+        $currentTime = date('Y-m-d');
+        $newDate = '';
+        if ($date == 0) {
+            $newDate = $currentTime;
+        } else {
+            $newDate =$date;
+        }
+        
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
@@ -259,16 +267,19 @@ class ShopOrderTransactionController extends Controller
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name')    
              ->where('shop.shop_type_id', 3)
-             ->where('shop_order_transaction.date', date('Y-m-d'))
+             ->where('shop_order_transaction.date', $newDate)
+             ->where('mop.payment_type_id', $id)
              ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
             
             $data = DB::table('shop_order_transaction')
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))  
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
             ->where('shop.shop_type_id', 3)
             ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->where('shop_order_transaction.date', $newDate)
+            ->where('mop.payment_type_id', $id)
             ->first();
 
 
@@ -279,8 +290,9 @@ class ShopOrderTransactionController extends Controller
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
             ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->where('shop_order_transaction.date', $newDate)
             ->where('pt.type', 1)
+            ->where('mop.payment_type_id', $id)
             ->first();
 
             $online = DB::table('shop_order_transaction')
@@ -290,16 +302,18 @@ class ShopOrderTransactionController extends Controller
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
             ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->where('shop_order_transaction.date', $newDate)
             ->where('pt.type', 2)
+            ->where('mop.payment_type_id', $id)
             ->first();
 
            $payment_type = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description')  
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
-            ->where('sot.date', date('Y-m-d'))
+            ->where('sot.date', $newDate)
             ->where('sot.status', 1)
+            ->where('mop.payment_type_id', $id)
             ->groupBy('pt.id')
             ->get();
 
@@ -311,8 +325,9 @@ class ShopOrderTransactionController extends Controller
               'total_online' =>$online->total_online,
               'data' => $shop_order_transaction_list,
               'payment' => $payment_type,
-              'code' => 200,
-              'date' => date('Y-m-d'),
+              'code' => 2020,
+              'date' =>$newDate,
+              'id' => $id,
               'message' => "Successfully Added"
           ];
 
