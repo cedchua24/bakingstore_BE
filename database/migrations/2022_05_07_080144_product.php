@@ -25,6 +25,7 @@ return new class extends Migration
             $table->integer('weight');
             $table->string('packaging');
             $table->integer('quantity');
+            $table->integer('disabled');
             $table->timestamps();
         });
 
