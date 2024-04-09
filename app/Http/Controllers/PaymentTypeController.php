@@ -59,6 +59,7 @@ class PaymentTypeController extends Controller
         $paymentType->payment_type = $request->input('payment_type');
         $paymentType->payment_type_description = $request->input('payment_type_description');
         $paymentType->status = $request->input('status');
+        $paymentType->type = 2;
         $paymentType->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($paymentType);

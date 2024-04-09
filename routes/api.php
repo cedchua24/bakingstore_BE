@@ -23,6 +23,7 @@ use App\Http\Controllers\ExpensesCategoryController;
 use App\Http\Controllers\ModeOfPaymentController;
 use App\Http\Controllers\PaymentTypeController;
 use app\Http\Controllers\CustomerTypeController;
+use app\Http\Controllers\StockOrderController;
 
 
 
@@ -60,6 +61,7 @@ Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
+Route::get('/products/fetchById/{id}', [ProductController::class, 'fetchById']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
@@ -145,6 +147,9 @@ Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
 Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
 Route::get('/paymentType/fetchEnablePaymentType/{id}', [PaymentTypeController::class, 'fetchEnablePaymentType']);
 
+
+Route::resource('/stockOrder', 'App\Http\Controllers\StockOrderController');
+Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 
 // Route::group(['middleware' => 'auth:sanctum'], function(){
     

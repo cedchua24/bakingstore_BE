@@ -5,6 +5,7 @@ use App\Models\Product;
 use App\Models\ProductPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\StockOrder;
 
 class ProductController extends Controller
 {
@@ -42,6 +43,19 @@ class ProductController extends Controller
             ->orderBy('products.id', 'DESC')
             ->get();
             return response()->json($data);    
+    }
+
+    
+        public function fetchById($id)
+    {
+            $data = DB::table('products as p')
+            ->join('stock_order as so', 'so.product_id', '=', 'p.id')
+            ->select('so.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+             'so.updated_at')
+            ->orderBy('p.updated_at', 'DESC')
+            ->where('p.id', $id)
+            ->get();
+            return response()->json($data); 
     }
 
             public function fetchProductByCategoryId($id)
@@ -187,11 +201,22 @@ class ProductController extends Controller
         $products->updated_at = now('GMT+8');
         $products->disabled = $request->input('disabled');
 
+        $stockOrder = new StockOrder;
+        $stockOrder->product_id = $product->id;
+        $stockOrder->pack = $request->input('pack');
+        $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduced";
+        $stockOrder->stock = $request->input('newStocks');
+
+
         if ($request->input('pack') == 'Pc') {
+          $stockOrder->total_stock = $products->stock_pc / $products->quantity;
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
           $products->stock  = $products->stock_pc / $products->quantity;
+         
         } else {
-          $products->stock = $products->stock + $request->input('newStocks');  
+          $stockOrder->total_stock = $products->stock + $request->input('newStocks');  
+          $products->stock = $products->stock + $request->input('newStocks');
+          
           if ($request->input('quantity') > 1) {
             $wsStocks = $request->input('quantity') * $request->input('newStocks');
             $products->stock_pc = $products->stock_pc + $wsStocks;  
@@ -199,7 +224,7 @@ class ProductController extends Controller
         }
 
 
-
+        $stockOrder->save();
         $products->save();
       
 
