@@ -204,7 +204,7 @@ class ProductController extends Controller
         $stockOrder = new StockOrder;
         $stockOrder->product_id = $product->id;
         $stockOrder->pack = $request->input('pack');
-        $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduced";
+        $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
         $stockOrder->stock = $request->input('newStocks');
 
 
