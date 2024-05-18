@@ -37,9 +37,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-   Route::post('logout', [AuthController::class, 'logout']);
-});
+// Route::middleware('auth:sanctum')->group(function () {
+//    Route::post('logout', [AuthController::class, 'logout']);
+// });
 
 Route::middleware('auth:sanctum', 'isAPIAdmin')->group(function () {
    Route::get('/checkingAuthenticated', function (){
@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum', 'isAPIAdmin')->group(function () {
 Route::get('/register', [AuthController::class, 'fetchUserList']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout']);
 Route::delete('/register/{user}', [AuthController::class, 'destroy']);
 
 
@@ -114,6 +115,7 @@ Route::get('/shopOrderTransaction/fetchShopOrderTransactionListReport/{id}', [Sh
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
+Route::get('/shopOrderTransaction/fetchExpensesList/{id}/{date}', [ShopOrderTransactionController::class, 'fetchExpensesList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
