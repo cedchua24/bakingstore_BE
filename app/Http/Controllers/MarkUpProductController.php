@@ -26,7 +26,7 @@ class MarkUpProductController extends Controller
               'p.weight', 'p.category_id', 'p.variation', 'p.packaging', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')    
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
             ->where('mup.status', 1) 
-            ->where('p.stock_pc', '!=', 0)
+            // ->where('p.stock_pc', '!=', 0)
             ->where('p.disabled', '=', 0)
             // ->where('p.stock', '!=', 0)
             // ->orWhere('p.stock_pc', '!=', 0)
