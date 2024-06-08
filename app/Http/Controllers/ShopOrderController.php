@@ -128,7 +128,7 @@ class ShopOrderController extends Controller
         } else {
           $newStock = $product->stock_pc - $request->input('shop_order_quantity');
           $product->stock_pc = $newStock;
-          $product->stock = ($product->stock_pc / $product->quantity);
+          $product->stock = (int)($product->stock_pc / $product->quantity);
           $product->save();
         }
 
@@ -235,17 +235,17 @@ class ShopOrderController extends Controller
         if ($request->input('business_type') === 'WHOLESALE') {
            $product->stock = ($product->stock + $newStocks);
           if ($product->stock_pc != null) {
-              $product->stock_pc =  $product->stock * $product->quantity;
+              $product->stock_pc =  $product->stock_pc + ($product->quantity * $newStocks);
           }   
           
         } else {
           if ($product->stock_pc != null) {
             $stock_pc = ($product->stock_pc + $shopOrderQuantity) - $request->input('shop_order_quantity');
-            $retailStock = ($shopOrderQuantity / $product->weight) + $product->stock;   
-            $stock = $retailStock - ($request->input('shop_order_quantity') / $product->weight); 
+            $retailStock = (int)($shopOrderQuantity / $product->weight) + $product->stock;   
+            $stock = $retailStock - (int)($request->input('shop_order_quantity') / $product->weight); 
             //
             $product->stock_pc = $stock_pc;
-            $product->stock = ($product->stock_pc / $product->quantity);
+            $product->stock = (int)($product->stock_pc / $product->quantity);
           } 
         }  
 
@@ -321,12 +321,12 @@ class ShopOrderController extends Controller
          $product = Product::find($shopOrder->product_id);
         if ($reduced_stock_id->business_type === 'WHOLESALE') {
           $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
-          $product->stock_pc =  $product->stock * $product->quantity;
+          $product->stock_pc = $product->stock_pc + ($product->quantity * $shopOrder->shop_order_quantity);
           $product->save();
         } else {
           $newStock = $product->stock_pc + $shopOrder->shop_order_quantity;
           $product->stock_pc = $newStock;
-          $product->stock = ($newStock / $product->quantity);
+          $product->stock = (int)($newStock / $product->quantity);
           $product->save();
         }
          $reducedStock->delete();
