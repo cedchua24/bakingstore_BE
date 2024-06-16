@@ -498,7 +498,9 @@ class ShopOrderTransactionController extends Controller
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
-             'shop_order_transaction.date', 'shop_order_transaction.profit', 'shop_order_transaction.total_cash', 'shop_order_transaction.total_online')    
+             'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
+             'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name' ) 
+                
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', $date)
              ->orderBy('shop_order_transaction.id', 'DESC')
