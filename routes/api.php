@@ -22,8 +22,9 @@ use App\Http\Controllers\ExpensesTypeController;
 use App\Http\Controllers\ExpensesCategoryController;
 use App\Http\Controllers\ModeOfPaymentController;
 use App\Http\Controllers\PaymentTypeController;
-use app\Http\Controllers\CustomerTypeController;
-use app\Http\Controllers\StockOrderController;
+use App\Http\Controllers\CustomerTypeController;
+use App\Http\Controllers\StockOrderController;
+use App\Http\Controllers\ProductSupplierController;
 
 
 
@@ -150,6 +151,12 @@ Route::get('/paymentType/fetchEnablePaymentType/{id}', [PaymentTypeController::c
 
 Route::resource('/stockOrder', 'App\Http\Controllers\StockOrderController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
+
+
+
+Route::resource('/productSupplier', 'App\Http\Controllers\ProductSupplierController');
+Route::get('/productSupplier/fetchProductSupplierById/{id}', [ProductSupplierController::class, 'fetchProductSupplierById']);
+
 
 // Route::group(['middleware' => 'auth:sanctum'], function(){
     
