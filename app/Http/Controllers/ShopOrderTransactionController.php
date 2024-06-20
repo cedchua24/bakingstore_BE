@@ -494,6 +494,7 @@ class ShopOrderTransactionController extends Controller
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
