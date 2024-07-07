@@ -19,8 +19,9 @@ class ProductSupplierController extends Controller
         $data = DB::table('product_supplier as ps')
           ->join('products as p', 'p.id', '=', 'ps.product_id')
           ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
-          ->select('ps.id', 's.supplier_name','p.product_name',
-            'ps.status')
+          ->join('category as c', 'p.category_id', '=', 'c.id')
+          ->select('ps.id',  's.supplier_name','p.product_name', 'p.price',
+            'ps.status', 'c.category_name', 'p.quantity')
           ->get();
         return response()->json($data);  
         
@@ -97,8 +98,9 @@ class ProductSupplierController extends Controller
         $data = DB::table('product_supplier as ps')
           ->join('products as p', 'p.id', '=', 'ps.product_id')
           ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
-          ->select('ps.id', 's.supplier_name','p.product_name',
-            'ps.status', 'p.weight', 'ps.product_id')
+          ->join('category as c', 'p.category_id', '=', 'c.id')
+          ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'p.price',
+            'ps.status', 'p.weight', 'ps.product_id', 'c.category_name')
          ->where('ps.supplier_id',$id)
           ->get();
         return response()->json($data);  
