@@ -116,6 +116,7 @@ Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [Sh
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatus/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatus']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
