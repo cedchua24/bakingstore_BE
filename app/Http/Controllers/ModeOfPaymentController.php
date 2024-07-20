@@ -91,12 +91,17 @@ class ModeOfPaymentController extends Controller
 
         // $item = UserProfile::create($data);
 
+
         // Create Post
         $modeOfPayment = new ModeOfPayment;
         $modeOfPayment->payment_type_id = $request->input('payment_type_id');
         $modeOfPayment->shop_order_transaction_id = $request->input('shop_order_transaction_id');
         $modeOfPayment->amount = $request->input('amount');
         $modeOfPayment->save();
+
+        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
+        $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($modeOfPayment);
     }
@@ -144,6 +149,10 @@ class ModeOfPaymentController extends Controller
         $modeOfPayment->amount = $request->input('amount');
         $modeOfPayment->save();
 
+        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
+        $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->save();
+
         $response = [
               'data' => $modeOfPayment,
               'code' => 200,
@@ -162,7 +171,13 @@ class ModeOfPaymentController extends Controller
     public function destroy(ModeOfPayment $modeOfPayment)
     {
         $modeOfPayment = ModeOfPayment::find($modeOfPayment->id);
+        
+
+        $shopOrderTransaction = ShopOrderTransaction::find($modeOfPayment->shop_order_transaction_id);
+        $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->save();
         $modeOfPayment->delete();
+        
         return response()->json($modeOfPayment);
     }
 }
