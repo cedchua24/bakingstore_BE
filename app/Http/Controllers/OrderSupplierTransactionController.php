@@ -136,19 +136,25 @@ class OrderSupplierTransactionController extends Controller
             $total_transaction_price = DB::table('order_supplier')
             ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
-            ->select('order_supplier.product_id', 'order_supplier.quantity')
+            ->select('order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
             ->where('order_supplier_transaction.id', $id)
             ->get();
 
             foreach ($total_transaction_price as $row) { 
                 $product = Product::find($row->product_id);
                 $initialStock = $product->stock;
-                $product->stock = ($initialStock + $row->quantity);
-                    if ($product->stock_pc != NULL) {
-                        $newStock = 0;
-                        $newStock = $product->weight * $row->quantity;  
-                        $product->stock_pc = $product->stock_pc + $newStock;
-                    }
+                if ($row->variation === 'WHOLESALE') {
+                      $product->stock = ($initialStock + $row->quantity);
+                        if ($product->stock_pc != NULL) {
+                            $newStock = 0;
+                            $newStock = $product->quantity * $row->quantity;  
+                            $product->stock_pc = $product->stock_pc + $newStock;
+                        }
+                } else {
+                    $newStock = $product->stock_pc + $row->quantity;
+                    $product->stock_pc = $newStock;
+                    $product->stock = (int)($product->stock_pc / $product->quantity);
+                }
 
                 $product->save();
             }
