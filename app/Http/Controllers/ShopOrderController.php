@@ -122,8 +122,10 @@ class ShopOrderController extends Controller
         $product = Product::find($request->input('product_id'));
         if ($request->input('business_type') === 'WHOLESALE') {
           $product->stock = ($product->stock - $request->input('shop_order_quantity'));
-          $wsMultiplier = $request->input('shop_order_quantity') * $product->quantity;
-          $product->stock_pc =  $product->stock_pc - $wsMultiplier;
+          if ($product->quantity > 1) {
+            $wsMultiplier = $request->input('shop_order_quantity') * $product->quantity;
+            $product->stock_pc =  $product->stock_pc - $wsMultiplier;
+          }
           $product->save();
         } else {
           $newStock = $product->stock_pc - $request->input('shop_order_quantity');
@@ -234,7 +236,7 @@ class ShopOrderController extends Controller
         
         if ($request->input('business_type') === 'WHOLESALE') {
            $product->stock = ($product->stock + $newStocks);
-          if ($product->stock_pc != null) {
+           if ($product->quantity > 1) {
               $product->stock_pc =  $product->stock_pc + ($product->quantity * $newStocks);
           }   
           
@@ -321,7 +323,9 @@ class ShopOrderController extends Controller
          $product = Product::find($shopOrder->product_id);
         if ($reduced_stock_id->business_type === 'WHOLESALE') {
           $product->stock = ($product->stock + $shopOrder->shop_order_quantity);
-          $product->stock_pc = $product->stock_pc + ($product->quantity * $shopOrder->shop_order_quantity);
+           if ($product->quantity > 1) {
+             $product->stock_pc = $product->stock_pc + ($product->quantity * $shopOrder->shop_order_quantity);
+           }
           $product->save();
         } else {
           $newStock = $product->stock_pc + $shopOrder->shop_order_quantity;

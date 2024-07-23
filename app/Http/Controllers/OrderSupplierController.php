@@ -47,21 +47,33 @@ class OrderSupplierController extends Controller
             'order_supplier_transaction_id' => 'required',
             'product_id' => 'required',
             'price' => 'required',
-            'quantity' => 'required'
+            'quantity_order' => 'required' 
         ]);
 
         $orderSupplier = new OrderSupplier;
         $orderSupplier->order_supplier_transaction_id = $request->input('order_supplier_transaction_id');
         $orderSupplier->product_id = $request->input('product_id');
         $orderSupplier->price = $request->input('price');
-        $orderSupplier->quantity = $request->input('quantity');
-        $orderSupplier->total_price = $request->input('price') * $request->input('quantity');
-        $orderSupplier->stock_remaining = $request->input('quantity');
+        $orderSupplier->quantity = $request->input('quantity_order');
+        $orderSupplier->total_price = $request->input('price') * $request->input('quantity_order');
+        $orderSupplier->stock_remaining = $request->input('quantity_order');
+       
+
+        if ($request->input('quantity') == 1) {
+            $orderSupplier->variation = 'WHOLESALE';
+        } else {
+            $orderSupplier->variation = $request->input('variation');
+        }
  
         $orderSupplier->save();
 
         $products = Product::find($request->input('product_id'));
-        $products->price = $request->input('price');
+        if ($request->input('variation') === 'WHOLESALE') {
+            $products->price = $request->input('price');
+        } else {
+            $products->price = $request->input('price') * $products->quantity;
+        }
+        
         $products->save();
 
         return  response()->json($orderSupplier);
@@ -85,7 +97,7 @@ class OrderSupplierController extends Controller
             ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
             ->select('order_supplier.id', 'order_supplier.order_supplier_transaction_id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.stock_remaining',
-             'order_supplier.total_price', 'products.product_name')    
+             'order_supplier.total_price', 'products.product_name', 'products.id as product_id')    
             ->where('order_supplier_transaction.id', $id)
             ->get();
             return response()->json($data);   
