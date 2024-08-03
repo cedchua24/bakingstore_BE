@@ -98,6 +98,248 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);    
     }
 
+       public function fetchSortedProduct($id)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $param1 = '';
+        $param2 = '';
+
+        switch ($id) {
+        case "0":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "1":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "2":
+            $param1 = 'total_quantity';
+            $param2 = 'ASC';
+            break;
+        case "3":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break; 
+        case "4":
+            $param1 = 'total_price';
+            $param2 = 'ASC';
+            break;          
+        default:
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+        }
+
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name' ,DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit') )  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.date', date('Y-m-d'))
+            ->where('sot.status', 1)
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->get();
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'id' => $id,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+
+      public function fetchSortedCustomer($id)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $param1 = '';
+        $param2 = '';
+
+        switch ($id) {
+        case "0":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break;
+        case "1":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break; 
+        case "2":
+            $param1 = 'total_price';
+            $param2 = 'ASC';
+            break;          
+        default:
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+        }
+
+           $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price'), DB::raw('SUM(sot.profit) as total_profit'))  
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->where('sot.date', date('Y-m-d'))
+            ->where('sot.status', 1)
+            ->groupBy('c.id')
+            ->orderBy($param1, $param2)
+            ->get();
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'id' => $id,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+    public function fetchSortedCustomerReport(Request $request)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $param1 = '';
+        $param2 = '';
+        $limit = 1000;
+
+        $id = $request->input('status');
+
+        switch ($id) {
+        case "0":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            $limit = 1000;
+            break;
+        case "1":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break; 
+        case "2":
+            $param1 = 'total_price';
+            $param2 = 'ASC';
+            break;          
+        default:
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            $limit = 1000;
+        }
+        if ($id === 0) {
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->where('sot.status', 1)
+            ->groupBy('c.id')
+            ->orderBy($param1, $param2)
+            ->get();
+
+
+        } else {
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->where('sot.status', 1)
+            ->where('sot.date', '>=', $request->input('dateFrom'))
+            ->where('sot.date', '<=', $request->input('dateTo'))
+            ->groupBy('c.id')
+            ->orderBy($param1, $param2)
+            ->limit($request->input('limit'))
+            ->get();
+        }
+
+
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'id' => $id,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+        public function fetchSortedProductReport(Request $request)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $param1 = '';
+        $param2 = '';
+
+        $limit = 1000;
+
+        $id = $request->input('status');
+
+        switch ($id) {
+        case "0":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "1":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "2":
+            $param1 = 'total_quantity';
+            $param2 = 'ASC';
+            break;
+        case "3":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break; 
+        case "4":
+            $param1 = 'total_price';
+            $param2 = 'ASC';
+            break;          
+        default:
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+        }
+        if ($id === 0) {
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name' ,DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.status', 1)
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->get();
+        } else {
+
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name' ,DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.date', '>=', $request->input('dateFrom'))
+            ->where('sot.date', '<=', $request->input('dateTo'))
+            ->where('sot.status', 1)
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->limit($request->input('limit'))
+            ->get();
+
+        }
+
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'id' => $id,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+
    public function fetchOnlineShopOrderTransactionList()
     {
         $currentTime = Carbon::now('GMT+8');

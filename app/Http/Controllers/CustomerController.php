@@ -15,13 +15,23 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customers = Customer::all();
         // return view('categories.index')->with('categories', $categories);
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
             ->orderBy('c.first_name', 'asc') 
             ->get();
             return response()->json($data); 
+    }
+
+       public function fetchCustomerEnabled($id)
+    {
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.disabled', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address')   
+            ->orderBy('c.first_name', 'asc') 
+            ->where('c.disabled', 0)
+            ->get();
+            return response()->json($data); 
+
     }
 
     /**
@@ -101,6 +111,7 @@ class CustomerController extends Controller
         $customer->contact_number = $request->input('contact_number');
         $customer->email = $request->input('email');
         $customer->address = $request->input('address');
+        $customer->disabled = $request->input('disabled');
         $customer->save();
       
 
