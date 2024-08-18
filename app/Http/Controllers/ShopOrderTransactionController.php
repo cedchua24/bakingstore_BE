@@ -406,6 +406,18 @@ class ShopOrderTransactionController extends Controller
             ->first();
 
 
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }
+
            $response = [
               'total_price' =>$data->total_price,
               'total_profit' =>$data->total_profit,
@@ -476,6 +488,18 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.status', 2)
             ->groupBy('pt.id')
             ->get();
+
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }           
 
 
            $response = [
@@ -576,6 +600,19 @@ class ShopOrderTransactionController extends Controller
             ->where('shop_order_transaction.date', $newDate)
             ->where('mop.payment_type_id', $id)
             ->first();
+
+
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }            
 
 
            $response = [
@@ -817,6 +854,19 @@ class ShopOrderTransactionController extends Controller
             ->first();
 
 
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }            
+
+
            $response = [
               'total_price' =>$data->total_price,
               'total_profit' =>$data->total_profit,
@@ -906,6 +956,20 @@ class ShopOrderTransactionController extends Controller
             ->where('shop_order_transaction.date', date('Y-m-d'))
             ->first();
 
+
+
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }           
+
            $response = [
               'total_price' =>$data->total_price,
               'total_profit' =>$data->total_profit,
@@ -986,6 +1050,18 @@ class ShopOrderTransactionController extends Controller
             ->where('shop_order_transaction.status', $status)
            ->where('shop_order_transaction.date', date('Y-m-d'))
             ->first();
+
+             foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }              
 
 
            $response = [
