@@ -147,7 +147,14 @@ Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
 Route::resource('/expensesCategory', 'App\Http\Controllers\ExpensesCategoryController');
 Route::post('/expenses/fetchExpensesTransactionByDate', [ExpensesController::class, 'fetchExpensesTransactionByDate']);
 Route::get('/expenses/fetchExpensesTransaction/{id}', [ExpensesController::class, 'fetchExpensesTransaction']);
+Route::get('/expenses/fetchExpensesMandatoryToday/{id}', [ExpensesController::class, 'fetchExpensesMandatoryToday']);
+Route::get('/expenses/fetchExpensesNonMandatoryToday/{id}', [ExpensesController::class, 'fetchExpensesNonMandatoryToday']);
+
+Route::get('/expenses/fetchExpensesTransactionToday/{id}', [ExpensesController::class, 'fetchExpensesTransactionToday']);
+Route::get('/expenses/fetchExpensesByDate/{id}', [ExpensesController::class, 'fetchExpensesByDate']);
+
 Route::get('/expenses/fetchExpensesTransactionById/{id}', [ExpensesController::class, 'fetchExpensesTransactionById']);
+Route::get('/expenses/fetchExpenseById/{id}', [ExpensesController::class, 'fetchExpenseById']);
 
 Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController');
 Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
