@@ -24,12 +24,163 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
-               ->where('e.date', date('Y-m-d'))    
+            ->where('e.date', date('Y-m-d'))    
             ->get();
             return response()->json($data);   
     }
 
-           public function fetchExpensesTransaction()
+    public function fetchExpensesMandatoryToday($date)
+      {
+          $currentTime = date('Y-m-d');
+            $newDate = '';
+            if ($date == 0 || $date === "undefined") {
+                $newDate = $currentTime;
+            } else {
+                $newDate =$date;
+            }          
+
+         $data = DB::table('expenses as e')
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+              'ep.expenses_name', 'ec.expenses_category_name')
+            ->where('e.date', $newDate)    
+             ->where('ec.id', 1) 
+            ->get();
+
+
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->where('e.date', $newDate)  
+            ->where('ec.id', 1)    
+            ->get();
+
+
+            
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+      }
+
+          public function fetchExpensesNonMandatoryToday($date)
+      {
+
+         $currentTime = date('Y-m-d');
+            $newDate = '';
+             if ($date == 0 || $date === "undefined") {
+                $newDate = $currentTime;
+            } else {
+                $newDate =$date;
+            }       
+
+         $data = DB::table('expenses as e')
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+              'ep.expenses_name', 'ec.expenses_category_name')
+            ->where('e.date', $newDate)    
+             ->where('ec.id', 2) 
+            ->get();
+
+
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->where('e.date', $newDate)  
+            ->where('ec.id', 2)    
+            ->get();
+
+
+            
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+      }
+      
+
+
+  public function fetchExpensesByDate($date)
+    {
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->where('e.date', $date)    
+            ->get();
+
+
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $expenses_transaction_list,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+  public function fetchExpensesTransactionToday()
+    {
+            $expenses_transaction_list = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->orderBy('e.id', 'DESC')
+            ->groupBy('e.date')
+            ->where('e.date', date('Y-m-d'))    
+            ->get();
+
+
+            $total_expenses = 0;
+            foreach ($expenses_transaction_list as $datavals) {    
+                $total_expenses += $datavals->total_expenses;
+            }
+           $response = [
+              'data' => $expenses_transaction_list,
+              'code' => 200,
+              'total_expenses' => $total_expenses,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
+               public function fetchExpensesTransaction()
     {
             $expenses_transaction_list = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
@@ -85,18 +236,27 @@ class ExpensesController extends Controller
 
         public function fetchExpensesTransactionById($date)
     {
+        $currentTime = date('Y-m-d');
+        $newDate = '';
+        if ($date == 0) {
+            $newDate = $currentTime;
+        } else {
+            $newDate =$date;
+        }
+
+
         $data = DB::table('expenses as e')
             ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
-               ->where('e.date', $date)    
+               ->where('e.date', $newDate)    
             ->get();
 
 
             $expenses_transaction_list = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'))  
-             ->where('e.date', $date)    
+             ->where('e.date', $newDate)    
             ->first();
 
            $response = [
@@ -142,6 +302,23 @@ class ExpensesController extends Controller
         return  response()->json($expenses);
     }
 
+        public function fetchExpenseById($id)
+    {
+    //    $data = Expenses::find($id);
+
+        $data = DB::table('expenses as e')
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+              'ep.expenses_name', 'ec.expenses_category_name', 'ep.expenses_name')
+               ->where('e.id', $id)    
+            ->first();
+
+        //return view('categories.show')->with('category', $category);
+        return  response()->json($data);
+    }
+
+
     /**
      * Display the specified resource.
      *
@@ -150,9 +327,17 @@ class ExpensesController extends Controller
      */
     public function show(Expenses $expenses)
     {
-        $expenses = Expenses::find($expenses->id);
+        // $data = Expenses::find($expenses->id);
         //return view('categories.show')->with('category', $category);
-        return  response()->json($expenses);
+
+               $data = DB::table('expenses as e')
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+              'ep.expenses_name', 'ec.expenses_category_name')
+               ->where('e.id', $expenses->id)    
+            ->get();
+        return  response()->json($data);
     }
 
     /**
@@ -163,9 +348,10 @@ class ExpensesController extends Controller
      */
     public function edit(Expenses $expenses)
     {
-        $expenses = Expenses::find($expenses->id);
+        $brands = Expenses::find($expenses->id);
+        
         //return view('categories.show')->with('category', $category);
-        return  response()->json($expenses);
+        return  response()->json($brands);
     }
 
     /**
@@ -177,13 +363,12 @@ class ExpensesController extends Controller
      */
     public function update(Request $request, Expenses $expenses)
     {
-        $expenses = Expenses::find($expenses->id);
-        $expenses->expenses_type_id = $request->input('expenses_type_id');
+        $expenses = Expenses::find($request->input('id'));
         $expenses->details = $request->input('details');
         $expenses->amount = $request->input('amount');    
         $expenses->date = $request->input('date');   
         $expenses->save();
-        return  response()->json($expenses);
+        return  response()->json($request);
     }
 
     /**
@@ -192,9 +377,9 @@ class ExpensesController extends Controller
      * @param  \App\Models\Expenses  $expenses
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Expenses $expenses)
+    public function destroy( $id)
     {
-        $expenses = Expenses::find($expenses->id);
+        $expenses = Expenses::find($id);
         $expenses->delete();
         return response()->json($expenses);
     }

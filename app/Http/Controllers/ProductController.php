@@ -40,7 +40,8 @@ class ProductController extends Controller
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
             ->where('products.stock_warning', '>', 'products.stock')
-            ->orderBy('products.id', 'DESC')
+            ->where('products.stock_warning', '!=', 0)
+            ->orderBy('products.stock', 'ASC')
             ->get();
             return response()->json($data);    
     }
