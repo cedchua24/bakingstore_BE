@@ -310,7 +310,7 @@ class ExpensesController extends Controller
             ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
-              'ep.expenses_name', 'ec.expenses_category_name', 'ep.expenses_name')
+              'ep.expenses_name', 'ec.expenses_category_name', 'ep.expenses_name', 'ec.id as category_id')
                ->where('e.id', $id)    
             ->first();
 
@@ -364,9 +364,11 @@ class ExpensesController extends Controller
     public function update(Request $request, Expenses $expenses)
     {
         $expenses = Expenses::find($request->input('id'));
+        $expenses->expenses_type_id = $request->input('expenses_type_id');
         $expenses->details = $request->input('details');
         $expenses->amount = $request->input('amount');    
-        $expenses->date = $request->input('date');   
+        $expenses->date = $request->input('date');  
+        $expenses->date = $request->input('date');    
         $expenses->save();
         return  response()->json($request);
     }

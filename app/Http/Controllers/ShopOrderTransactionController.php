@@ -647,6 +647,20 @@ class ShopOrderTransactionController extends Controller
             ->groupBy('shop_order_transaction.date')
             ->get();
 
+             $expenses_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('ec.id', '<=', 1)  
+            ->first();
+
+            $expenses_non_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('ec.id', '<=', 2)  
+            ->first();
+
 
             $total_sales = 0;
             $total_profit = 0;
@@ -668,6 +682,9 @@ class ShopOrderTransactionController extends Controller
               'total_cash' => $total_cash,
               'total_online' => $total_online,
               'total_cash' =>$total_cash,
+              'expenses_mandatory' => $expenses_mandatory->total_expenses,
+              'expenses_non_mandatory' =>$expenses_non_mandatory->total_expenses,
+              'total_expenses' =>$expenses_non_mandatory->total_expenses + $expenses_mandatory->total_expenses,
               'message' => "Successfully Added"
           ];
 
@@ -722,6 +739,24 @@ class ShopOrderTransactionController extends Controller
             ->groupBy('shop_order_transaction.date')
             ->get();
 
+            $expenses_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('e.date', '>=', $request->input('dateFrom'))
+            ->where('e.date', '<=', $request->input('dateTo'))  
+            ->where('ec.id', '<=', 1)  
+            ->first();
+
+            $expenses_non_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))  
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('e.date', '>=', $request->input('dateFrom'))
+            ->where('e.date', '<=', $request->input('dateTo'))  
+            ->where('ec.id', '<=', 2)  
+            ->first();
+
 
 
             $total_sales = 0;
@@ -744,6 +779,9 @@ class ShopOrderTransactionController extends Controller
               'total_cash' => $total_cash,
               'total_online' => $total_online,
               'total_cash' =>$total_cash,
+              'expenses_mandatory' => $expenses_mandatory->total_expenses,
+              'expenses_non_mandatory' =>$expenses_non_mandatory->total_expenses,
+              'total_expenses' =>$expenses_non_mandatory->total_expenses + $expenses_mandatory->total_expenses,
               'message' => "Successfully Added"
           ];
 
