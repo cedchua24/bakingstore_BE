@@ -301,7 +301,7 @@ class ShopOrderTransactionController extends Controller
         }
         if ($id === 0) {
            $data = DB::table('products as p')
-            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name' ,DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
             ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
@@ -312,7 +312,7 @@ class ShopOrderTransactionController extends Controller
         } else {
 
            $data = DB::table('products as p')
-            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name' ,DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
             ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')

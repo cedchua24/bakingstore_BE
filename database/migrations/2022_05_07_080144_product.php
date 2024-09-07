@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('brand_id');
             $table->string('product_name');
             $table->double('price');
+            $table->double('sale_price');
             $table->integer('stock');
             $table->integer('stock_pc');
             $table->integer('stock_warning');
