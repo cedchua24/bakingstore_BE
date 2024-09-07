@@ -195,6 +195,7 @@ class ProductController extends Controller
         $products->brand_id = $request->input('brand_id');
         $products->product_name = $request->input('product_name');
         $products->price = $request->input('price');
+        $products->sale_price = $request->input('sale_price');
         $products->stock = $request->input('stock');
         $products->weight = $request->input('weight');
         $products->quantity = $request->input('quantity');

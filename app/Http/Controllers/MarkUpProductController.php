@@ -23,7 +23,7 @@ class MarkUpProductController extends Controller
             ->leftJoin('warehouse as w', 'w.id', '=', 'b.warehouse_id')
             ->select('mup.id', 'mup.product_id', 'mup.price', 'p.disabled',
              'mup.mark_up_option', 'mup.profit', 'mup.mark_up_price', 'mup.new_price', 'mup.profit', 'mup.mark_up_option', 'p.product_name', 'p.quantity',
-              'p.weight', 'p.category_id', 'p.variation', 'p.packaging', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type')    
+              'p.weight', 'p.category_id', 'p.variation', 'p.packaging', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type', 'p.sale_price')    
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
             ->where('mup.status', 1) 
             // ->where('p.stock_pc', '!=', 0)
