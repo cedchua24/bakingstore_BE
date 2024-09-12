@@ -145,7 +145,7 @@ class OrderSupplierTransactionController extends Controller
                 $initialStock = $product->stock;
                 if ($row->variation === 'WHOLESALE') {
                       $product->stock = ($initialStock + $row->quantity);
-                        if ($product->stock_pc != NULL) {
+                        if ($product->quantity > 0) {
                             $newStock = 0;
                             $newStock = $product->quantity * $row->quantity;  
                             $product->stock_pc = $product->stock_pc + $newStock;
