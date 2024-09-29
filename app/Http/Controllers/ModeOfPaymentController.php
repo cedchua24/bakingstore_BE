@@ -147,20 +147,43 @@ class ModeOfPaymentController extends Controller
         $modeOfPayment->payment_type_id = $request->input('payment_type_id');
         $modeOfPayment->shop_order_transaction_id = $request->input('shop_order_transaction_id');
         $modeOfPayment->amount = $request->input('amount');
+        $modeOfPayment->is_paid = $request->input('is_paid');
         $modeOfPayment->save();
 
-        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
-        $shopOrderTransaction->status = 2;
-        $shopOrderTransaction->save();
 
+            $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
+            $shopOrderTransaction->status = 2;
+            $shopOrderTransaction->save();
+   
+        
         $response = [
-              'data' => $modeOfPayment,
+              'data' => $request->input('paymentLeg'),
               'code' => 200,
-              'message' => "Successfully Added"
+              'message' => "Successfully Updated"
           ];
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($response);
     }
+
+        public function updatePaidStatus($id, Request $request)
+    {
+        // Create Post
+        $modeOfPayment = ModeOfPayment::find($id);
+        $modeOfPayment->payment_type_id = $request->input('payment_type_id');
+        $modeOfPayment->shop_order_transaction_id = $request->input('shop_order_transaction_id');
+        $modeOfPayment->amount = $request->input('amount');
+        $modeOfPayment->is_paid = $request->input('is_paid');
+        $modeOfPayment->save();
+
+        $response = [
+              'data' => $modeOfPayment,
+              'code' => 200,
+              'message' => "Successfully Updated"
+          ];
+        // return redirect('/categories')->with('success', 'Categories Created');
+        return  response()->json($response);
+    }
+
 
     /**
      * Remove the specified resource from storage.

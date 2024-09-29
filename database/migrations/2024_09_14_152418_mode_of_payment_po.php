@@ -13,12 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('mode_of_payment', function (Blueprint $table) {
+        Schema::create('mode_of_payment_po', function (Blueprint $table) {
             $table->id();
-            $table->integer('payment_type_id');
-            $table->integer('shop_order_transaction_id');
-            $table->double('amount');;
-            $table->integer('is_paid');
+            $table->integer('payment_type_po_id');
+            $table->integer('payment_term_id');
+            $table->integer('order_supplier_transaction_id');
+            $table->double('amount');
+            $table->date('date');
             $table->timestamps();
         });
     }
@@ -30,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-         Schema::dropIfExists('mode_of_payment');
+         Schema::dropIfExists('mode_of_payment_po');
     }
 };

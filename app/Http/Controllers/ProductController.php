@@ -53,7 +53,7 @@ class ProductController extends Controller
             ->join('stock_order as so', 'so.product_id', '=', 'p.id')
             ->select('so.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at')
-            ->orderBy('p.updated_at', 'DESC')
+            ->orderBy('so.id', 'DESC')
             ->where('p.id', $id)
             ->get();
             return response()->json($data); 

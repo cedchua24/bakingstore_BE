@@ -26,6 +26,9 @@ use App\Http\Controllers\PaymentTypeController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\StockOrderController;
 use App\Http\Controllers\ProductSupplierController;
+use App\Http\Controllers\ModeOfPaymentPoController;
+use App\Http\Controllers\PaymentTermController;
+use App\Http\Controllers\PaymentTypePoController;
 
 
 
@@ -76,6 +79,7 @@ Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplierTransactionController');
 Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderSupplierTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
+Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
 
 Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController');
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);
@@ -160,7 +164,8 @@ Route::get('/expenses/fetchExpenseById/{id}', [ExpensesController::class, 'fetch
 
 Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController');
 Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
-Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
+Route::put('/modeOfPayment/updatePaidStatus/{id}', [ModeOfPaymentController::class, 'updatePaidStatus']);
+
 Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
 Route::get('/paymentType/fetchEnablePaymentType/{id}', [PaymentTypeController::class, 'fetchEnablePaymentType']);
 
@@ -172,6 +177,14 @@ Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrde
 
 Route::resource('/productSupplier', 'App\Http\Controllers\ProductSupplierController');
 Route::get('/productSupplier/fetchProductSupplierById/{id}', [ProductSupplierController::class, 'fetchProductSupplierById']);
+
+Route::resource('/modeOfPaymentPo', 'App\Http\Controllers\ModeOfPaymentPoController');
+Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeOfPaymentPoController::class, 'fetchPaymentTypePoByShopTransactionId']);
+
+Route::resource('/paymentTerm', 'App\Http\Controllers\PaymentTermController');
+
+Route::resource('/paymentTypePo', 'App\Http\Controllers\PaymentTypePoController');
+
 
 
 // Route::group(['middleware' => 'auth:sanctum'], function(){
