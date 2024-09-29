@@ -390,7 +390,7 @@ class ShopOrderTransactionController extends Controller
             ->first();
 
            $payment_type = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('SUM(mop.is_paid) as total_paid_count'), DB::raw('COUNT(mop.id) as total_count'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.date', date('Y-m-d'))
@@ -534,11 +534,11 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+            ->select('mop.id', 'shop_order_transaction.id as shop_order_transaction_id','shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
-              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
+              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit', 'mop.is_paid',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name')    
              ->where('shop.shop_type_id', 3)
              ->where('shop_order_transaction.date', $newDate)
@@ -582,8 +582,8 @@ class ShopOrderTransactionController extends Controller
             ->first();
 
            $payment_type = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
+           ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
+           ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('SUM(mop.is_paid) as total_paid_count'), 'pt.payment_type',  'pt.payment_type_description')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.date', $newDate)
             ->where('sot.status', 1)
@@ -874,7 +874,7 @@ class ShopOrderTransactionController extends Controller
             ->first();
 
            $payment_type = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('SUM(mop.is_paid) as total_paid_count') , DB::raw('COUNT(mop.id) as total_count'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.date', $date)

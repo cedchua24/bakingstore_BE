@@ -21,7 +21,8 @@ class OrderSupplierTransactionController extends Controller
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
-            ->get();
+            ->orderBy('order_supplier_transaction.id', 'desc')
+             ->get();
             return response()->json($data);   
     }
 
@@ -164,6 +165,76 @@ class OrderSupplierTransactionController extends Controller
       
 
         return response()->json($orderSupplierTransaction);
+    }
+
+ public function setToCancelTransaction($id)
+    {
+        $orderSupplierTransaction = OrderSupplierTransaction::find($id);
+
+            $total_transaction_price = DB::table('order_supplier')
+            ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
+            ->join('products', 'products.id', '=', 'order_supplier.product_id')
+            ->select('order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
+            ->where('order_supplier_transaction.id', $id)
+            ->get();
+            $result = false;
+            $message = "";
+
+           foreach ($total_transaction_price as $row) { 
+                $product = Product::find($row->product_id);
+                $initialStock = $product->stock;
+                if ($row->variation === 'WHOLESALE') {
+                    if ($row->quantity > $product->stock)
+                    {
+                         $result = true; 
+                         $message = $product->product_name;
+                         break;
+                    }
+                } else {
+                    if ($row->quantity > $product->stock_pc)
+                    {
+                         $result = true; 
+                         $message = $product->product_name;
+                         break;
+                    }                    
+                }
+            }
+
+
+            if (!$result) {
+                foreach ($total_transaction_price as $row) { 
+                    $product = Product::find($row->product_id);
+                    $initialStock = $product->stock;
+                    if ($row->variation === 'WHOLESALE') {
+                        $product->stock = ($initialStock - $row->quantity);
+                            if ($product->quantity > 0) {
+                                $newStock = 0;
+                                $newStock = $product->quantity * $row->quantity;  
+                                $product->stock_pc = $product->stock_pc - $newStock;
+                            }
+                    } else {
+                        $newStock = $product->stock_pc - $row->quantity;
+                        $product->stock_pc = $newStock;
+                        $product->stock = (int)($product->stock_pc / $product->quantity);
+                    }
+
+                    $product->save();
+                }
+          $response = [
+              'id' => $id,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+             $orderSupplierTransaction->status = 'CANCELLED';
+             $orderSupplierTransaction->save();
+        } else {
+           $response = [
+              'id' => $id,
+              'code' => 500,
+              'message' => "Unable to Cancel, not Enough stock of ".$message
+          ];
+        }
+        return response()->json($response);
     }
 
     /**
