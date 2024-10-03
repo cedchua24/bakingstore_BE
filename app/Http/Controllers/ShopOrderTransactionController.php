@@ -534,7 +534,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->select('mop.id', 'shop_order_transaction.id as shop_order_transaction_id','shop_order_transaction.shop_order_transaction_total_quantity',
+            ->select('mop.id', 'mop.amount','shop_order_transaction.id as shop_order_transaction_id','shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
@@ -589,7 +589,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.status', 1)
             ->where('mop.payment_type_id', $id)
             ->groupBy('pt.id')
-            ->get();
+            ->first();
 
            $total = DB::table('shop_order_transaction')
             ->select(DB::raw('COUNT(shop_id) as total_count'),)  
@@ -605,10 +605,11 @@ class ShopOrderTransactionController extends Controller
             foreach ($shop_order_transaction_list as $sotl) { 
                 
                $mode_of_payment = DB::table('mode_of_payment as mop')
-                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id', 'mop.is_paid')    
                 ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
-                ->where('pt.id', '!=', 1)
-                ->where('mop.shop_order_transaction_id', $sotl->id)
+                // ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->shop_order_transaction_id)
+                ->where('mop.payment_type_id', $id)
                 ->get();
                 
                 $sotl->mode_of_payment = $mode_of_payment;

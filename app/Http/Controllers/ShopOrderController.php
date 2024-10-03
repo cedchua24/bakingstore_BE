@@ -134,7 +134,7 @@ class ShopOrderController extends Controller
           $product->save();
         }
 
-       DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
+      //  DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
         $response = [
               'message' => "Successfully Added"
