@@ -73,6 +73,9 @@ Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTran
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
+Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
+Route::get('/customers/fetchCustomerProduct/{id}', [CustomerController::class, 'fetchCustomerProduct']);
+
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
 Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 
