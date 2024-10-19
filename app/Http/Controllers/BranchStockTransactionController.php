@@ -21,23 +21,23 @@ class BranchStockTransactionController extends Controller
     public function fetchBranchStockWarehouseList($id)
     {
 
+        $data = DB::table('branch_stock_transaction')
+            ->LeftJoin('warehouse', 'warehouse.id', '=', 'branch_stock_transaction.warehouse_id')
+            ->LeftJoin('products', 'products.id', '=', 'branch_stock_transaction.product_id')
+            ->select('branch_stock_transaction.id', 'branch_stock_transaction.branch_stock_transaction',  'branch_stock_transaction.status',
+             'warehouse.warehouse_name', 'products.product_name')   
+            // ->where('products.id', $id)
+            ->get();
+            return response()->json($data);   
+
         // $data = DB::table('branch_stock_transaction')
         //     ->join('warehouse', 'warehouse.id', '=', 'branch_stock_transaction.warehouse_id')
         //     ->join('products', 'products.id', '=', 'branch_stock_transaction.product_id')
         //     ->select('branch_stock_transaction.id', 'branch_stock_transaction.branch_stock_transaction',  'branch_stock_transaction.status',
-        //      'warehouse.warehouse_name', 'products.product_name')   
-        //     ->where('products.id', $id)
-        //     ->get();
+        //      'warehouse.warehouse_name', 'products.product_name') 
+        //      ->groupBy('warehouse.id')  
+        //      ->get();
         //     return response()->json($data);   
-
-        $data = DB::table('branch_stock_transaction')
-            ->join('warehouse', 'warehouse.id', '=', 'branch_stock_transaction.warehouse_id')
-            ->join('products', 'products.id', '=', 'branch_stock_transaction.product_id')
-            ->select('branch_stock_transaction.id', 'branch_stock_transaction.branch_stock_transaction',  'branch_stock_transaction.status',
-             'warehouse.warehouse_name', 'products.product_name') 
-             ->groupBy('warehouse.id')  
-             ->get();
-            return response()->json($data);   
     }
 
     /**

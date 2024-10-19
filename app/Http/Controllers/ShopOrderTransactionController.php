@@ -345,7 +345,7 @@ class ShopOrderTransactionController extends Controller
         $currentTime = Carbon::now('GMT+8');
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->LeftJoin('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
@@ -1121,6 +1121,23 @@ class ShopOrderTransactionController extends Controller
         }
     }
 
+    
+    public function fetchShopOrderChickenTransaction($id)
+    {
+           $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->LeftJoin('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop_order_transaction.date',
+             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status'
+             , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
+            ->where('shop_order_transaction.id', $id)
+            ->first();
+
+                return response()->json($data);   
+    }
+
 
     public function fetchShopOrderTransaction($id)
     {
@@ -1140,7 +1157,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number', 
+             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id', 'shop_order_transaction.date', 'shop.status', 'shop.address', 'shop.contact_number', 
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
             ->where('shop_order_transaction.id', $id)
             ->first();
