@@ -17,6 +17,9 @@ return new class extends Migration
             $table->id();
             $table->string('shop_name');
             $table->integer('shop_type_id');
+            $table->string('contact_number');
+            $table->string('address');
+            $table->integer('status');
             $table->timestamps();
         });
     }

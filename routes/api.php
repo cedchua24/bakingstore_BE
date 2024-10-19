@@ -72,6 +72,7 @@ Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTran
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
+Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
 Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
 Route::get('/customers/fetchCustomerProduct/{id}', [CustomerController::class, 'fetchCustomerProduct']);
 
@@ -110,6 +111,7 @@ Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, '
 
 Route::resource('/shop', 'App\Http\Controllers\ShopController');
 Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
+Route::get('/shop/fetchShopActive/{id}', [ShopController::class, 'fetchShopActive']);
 Route::get('/shop/fetcOnlineShopList/{id}', [ShopController::class, 'fetcOnlineShopList']);
 Route::get('/shop/fetchPhysicalStoreList/{id}', [ShopController::class, 'fetchPhysicalStoreList']);
 Route::get('/shop/fetchOnlineOrderList/{id}', [ShopController::class, 'fetchOnlineOrderList']);

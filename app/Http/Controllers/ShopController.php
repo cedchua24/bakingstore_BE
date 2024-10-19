@@ -29,6 +29,17 @@ class ShopController extends Controller
         return response()->json($data);   
     }
 
+        public function fetchShopActive()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description' , 'shop.status', 'shop.address', 'shop.contact_number')
+          ->where('shop.status', 1)  
+          ->get();
+        return response()->json($data);  
+    }
+
         public function fetcOnlineShopList()
     {
         $data = DB::table('shop')

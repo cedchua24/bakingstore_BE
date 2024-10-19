@@ -23,12 +23,28 @@ class CustomerController extends Controller
             return response()->json($data); 
     }
 
+     public function fetchCustomerTransactionList($id)
+    {
+        // return view('categories.index')->with('categories', $categories);
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->orderBy('c.first_name', 'asc') 
+            ->groupBy('c.id')
+            ->get();
+            return response()->json($data); 
+    }
+
+    
+
        public function fetchCustomerEnabled($id)
     {
          $data = DB::table('customer as c')
             ->select('c.id', 'c.disabled', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address')   
             ->orderBy('c.first_name', 'asc') 
             ->where('c.disabled', 0)
+            ->groupBy('c.id')
             ->get();
             return response()->json($data); 
 
