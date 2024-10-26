@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Mail;
 
 class ShopController extends Controller
 {
@@ -37,6 +38,17 @@ class ShopController extends Controller
             'shop_type.shop_type_description' , 'shop.status', 'shop.address', 'shop.contact_number')
           ->where('shop.status', 1)  
           ->get();
+        return response()->json($data);  
+    }
+
+    public function fetchShopCurrent()
+    {
+        $data = DB::table('shop')
+          ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
+          ->select('shop.id', 'shop.shop_name','shop.shop_type_id',
+            'shop_type.shop_type_description' , 'shop.status', 'shop.address', 'shop.contact_number')
+          ->where('shop.status', 1)  
+          ->first();
         return response()->json($data);  
     }
 
@@ -168,9 +180,59 @@ class ShopController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function destroy(Shop $shop)
-    {
-        $shop = Shop::find($shop->id);
-        $shop->delete();
-        return response()->json($shop);
+      {
+          $shop = Shop::find($shop->id);
+          $shop->delete();
+          return response()->json($shop);
+      }
+
+
+     public function sendReport(Request $request) {
+        $data = array('name'=>"Virat Gandhi");
+    
+
+           Mail::send('mail', ['params' => $request], function ($m) use ($request) {
+            $m->from('reports@caloocan.mdrbakingsupplies.com', $request->input('shop_name'));
+            // $m->to('cedchuaa0324@gmail.com')
+            $m->to($request->input('emails'))
+          //  ->cc(['manalolady88@gmail.com', 'cedchua123@yahoo.com'])
+              ->subject("Sales Report");
+          });
+
+        //  Mail::send('mail', ['params' => $request], function ($message) use ($request) {
+        //   $message->to('cedchuaa0324@gmail.com', 'Tutorials Point')->subject
+        //       ('Laravel Basic Testing Mail');
+        //   $message->from('reports@caloocan.mdrbakingsupplies.com','Virat Gandhi');
+        // });
+        
+
+          // Mail::send('email.receipt', ['params' => $params], function ($m) use ($params) {
+          //   $m->from($_SERVER['BILLSPAY_MICROSERVICE_EMAIL_FROM'], 'GCash Bills Payment');
+          //   $m->to($params['emails'])
+          //     ->subject($params['subject']);
+          // });
+      return response()->json($request);
     }
+
+  public function html_email() {
+      $data = array('name'=>"Virat Gandhi");
+      Mail::send('mail', $data, function($message) {
+         $message->to('cedchua123@yahoo.com', 'Tutorials Point')->subject
+            ('Laravel HTML Testing Mail');
+         $message->from('cedchuaa0324@gmail.com','Virat Gandhi');
+      });
+      echo "HTML Email Sent. Check your inbox.";
+   }
+   public function attachment_email() {
+      $data = array('name'=>"Virat Gandhi");
+      Mail::send('mail', $data, function($message) {
+         $message->to('cedchua123@yahoo.com', 'Tutorials Point')->subject
+            ('Laravel Testing Mail with Attachment');
+         $message->attach('C:\laravel-master\laravel\public\uploads\image.png');
+         $message->attach('C:\laravel-master\laravel\public\uploads\test.txt');
+         $message->from('cedchuaa0324@gmail.com','Virat Gandhi');
+      });
+      echo "Email Sent with attachment. Check your inbox.";
+   }
+
 }

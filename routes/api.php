@@ -29,6 +29,7 @@ use App\Http\Controllers\ProductSupplierController;
 use App\Http\Controllers\ModeOfPaymentPoController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PaymentTypePoController;
+use App\Http\Controllers\EmailController;
 
 
 
@@ -70,6 +71,7 @@ Route::get('/products/fetchById/{id}', [ProductController::class, 'fetchById']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
+Route::resource('/emails', 'App\Http\Controllers\EmailController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
@@ -112,9 +114,11 @@ Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, '
 Route::resource('/shop', 'App\Http\Controllers\ShopController');
 Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
 Route::get('/shop/fetchShopActive/{id}', [ShopController::class, 'fetchShopActive']);
+Route::get('/shop/fetchShopCurrent/{id}', [ShopController::class, 'fetchShopCurrent']);
 Route::get('/shop/fetcOnlineShopList/{id}', [ShopController::class, 'fetcOnlineShopList']);
 Route::get('/shop/fetchPhysicalStoreList/{id}', [ShopController::class, 'fetchPhysicalStoreList']);
 Route::get('/shop/fetchOnlineOrderList/{id}', [ShopController::class, 'fetchOnlineOrderList']);
+Route::post('/shop/sendReport', [ShopController::class, 'sendReport']);
 Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');

@@ -347,7 +347,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+            ->select('shop.shop_name','shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
@@ -405,6 +405,17 @@ class ShopOrderTransactionController extends Controller
             ->where('shop_order_transaction.date', date('Y-m-d'))
             ->first();
 
+            $emails = DB::table('email as e')
+            ->select('e.email')  
+            ->where('e.status', 1)
+            ->get();
+
+            $array_email = array();
+            foreach ($emails as $email) { 
+             array_push($array_email, $email->email);  
+            }
+
+
 
             foreach ($shop_order_transaction_list as $sotl) { 
                 
@@ -419,6 +430,8 @@ class ShopOrderTransactionController extends Controller
             }
 
            $response = [
+              'shop_name' => $shop_order_transaction_list->count() != 0 ? $shop_order_transaction_list[0]->shop_name: '',
+              'emails' => $array_email,
               'total_price' =>$data->total_price,
               'total_profit' =>$data->total_profit,
               'total_count' =>$total->total_count,
@@ -1158,6 +1171,18 @@ class ShopOrderTransactionController extends Controller
             ->first();
             break;
         case 3 :
+          $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number',
+             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status'
+             , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
+            ->where('shop_order_transaction.id', $id)
+            ->first();
+            break;
+         case 4 :
           $data = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
