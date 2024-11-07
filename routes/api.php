@@ -74,6 +74,7 @@ Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTran
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/emails', 'App\Http\Controllers\EmailController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
+Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class, 'customerLastOrderList']);
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
 Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
