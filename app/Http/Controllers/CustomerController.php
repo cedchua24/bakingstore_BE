@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CustomerController extends Controller
 {
@@ -35,6 +36,136 @@ class CustomerController extends Controller
             ->get();
             return response()->json($data); 
     }
+
+    
+    public function customerLastOrderList($idParam, Request $request) {
+    
+     if ($request->input('dateFrom') == null ) {
+
+        //  $total_page = DB::table('shop_order_transaction')
+        //     ->select(DB::raw('COUNT(id) as total_count'))  
+        //     ->distinct()
+        //     ->first();
+
+           $total_page =  DB::table('shop_order_transaction')
+            ->distinct()
+            ->count('requestor');
+
+       if ($idParam == 1 ) {
+           $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('max(id) as id'))   
+            ->groupBy('requestor')
+            ->limit(100)
+            ->offset(0)
+            ->orderBy('id', 'desc') 
+            ->get();
+       } else {
+           $pageCount = ($idParam * 100) - 99;
+           $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('max(id) as id'))   
+            ->groupBy('requestor')
+            ->limit(100)
+            ->offset($pageCount)
+            ->orderBy('id', 'desc') 
+            ->get();
+       } 
+    } else {
+           $total_page =  DB::table('shop_order_transaction')
+            ->where('date', '<=', $request->input('dateFrom'))
+            ->distinct()
+            ->count('requestor');
+
+        if ($idParam == 1 ) {
+           $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('max(id) as id'))   
+            ->where('date', '<=', $request->input('dateFrom'))
+            ->groupBy('requestor')
+            ->limit(100)
+            ->offset(0)
+            ->orderBy('id', 'desc') 
+            ->get();
+       } else {
+           $pageCount = ($idParam * 100) - 99;
+           $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('max(id) as id'))  
+            ->where('date', '<=', $request->input('dateFrom')) 
+            ->groupBy('requestor')
+            ->limit(100)
+            ->offset($pageCount)
+            ->orderBy('id', 'desc') 
+            ->get();
+       } 
+
+    }
+
+
+            
+        $ids = array();
+            foreach ($max_ids as $id) { 
+             array_push($ids, $id->id);  
+            }
+
+         $sotList = DB::table('shop_order_transaction')
+            ->select('id')   
+            ->whereIn('id', $ids)
+            ->get();
+
+        $sots = array();
+            foreach ($sotList as $sot) { 
+             array_push($sots, $sot->id);  
+            }   
+      
+        if ($request->input('dateFrom') != '' ) {
+          $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price')   
+             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->where('sot.date', '<=', $request->input('dateFrom'))
+            ->whereIn('sot.id', $sots)    
+            ->groupBy('c.id')
+            ->get();
+        } else {
+           $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price')   
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->whereIn('sot.id', $sots)    
+            ->groupBy('c.id')
+            ->get();
+        }
+        $shift_difference = 0;
+
+         $date = Carbon::parse(date('Y-m-d'));
+         $diffSearch =  Carbon::parse($request->input('dateFrom'));
+         $shift_difference = $date->diffInDays($diffSearch);
+
+
+        if ($request->input('dateFrom') != '' ) { 
+             for($i=0; $i<= sizeof($data)-1; $i++) {
+              $diffDay = $date->diffInDays($data[$i]->date);
+                if ($shift_difference <= $diffDay) {
+                 $data[$i]->last_order = $diffDay;
+                } else {
+                    unset($data[$i]);  
+                }
+        }  
+        } else {
+            for($i=0; $i<= sizeof($data)-1; $i++) {
+               $diffDay = $date->diffInDays($data[$i]->date);
+               $data[$i]->last_order = $diffDay;
+            }
+        }
+
+
+      $response = [
+              'data' => $data,
+              'total_page' => $total_page,
+              'day_count' => $shift_difference,
+              'page' => $idParam,
+              'request' =>$request->input('dateFrom')
+          ];
+      return response()->json($response);
+    }
+
+
 
     
 
