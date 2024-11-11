@@ -15,10 +15,11 @@ class PaymentTypePoController extends Controller
      */
     public function index()
     {
- $data = DB::table('payment_type_po')
-            ->select('id', 'payment_type',
-              'payment_type_description', 'status', 'type', 'due_date')
-            ->where('payment_type_po.status', '=', 1)    
+         $data = DB::table('payment_type_po as ptp')
+            ->select('ptp.id', 'ptp.payment_type',
+              'ptp.payment_type_description', 'ptp.status', 'ptp.type', 'ptp.due_date', 'pt.payment_term')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.type')    
+            ->where('ptp.status', '=', 1)    
             ->get();
 
         return response()->json($data);
@@ -42,7 +43,21 @@ class PaymentTypePoController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $this->validate($request, [
+            'payment_type' => 'required'
+        ]);
+
+        // $item = UserProfile::create($data);
+
+        // Create Post
+        $paymentTypePo = new PaymentTypePo;
+        $paymentTypePo->payment_type = $request->input('payment_type');
+        $paymentTypePo->payment_type_description = $request->input('payment_type_description');
+        $paymentTypePo->status = $request->input('status');
+        $paymentTypePo->type = $request->input('type');
+        $paymentTypePo->save();
+        // return redirect('/categories')->with('success', 'Categories Created');
+        return  response()->json($paymentTypePo);
     }
 
     /**
@@ -53,7 +68,9 @@ class PaymentTypePoController extends Controller
      */
     public function show(PaymentTypePo $paymentTypePo)
     {
-        //
+        $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
+        //return view('categories.show')->with('category', $category);
+        return  response()->json($paymentTypePo);
     }
 
     /**
@@ -64,7 +81,9 @@ class PaymentTypePoController extends Controller
      */
     public function edit(PaymentTypePo $paymentTypePo)
     {
-        //
+        $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
+        //return view('categories.show')->with('category', $category);
+        return  response()->json($paymentTypePo);
     }
 
     /**
@@ -76,7 +95,13 @@ class PaymentTypePoController extends Controller
      */
     public function update(Request $request, PaymentTypePo $paymentTypePo)
     {
-        //
+        $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
+        $paymentTypePo->payment_type = $request->input('payment_type');
+        $paymentTypePo->payment_type_description = $request->input('payment_type_description');
+        $paymentTypePo->status = $request->input('status');
+        $paymentTypePo->save();
+        // return redirect('/categories')->with('success', 'Categories Created');
+        return  response()->json($paymentTypePo);
     }
 
     /**
@@ -87,6 +112,8 @@ class PaymentTypePoController extends Controller
      */
     public function destroy(PaymentTypePo $paymentTypePo)
     {
-        //
+        $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
+        $paymentTypePo->delete();
+        return response()->json($paymentTypePo);
     }
 }
