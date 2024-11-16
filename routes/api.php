@@ -86,6 +86,7 @@ Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplier
 Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderSupplierTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
 Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
+Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompletePaymentTransaction']);
 
 Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController');
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);
@@ -192,6 +193,7 @@ Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeO
 Route::resource('/paymentTerm', 'App\Http\Controllers\PaymentTermController');
 
 Route::resource('/paymentTypePo', 'App\Http\Controllers\PaymentTypePoController');
+Route::get('/paymentTypePo/findByCategory/{id}', [PaymentTypePoController::class, 'findByCategory']);
 
 
 

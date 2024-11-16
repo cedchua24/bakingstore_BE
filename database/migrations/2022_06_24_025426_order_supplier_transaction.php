@@ -19,6 +19,7 @@ return new class extends Migration
             $table->boolean('withTax')->default(0);
             $table->double('total_transaction_price');
             $table->string('status');
+            $table->integer('payment_status');
             $table->string('payment_status');
             $table->integer('stock_status');
             $table->date('order_date');

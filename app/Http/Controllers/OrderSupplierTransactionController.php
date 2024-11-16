@@ -19,7 +19,7 @@ class OrderSupplierTransactionController extends Controller
     {
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
-            ->select('order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+            ->select('order_supplier_transaction.payment_status','order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
              ->get();
@@ -58,6 +58,7 @@ class OrderSupplierTransactionController extends Controller
         $orderSupplierTransaction->withTax = $request->input('withTax');
         $orderSupplierTransaction->total_transaction_price = $request->input('total_transaction_price');
         $orderSupplierTransaction->status = $request->input('status');
+        $orderSupplierTransaction->payment_status = 0;
         $orderSupplierTransaction->stock_status = 0;
         $orderSupplierTransaction->order_date = $request->input('order_date');
           
@@ -166,6 +167,17 @@ class OrderSupplierTransactionController extends Controller
 
         return response()->json($orderSupplierTransaction);
     }
+
+        public function setToCompletePaymentTransaction($id)
+    {
+        $orderSupplierTransaction = OrderSupplierTransaction::find($id);
+        $orderSupplierTransaction->payment_status = 1;
+        $orderSupplierTransaction->save();
+      
+
+        return response()->json($orderSupplierTransaction);
+    }
+
 
  public function setToCancelTransaction($id)
     {
