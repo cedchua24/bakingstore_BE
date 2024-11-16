@@ -25,6 +25,19 @@ class PaymentTypePoController extends Controller
         return response()->json($data);
     }
 
+    public function findByCategory($id)
+    {
+         $data = DB::table('payment_type_po as ptp')
+            ->select('ptp.id', 'ptp.payment_type',
+              'ptp.payment_type_description', 'ptp.status', 'ptp.type', 'ptp.due_date', 'pt.payment_term')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.type')    
+            ->where('ptp.status', '=', 1)    
+             ->where('ptp.type', '=', $id) 
+            ->get();
+
+        return response()->json($data);  
+    }
+
     /**
      * Show the form for creating a new resource.
      *

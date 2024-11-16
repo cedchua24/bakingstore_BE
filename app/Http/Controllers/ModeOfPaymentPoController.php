@@ -57,7 +57,7 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo->save();
 
         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
-        $orderSupplierTransaction->status = 2;
+        $orderSupplierTransaction->payment_status = 0;
         $orderSupplierTransaction->save();
         return  response()->json($orderSupplierTransaction);
     }
@@ -142,11 +142,11 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo->save();
 
         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
-        $orderSupplierTransaction->status = 'IN_PROGRESS';
+        $orderSupplierTransaction->payment_status = 0;
         $orderSupplierTransaction->save();
 
         $response = [
-              'data' => $modeOfPaymentPo,
+              'data' => $orderSupplierTransaction,
               'code' => 200,
               'message' => "Successfully Added"
           ];
@@ -165,7 +165,7 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo = ModeOfPaymentPo::find($modeOfPaymentPo->id);    
 
         $shopOrderTransaction = OrderSupplierTransaction::find($modeOfPaymentPo->order_supplier_transaction_id);
-        $shopOrderTransaction->status = 'IN_PROGRESS';
+        $shopOrderTransaction->payment_status = 0;
         $shopOrderTransaction->save();
         $modeOfPaymentPo->delete();
         
