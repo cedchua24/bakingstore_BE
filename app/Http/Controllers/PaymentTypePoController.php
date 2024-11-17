@@ -16,23 +16,26 @@ class PaymentTypePoController extends Controller
     public function index()
     {
          $data = DB::table('payment_type_po as ptp')
-            ->select('ptp.id', 'ptp.payment_type',
-              'ptp.payment_type_description', 'ptp.status', 'ptp.type', 'ptp.due_date', 'pt.payment_term')
-            ->join('payment_term as pt', 'pt.id', '=', 'ptp.type')    
-            ->where('ptp.status', '=', 1)    
+            ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
+            ->join('bank as b', 'ptp.bank_id', '=', 'b.id')   
             ->get();
 
         return response()->json($data);
     }
 
+
+
     public function findByCategory($id)
     {
          $data = DB::table('payment_type_po as ptp')
-            ->select('ptp.id', 'ptp.payment_type',
-              'ptp.payment_type_description', 'ptp.status', 'ptp.type', 'ptp.due_date', 'pt.payment_term')
-            ->join('payment_term as pt', 'pt.id', '=', 'ptp.type')    
-            ->where('ptp.status', '=', 1)    
-             ->where('ptp.type', '=', $id) 
+            ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
+            ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
+            ->where('ptp.status', '=', 0)    
+            ->where('ptp.payment_term_id', '=', $id) 
             ->get();
 
         return response()->json($data);  
@@ -57,20 +60,25 @@ class PaymentTypePoController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'payment_type' => 'required'
+            'payment_term_id' => 'required'
         ]);
 
         // $item = UserProfile::create($data);
 
         // Create Post
         $paymentTypePo = new PaymentTypePo;
-        $paymentTypePo->payment_type = $request->input('payment_type');
-        $paymentTypePo->payment_type_description = $request->input('payment_type_description');
+        $paymentTypePo->payment_term_id = $request->input('payment_term_id');
+        $paymentTypePo->bank_id = $request->input('bank_id');
+        $paymentTypePo->account_number = $request->input('account_number');
+        $paymentTypePo->account_name = $request->input('account_name');
+        $paymentTypePo->account_description = $request->input('account_description') ? $request->input('account_description') : " " ;
+        $paymentTypePo->due_date = $request->input('due_date');
+        $paymentTypePo->credit_limit = $request->input('credit_limit');
         $paymentTypePo->status = $request->input('status');
-        $paymentTypePo->type = $request->input('type');
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($paymentTypePo);
+
     }
 
     /**
@@ -81,9 +89,16 @@ class PaymentTypePoController extends Controller
      */
     public function show(PaymentTypePo $paymentTypePo)
     {
-        $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
-        //return view('categories.show')->with('category', $category);
-        return  response()->json($paymentTypePo);
+
+        $data = DB::table('payment_type_po as ptp')
+            ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
+            ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
+            ->where('ptp.id', '=', $paymentTypePo->id)    
+            ->first();
+
+        return response()->json($data);  
     }
 
     /**
@@ -109,8 +124,13 @@ class PaymentTypePoController extends Controller
     public function update(Request $request, PaymentTypePo $paymentTypePo)
     {
         $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
-        $paymentTypePo->payment_type = $request->input('payment_type');
-        $paymentTypePo->payment_type_description = $request->input('payment_type_description');
+        $paymentTypePo->payment_term_id = $request->input('payment_term_id');
+        $paymentTypePo->bank_id = $request->input('bank_id');
+        $paymentTypePo->account_number = $request->input('account_number');
+        $paymentTypePo->account_name = $request->input('account_name');
+        $paymentTypePo->account_description = $request->input('account_description');
+        $paymentTypePo->due_date = $request->input('due_date');
+        $paymentTypePo->credit_limit = $request->input('credit_limit');
         $paymentTypePo->status = $request->input('status');
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');
