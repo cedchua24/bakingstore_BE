@@ -66,9 +66,12 @@ class ModeOfPaymentPoController extends Controller
     {
          $data = DB::table('mode_of_payment_po as mop')
             ->join('payment_type_po as p', 'p.id', '=', 'mop.payment_type_po_id')
+            ->join('bank as b', 'p.bank_id', '=', 'b.id')   
+            ->join('payment_term as pt', 'pt.id', '=', 'p.payment_term_id') 
             ->join('order_supplier_transaction as sot', 'sot.id', '=', 'mop.order_supplier_transaction_id')
-            ->select('mop.id', 'mop.order_supplier_transaction_id',  'mop.amount', 'p.payment_type',
-              'p.payment_type_description', 'p.status', 'sot.total_transaction_price', 'mop.payment_type_po_id')
+            ->select('mop.id', 'mop.order_supplier_transaction_id',  'mop.amount',
+              'p.account_number', 'p.account_name', 'p.account_description', 'p.due_date', 'p.credit_limit', 'p.status', 'b.bank_name', 'pt.payment_term',
+              'sot.total_transaction_price', 'mop.payment_type_po_id')
             ->where('mop.order_supplier_transaction_id', '=', $id)    
             ->get();
 

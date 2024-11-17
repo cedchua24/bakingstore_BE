@@ -30,6 +30,8 @@ use App\Http\Controllers\ModeOfPaymentPoController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PaymentTypePoController;
 use App\Http\Controllers\EmailController;
+use App\Http\Controllers\BankController;
+
 
 
 
@@ -194,6 +196,9 @@ Route::resource('/paymentTerm', 'App\Http\Controllers\PaymentTermController');
 
 Route::resource('/paymentTypePo', 'App\Http\Controllers\PaymentTypePoController');
 Route::get('/paymentTypePo/findByCategory/{id}', [PaymentTypePoController::class, 'findByCategory']);
+Route::get('/paymentTerm/fetchNotCashList/{id}', [PaymentTermController::class, 'fetchNotCashList']);
+
+Route::resource('/banks', 'App\Http\Controllers\BankController');
 
 
 
