@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PaymentTerm;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PaymentTermController extends Controller
 {
@@ -17,6 +18,17 @@ class PaymentTermController extends Controller
         $paymentTerm = PaymentTerm::all();
         // return view('categories.index')->with('categories', $categories);
         return response()->json($paymentTerm);
+    }
+
+        public function fetchNotCashList()
+    {
+         $data = DB::table('payment_term as pt')
+            ->select('pt.id', 'pt.payment_term', 'pt.status')
+            ->where('pt.id', '!=', 1)   
+            ->where('pt.status', '=', 1) 
+            ->get();
+
+        return response()->json($data);  
     }
 
 

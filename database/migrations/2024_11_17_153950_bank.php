@@ -13,15 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('payment_type_po', function (Blueprint $table) {
+        Schema::create('bank', function (Blueprint $table) {
             $table->id();
-            $table->integer('payment_term_id');
-            $table->integer('bank_id');
-            $table->string('account_number');
-            $table->string('account_name');
-            $table->string('account_description');
-            $table->integer('due_date');
-            $table->double('credit_limit');
+            $table->string('bank_name');
             $table->integer('status');
             $table->timestamps();
         });
@@ -34,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-         Schema::dropIfExists('payment_type_po');
+         Schema::dropIfExists('bank');
     }
 };
