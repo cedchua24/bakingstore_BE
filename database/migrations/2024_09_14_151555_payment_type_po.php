@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('account_description');
             $table->integer('due_date');
             $table->double('credit_limit');
+            $table->integer('statement_date');
+            $table->double('total_balance_due');
             $table->integer('status');
             $table->timestamps();
         });

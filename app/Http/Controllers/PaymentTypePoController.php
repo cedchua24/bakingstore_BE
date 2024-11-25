@@ -17,7 +17,8 @@ class PaymentTypePoController extends Controller
     {
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')   
             ->get();
@@ -31,7 +32,8 @@ class PaymentTypePoController extends Controller
     {
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+               'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
             ->where('ptp.status', '=', 0)    
@@ -74,6 +76,8 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->account_description = $request->input('account_description') ? $request->input('account_description') : " " ;
         $paymentTypePo->due_date = $request->input('due_date');
         $paymentTypePo->credit_limit = $request->input('credit_limit');
+        $paymentTypePo->statement_date = $request->input('statement_date');
+        $paymentTypePo->total_balance_due = $request->input('total_balance_due');
         $paymentTypePo->status = $request->input('status');
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');
@@ -92,7 +96,8 @@ class PaymentTypePoController extends Controller
 
         $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status')
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
             ->where('ptp.id', '=', $paymentTypePo->id)    
@@ -131,6 +136,8 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->account_description = $request->input('account_description');
         $paymentTypePo->due_date = $request->input('due_date');
         $paymentTypePo->credit_limit = $request->input('credit_limit');
+        $paymentTypePo->statement_date = $request->input('statement_date');
+        $paymentTypePo->total_balance_due = $request->input('total_balance_due');
         $paymentTypePo->status = $request->input('status');
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');

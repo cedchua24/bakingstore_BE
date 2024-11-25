@@ -54,6 +54,8 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo->order_supplier_transaction_id = $request->input('order_supplier_transaction_id');
         $modeOfPaymentPo->amount = $request->input('amount');
         $modeOfPaymentPo->date = $request->input('date');
+        $modeOfPaymentPo->status = $request->input('status');
+        $modeOfPaymentPo->type = $request->input('type');
         $modeOfPaymentPo->save();
 
         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
@@ -71,6 +73,7 @@ class ModeOfPaymentPoController extends Controller
             ->join('order_supplier_transaction as sot', 'sot.id', '=', 'mop.order_supplier_transaction_id')
             ->select('mop.id', 'mop.order_supplier_transaction_id',  'mop.amount',
               'p.account_number', 'p.account_name', 'p.account_description', 'p.due_date', 'p.credit_limit', 'p.status', 'b.bank_name', 'pt.payment_term',
+              'p.statement_date', 'p.total_balance_due',
               'sot.total_transaction_price', 'mop.payment_type_po_id')
             ->where('mop.order_supplier_transaction_id', '=', $id)    
             ->get();
@@ -142,6 +145,8 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo->payment_type_po_id = $request->input('payment_type_po_id');
         $modeOfPaymentPo->order_supplier_transaction_id = $request->input('order_supplier_transaction_id');
         $modeOfPaymentPo->amount = $request->input('amount');
+        $modeOfPaymentPo->status = $request->input('status');
+        $modeOfPaymentPo->type = $request->input('type');
         $modeOfPaymentPo->save();
 
         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
