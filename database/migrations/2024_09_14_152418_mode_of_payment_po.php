@@ -20,6 +20,8 @@ return new class extends Migration
             $table->integer('order_supplier_transaction_id');
             $table->double('amount');
             $table->date('date');
+            $table->integer('type');
+            $table->integer('status');
             $table->timestamps();
         });
     }
