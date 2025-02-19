@@ -20,6 +20,7 @@ class CustomerController extends Controller
          $data = DB::table('customer as c')
             ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
             ->orderBy('c.first_name', 'asc') 
+            ->limit(100)
             ->get();
             return response()->json($data); 
     }
