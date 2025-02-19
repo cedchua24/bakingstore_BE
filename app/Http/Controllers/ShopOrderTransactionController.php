@@ -34,7 +34,7 @@ class ShopOrderTransactionController extends Controller
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
             ->where('shop.shop_type_id', '!=', 3)    
-            ->where('shop_order_transaction.date', date('Y-m-d'))
+            // ->where('shop_order_transaction.date', date('Y-m-d'))
             ->orderBy('shop_order_transaction.id', 'DESC')
             ->get();
          
@@ -44,7 +44,7 @@ class ShopOrderTransactionController extends Controller
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
             ->where('shop.shop_type_id', '!=', 3)
             ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', date('Y-m-d'))
+            // ->where('shop_order_transaction.date', date('Y-m-d'))
             ->first();
 
 
@@ -53,7 +53,7 @@ class ShopOrderTransactionController extends Controller
               'total_profit' =>$data->total_profit,
               'data' => $shop_order_transaction_list,
               'code' => 200,
-              'message' => "Successfully Added"
+              'message' => "Successfully Addedz"
           ];
 
 

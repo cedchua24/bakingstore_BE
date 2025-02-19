@@ -31,6 +31,16 @@ use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PaymentTypePoController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\CreditCardPaymentController;
+use App\Http\Controllers\InstallmentPaymentTransactionController;
+use App\Http\Controllers\InstallmentPaymentController;
+use App\Http\Controllers\LoanController;
+use App\Http\Controllers\LoanTransactionController;
+use App\Http\Controllers\CreditCardDueController;
+use App\Http\Controllers\CreditCardPayController;
+use App\Http\Controllers\CreditCardInstallmentDtailsController;
+
+
 
 
 
@@ -179,6 +189,7 @@ Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController'
 Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
 Route::put('/modeOfPayment/updatePaidStatus/{id}', [ModeOfPaymentController::class, 'updatePaidStatus']);
 
+
 Route::resource('/paymentType', 'App\Http\Controllers\PaymentTypeController');
 Route::get('/paymentType/fetchEnablePaymentType/{id}', [PaymentTypeController::class, 'fetchEnablePaymentType']);
 
@@ -193,12 +204,70 @@ Route::get('/productSupplier/fetchProductSupplierById/{id}', [ProductSupplierCon
 
 Route::resource('/modeOfPaymentPo', 'App\Http\Controllers\ModeOfPaymentPoController');
 Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeOfPaymentPoController::class, 'fetchPaymentTypePoByShopTransactionId']);
+Route::get('/modeOfPaymentPo/fetchCreditCardPaymentDTO/{id}', [ModeOfPaymentPoController::class, 'fetchCreditCardPaymentDTO']);
+Route::put('/modeOfPaymentPo/setToCompleteCreditCard/{id}', [ModeOfPaymentPoController::class, 'setToCompleteCreditCard']);
+
+
 
 Route::resource('/paymentTerm', 'App\Http\Controllers\PaymentTermController');
 
 Route::resource('/paymentTypePo', 'App\Http\Controllers\PaymentTypePoController');
 Route::get('/paymentTypePo/findByCategory/{id}', [PaymentTypePoController::class, 'findByCategory']);
 Route::get('/paymentTerm/fetchNotCashList/{id}', [PaymentTermController::class, 'fetchNotCashList']);
+Route::get('/paymentTerm/fetchCashAndOnline/{id}', [PaymentTermController::class, 'fetchCashAndOnline']);
+
+Route::get('/paymentTerm/fetchPaymentTermCreditCard/{id}', [PaymentTermController::class, 'fetchPaymentTermCreditCard']);
+
+Route::get('/paymentTerm/fetchByPaymentTerm/{id}', [PaymentTermController::class, 'fetchByPaymentTerm']);
+Route::get('/paymentTerm/fetchByPaymentTypePo/{id}', [PaymentTermController::class, 'fetchByPaymentTypePo']);
+Route::get('/paymentTerm/fetchOrderSupplierByPaymentType/{id}', [PaymentTermController::class, 'fetchOrderSupplierByPaymentType']);
+Route::get('/paymentTerm/fetchCreditCardPaymentList/{id}', [PaymentTermController::class, 'fetchCreditCardPaymentList']);
+Route::get('/paymentTerm/fetchCreditCardPaymentListV2/{id}', [PaymentTermController::class, 'fetchCreditCardPaymentListV2']);
+Route::get('/paymentTerm/fetchCreditCardPaymentListV3/{id}', [PaymentTermController::class, 'fetchCreditCardPaymentListV3']);
+Route::get('/paymentTerm/fetchInstallmenttList/{id}', [PaymentTermController::class, 'fetchInstallmenttList']);
+
+
+Route::resource('/creditCardPayment', 'App\Http\Controllers\CreditCardPaymentController');
+Route::get('/creditCardPayment/fetchCreditCardByMOP/{id}', [CreditCardPaymentController::class, 'fetchCreditCardByMOP']);
+
+Route::resource('/installmentPayment', 'App\Http\Controllers\InstallmentPaymentController');
+Route::get('/installmentPayment/fetchInstallmentPayment/{id}', [InstallmentPaymentController::class, 'fetchInstallmentPayment']);
+
+Route::resource('/installmentPaymentTransaction', 'App\Http\Controllers\InstallmentPaymentTransactionController');
+Route::get('/installmentPaymentTransaction/fetchInstallmentTransactionByMOP/{id}', [InstallmentPaymentTransactionController::class, 'fetchInstallmentTransactionByMOP']);
+Route::get('/installmentPaymentTransaction/fetchPromoInstallmentList/{id}', [InstallmentPaymentTransactionController::class, 'fetchPromoInstallmentList']);
+
+Route::resource('/loan', 'App\Http\Controllers\LoanController');
+Route::get('/loan/fetchInstallmentList/{id}', [LoanController::class, 'fetchInstallmentList']);
+
+Route::resource('/loanTransaction', 'App\Http\Controllers\LoanTransactionController');
+Route::get('/loanTransaction/fetchloanTransactionV2/{id}', [LoanTransactionController::class, 'fetchloanTransactionV2']);
+
+Route::resource('/creditCardDue', 'App\Http\Controllers\CreditCardDueController');
+Route::get('/creditCardDue/fetallCreditDueById/{id}', [CreditCardDueController::class, 'fetallCreditDueById']);
+Route::get('/creditCardDue/fetchCreditCardDueList/{id}', [CreditCardDueController::class, 'fetchCreditCardDueList']);
+
+Route::get('/creditCardDue/fetchCreditCardDetail/{id}', [CreditCardDueController::class, 'fetchCreditCardDetail']);
+Route::get('/creditCardDue/fetchPaymentTypeDetail/{id}', [CreditCardDueController::class, 'fetchPaymentTypeDetail']);
+Route::post('/creditCardDue/saveCreditCardPay', [CreditCardDueController::class, 'saveCreditCardPay']);
+
+
+Route::resource('/creditCardInstallmentDtails', 'App\Http\Controllers\CreditCardInstallmentDtailsController');
+Route::get('/creditCardInstallmentDtails/fetchCreditCardInstallmentDetail/{id}', [CreditCardInstallmentDtailsController::class, 'fetchCreditCardInstallmentDetail']);
+
+
+
+
+Route::resource('/creditCardPay', 'App\Http\Controllers\CreditCardPayController');
+Route::get('/creditCardPay/fetchCreditCardPayById/{id}', [CreditCardPayController::class, 'fetchCreditCardPayById']);
+Route::get('/creditCardPay/fetchCreditCardPayByPaymentType/{id}', [CreditCardPayController::class, 'fetchCreditCardPayByPaymentType']);
+Route::get('/creditCardPay/fetchCreditCardDueByInstallment/{id}', [CreditCardPayController::class, 'fetchCreditCardDueByInstallment']);
+
+
+
+
+
+
 
 Route::resource('/banks', 'App\Http\Controllers\BankController');
 

@@ -17,7 +17,7 @@ class PaymentTypePoController extends Controller
     {
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.buffer_days', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
               'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')   
@@ -32,7 +32,7 @@ class PaymentTypePoController extends Controller
     {
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date','ptp.buffer_days',  'ptp.credit_limit', 'ptp.status',
                'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
@@ -75,6 +75,7 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->account_name = $request->input('account_name');
         $paymentTypePo->account_description = $request->input('account_description') ? $request->input('account_description') : " " ;
         $paymentTypePo->due_date = $request->input('due_date');
+        $paymentTypePo->buffer_days = $request->input('buffer_days');
         $paymentTypePo->credit_limit = $request->input('credit_limit');
         $paymentTypePo->statement_date = $request->input('statement_date');
         $paymentTypePo->total_balance_due = $request->input('total_balance_due');
@@ -96,7 +97,7 @@ class PaymentTypePoController extends Controller
 
         $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
-              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.buffer_days', 'ptp.credit_limit', 'ptp.status',
               'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
@@ -135,6 +136,7 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->account_name = $request->input('account_name');
         $paymentTypePo->account_description = $request->input('account_description');
         $paymentTypePo->due_date = $request->input('due_date');
+        $paymentTypePo->buffer_days = $request->input('buffer_days');
         $paymentTypePo->credit_limit = $request->input('credit_limit');
         $paymentTypePo->statement_date = $request->input('statement_date');
         $paymentTypePo->total_balance_due = $request->input('total_balance_due');
