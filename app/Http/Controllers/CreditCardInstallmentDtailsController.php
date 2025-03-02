@@ -55,7 +55,10 @@ class CreditCardInstallmentDtailsController extends Controller
         $creditCardInstallmentDtails->status = $request->input('status');
         $creditCardInstallmentDtails->save();
 
-        $creditCardDue = CreditCardDue::where('due_date', $request->input('start_date'))->first();;
+        //$creditCardDue = CreditCardDue::where('due_date', $request->input('start_date'))->first();
+          $creditCardDue = CreditCardDue::where(['due_date' => $request->input('start_date'),
+                                                 'payment_type_po_id' => $request->input('payment_type_po_id')])->first();
+        // $creditCardDue = DB::table('credit_card_due')->where('due_date',  $request->input('start_date'))->where('payment_type_po_id', $request->input('payment_type_po_id'))->first();
         $creditCardDue->amount = $creditCardDue->amount - $request->input('amount');
         $creditCardDue->amount = $creditCardDue->amount + $request->input('interest_monthly');
         $creditCardDue->is_installment =$creditCardInstallmentDtails->id;
@@ -65,7 +68,9 @@ class CreditCardInstallmentDtailsController extends Controller
             $date = Carbon::parse($request->input('start_date'));
             $newDueDate = $date->addMonths($x);
 
-            $creditCardDue = DB::table('credit_card_due')->where('due_date',  $newDueDate)->first();
+            // $creditCardDue = DB::table('credit_card_due')->where('due_date',  $newDueDate)->where('payment_type_po_id', $request->input('payment_type_po_id'))->first();
+                      $creditCardDue = CreditCardDue::where(['due_date' => $newDueDate,
+                                                 'payment_type_po_id' => $request->input('payment_type_po_id')])->first();
             if ($creditCardDue != null) {
                 $creditCardDue->amount = $creditCardDue->amount + $request->input('interest_monthly');
                 $creditCardDue->is_installment = $creditCardInstallmentDtails->id;

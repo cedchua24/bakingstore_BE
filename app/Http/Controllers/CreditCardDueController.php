@@ -34,7 +34,6 @@ class CreditCardDueController extends Controller
     {
         $creditCards = DB::table('credit_card_due')->where('payment_type_po_id',  $id)->orderBy('due_date', 'asc')->get();
 
-
         return response()->json($creditCards);   
     }
 

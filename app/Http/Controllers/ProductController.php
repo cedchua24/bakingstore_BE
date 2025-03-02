@@ -28,7 +28,116 @@ class ProductController extends Controller
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
             ->orderBy('products.updated_at', 'DESC')
             ->get();
-            return response()->json($data);   
+
+
+          return response()->json($data);   
+    }
+
+     public function fetchProductListV2($id)
+    {
+        // $products = Product::all();
+        // // return view('categories.index')->with('categories', $categories);
+        // return response()->json($products);
+
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+            ->orderBy('products.updated_at', 'DESC')
+            ->get();
+
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->first();
+
+           $response = [
+              'total_value' =>$total_value,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
+    }
+
+        public function fetchProductValue($id)
+    {
+        // $products = Product::all();
+        // // return view('categories.index')->with('categories', $categories);
+        // return response()->json($products);
+ 
+      if ($id == 0) {
+
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('mark_up_product as mup', 'mup.product_id', '=', 'products.id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price', 'mup.price as mup_price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
+              'mup.new_price', 'mup.profit')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('mup.business_type', 'WHOLESALE')
+            ->where('mup.status', 1)
+            ->get();
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('mark_up_product as mup', 'mup.product_id', '=', 'products.id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'), DB::raw('SUM(mup.new_price * products.stock) as total_new_value')
+            , DB::raw('SUM(mup.profit * products.stock) as total_profit'))  
+            ->where('mup.business_type', 'WHOLESALE')  
+            ->where('mup.status', 1)
+            ->first();
+
+      } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('mark_up_product as mup', 'mup.product_id', '=', 'products.id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price', 'mup.price as mup_price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
+              'mup.new_price', 'mup.profit')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('category.id', $id)
+            ->where('mup.business_type', 'WHOLESALE')
+            ->where('mup.status', 1)
+            ->get();
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('mark_up_product as mup', 'mup.product_id', '=', 'products.id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'), DB::raw('SUM(mup.new_price * products.stock) as total_new_value')
+            , DB::raw('SUM(mup.profit * products.stock) as total_profit'))  
+            ->where('category.id', $id)
+            ->where('mup.business_type', 'WHOLESALE')  
+            ->where('mup.status', 1)
+            ->first();
+      }
+     $myArray = ["one", "two", "three", "four"];
+      unset($myArray[0]);
+      $myArray = array_values($myArray);
+
+      // unset($data[0]);
+      // $data = array_values($data);
+
+           $response = [
+              'total_value' =>$total_value,
+               'myArray' =>$myArray,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
     }
 
       public function fetchByStockWarning()
@@ -70,7 +179,22 @@ class ProductController extends Controller
             ->where('category.id', $id)
             ->orderBy('products.id', 'DESC')
             ->get();
-            return response()->json($data);    
+
+             $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+             ->where('category.id', $id)
+            ->first();
+
+           $response = [
+              'total_value' =>$total_value,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);     
     }
                 public function fetchProductByCategoryIdV2($id)
     {
