@@ -147,7 +147,7 @@ class PaymentTermController extends Controller
 
          for($x=0; $x<= sizeof($data)-1; $x++) {
               $creditCards = DB::table('credit_card_due')
-               ->select( 'amount', 'amount_paid')
+               ->select( 'amount', 'amount_paid', 'due_date')
               ->orderBy('due_date', 'asc')
               ->where('status', 0)
               ->where('payment_type_po_id',  $data[$x]->id)
@@ -157,7 +157,7 @@ class PaymentTermController extends Controller
               }   else {
                 $data[$x]->amount_due = 0;
               }
-              
+                $data[$x]->due = $creditCards->due_date;
             //   $data[$x]->due_date = $creditCards->due_date ;
          }
 

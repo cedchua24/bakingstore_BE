@@ -95,7 +95,12 @@ class ModeOfPaymentPoController extends Controller
             $year = date('Y', $newDate);
             $due_date = $year ."-". $month ."-". $paymentTypePo->due_date;  
 
-            $creditCardDue = CreditCardDue::where('due_date', $due_date)->first();
+            // $creditCardDue = CreditCardDue::where('due_date', $due_date)->first();
+              $creditCardDue = DB::table('credit_card_due')
+              ->where('payment_type_po_id', $request->input('payment_type_po_id'))
+              ->where('due_date',  $due_date)
+              ->orderBy('due_date', 'asc')
+              ->first();
 
             if ($creditCardDue != null ) {            
                 $creditCardDue->amount = $creditCardDue->amount + $request->input('amount');
