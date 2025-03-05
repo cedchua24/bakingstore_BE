@@ -102,6 +102,8 @@ Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
 Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
 Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompletePaymentTransaction']);
+Route::get('/orderSupplierTransaction/fetchOrderSupplierByDate/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDate']);
+Route::post('/orderSupplierTransaction/fetchOrderSupplierReport', [OrderSupplierTransactionController::class, 'fetchOrderSupplierReport']);
 
 Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController');
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);

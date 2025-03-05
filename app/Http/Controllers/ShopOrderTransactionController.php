@@ -706,6 +706,8 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+    
+
            public function fetchShopOrderTransactionListReport()
     {
       
