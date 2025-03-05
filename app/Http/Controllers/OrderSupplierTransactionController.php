@@ -26,6 +26,19 @@ class OrderSupplierTransactionController extends Controller
             return response()->json($data);   
     }
 
+        public function fetchOrderSupplierByDate($date)
+    {
+            $data = DB::table('order_supplier_transaction')
+            ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
+            ->select('order_supplier_transaction.payment_status','order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+             'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+            ->orderBy('order_supplier_transaction.id', 'desc')
+            ->where('order_supplier_transaction.order_date', $date)  
+             ->where('order_supplier_transaction.payment_status', 1)
+             ->get();
+            return response()->json($data);   
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -247,6 +260,85 @@ class OrderSupplierTransactionController extends Controller
           ];
         }
         return response()->json($response);
+    }
+
+           public function fetchOrderSupplierReport(Request $request)
+    {
+      
+        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '') {
+            $shop_order_transaction_list = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('SUM(ost.total_transaction_price) as total_sales') , DB::raw('COUNT(ost.id) as total_count'),
+             DB::raw('ost.order_date as date'))  
+            ->join('mode_of_payment_po as mop', 'mop.order_supplier_transaction_id', '=', 'ost.id')  
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_po_id')  
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')  
+            // ->where('shop.shop_type_id', 3)
+             ->where('ost.payment_status', 1)
+             ->orderBy('ost.id', 'DESC')
+             ->groupBy('ost.order_date')
+            ->get();
+
+
+
+            $payment_type = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('COUNT(mop.id) as total_count'), 
+            'ptp.account_name', 'ptp.account_number', 'ptp.account_description', 'ptp.id', 'b.bank_name')  
+            ->join('mode_of_payment_po as mop', 'mop.order_supplier_transaction_id', '=', 'ost.id')  
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_po_id')  
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')  
+             ->where('ost.payment_status', 1)
+             ->orderBy('ost.id', 'DESC')
+             ->groupBy('ptp.id')
+            ->get();
+
+        } else {
+
+            $shop_order_transaction_list = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('SUM(ost.total_transaction_price) as total_sales'), DB::raw('COUNT(ost.id) as total_count'),
+             DB::raw('ost.order_date as date'))  
+            ->join('mode_of_payment_po as mop', 'mop.order_supplier_transaction_id', '=', 'ost.id')  
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_po_id')  
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')  
+            // ->where('shop.shop_type_id', 3)
+             ->where('ost.payment_status', 1)
+            ->where('ost.order_date', '>=', $request->input('dateFrom'))
+            ->where('ost.order_date', '<=', $request->input('dateTo'))
+             ->orderBy('ost.id', 'DESC')
+             ->groupBy('ost.order_date')
+            ->get();
+
+            $payment_type = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('COUNT(mop.id) as total_count'), 
+            'ptp.account_name', 'ptp.account_number', 'ptp.account_description', 'ptp.id', 'b.bank_name')  
+            ->join('mode_of_payment_po as mop', 'mop.order_supplier_transaction_id', '=', 'ost.id')  
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_po_id')  
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')  
+             ->where('ost.order_date', '>=', $request->input('dateFrom'))
+            ->where('ost.order_date', '<=', $request->input('dateTo'))
+             ->where('ost.payment_status', 1)
+             ->orderBy('ost.id', 'DESC')
+             ->groupBy('ost.order_date')
+            ->get();
+
+        }  
+
+        
+
+            $total_sales = 0;
+            foreach ($shop_order_transaction_list as $datavals) {  
+                $total_sales += $datavals->total_sales;
+            }
+
+           $response = [
+              'data' => $shop_order_transaction_list,
+              'payment' => $payment_type,
+              'code' => 200,
+              'total_sales' => $total_sales,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
     }
 
     /**

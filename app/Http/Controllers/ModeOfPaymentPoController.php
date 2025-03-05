@@ -102,7 +102,8 @@ class ModeOfPaymentPoController extends Controller
               ->orderBy('due_date', 'asc')
               ->first();
 
-            if ($creditCardDue != null ) {            
+            if ($creditCardDue != null ) {    
+                $creditCardDue = CreditCardDue::find($creditCardDue->id);        
                 $creditCardDue->amount = $creditCardDue->amount + $request->input('amount');
                 $creditCardDue->status = 0;
             } else {
