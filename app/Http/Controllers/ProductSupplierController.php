@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductSupplier;
+use App\Models\ProductSupplierPrice;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 Use Exception;
@@ -63,6 +65,13 @@ class ProductSupplierController extends Controller
             $productSupplier->product_id = $request->input('product_id');
             $productSupplier->status = 0;
             $productSupplier->save();
+
+            $productSupplierPrice = new ProductSupplierPrice;
+            $productSupplierPrice->product_supplier_id = $productSupplier->id;
+            $productSupplierPrice->price = $request->input('price');
+            $productSupplierPrice->status = 0;
+            $productSupplierPrice->save();
+
              $response = [
               'message' => "Successfully Added",
               'code' => 200,

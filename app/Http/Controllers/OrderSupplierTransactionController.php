@@ -19,7 +19,7 @@ class OrderSupplierTransactionController extends Controller
     {
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
-            ->select('order_supplier_transaction.payment_status','order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+            ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
              ->get();
@@ -137,6 +137,7 @@ class OrderSupplierTransactionController extends Controller
         $orderSupplierTransaction->total_transaction_price = $total_transaction_price;
         // $orderSupplierTransaction->total_transaction_price = 3000;
         $orderSupplierTransaction->order_date = $request->input('order_date');
+        $orderSupplierTransaction->invoice_number = $request->input('invoice_number');
         $orderSupplierTransaction->status = $request->input('status');
         $orderSupplierTransaction->save();
       
