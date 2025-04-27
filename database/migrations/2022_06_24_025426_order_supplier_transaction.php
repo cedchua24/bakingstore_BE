@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('order_supplier_transaction', function (Blueprint $table) {
             $table->id();
             $table->integer('supplier_id');
+            $table->string('invoice_number');
             $table->boolean('withTax')->default(0);
             $table->double('total_transaction_price');
             $table->string('status');

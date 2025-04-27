@@ -39,6 +39,7 @@ use App\Http\Controllers\LoanTransactionController;
 use App\Http\Controllers\CreditCardDueController;
 use App\Http\Controllers\CreditCardPayController;
 use App\Http\Controllers\CreditCardInstallmentDtailsController;
+use App\Http\Controllers\SupplierController;
 
 
 
@@ -96,6 +97,8 @@ Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::clas
 Route::get('/customers/fetchCustomerProduct/{id}', [CustomerController::class, 'fetchCustomerProduct']);
 
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
+Route::get('/suppliers/fetchSupplierProduct/{id}', [SupplierController::class, 'fetchSupplierProduct']);
+
 Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 
 Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplierTransactionController');

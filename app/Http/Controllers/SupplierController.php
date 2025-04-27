@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
@@ -17,6 +18,20 @@ class SupplierController extends Controller
         $suppliers = Supplier::all();
         // return view('categories.index')->with('categories', $categories);
         return response()->json($suppliers);
+    } 
+
+       public function fetchSupplierProduct($id)
+    {
+        $data = DB::table('product_supplier as ps')
+          ->join('products as p', 'p.id', '=', 'ps.product_id')
+          ->join('product_supplier_price as psp', 'ps.id', '=', 'psp.product_supplier_id')
+          ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
+          ->join('category as c', 'p.category_id', '=', 'c.id')
+          ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'psp.price',
+            'ps.status', 'p.weight', 'ps.product_id', 'c.category_name')
+         ->where('p.id', $id)
+          ->get();
+        return response()->json($data);  
     }
 
     /**
