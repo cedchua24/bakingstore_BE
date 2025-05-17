@@ -42,10 +42,27 @@ class CreditCardDueController extends Controller
             $data = DB::table('credit_card_due as ccd')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
             ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
-            ->select( 'ccd.id', 'ccd.min_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
-            'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name')    
+            ->select( 'ccd.id', 'ccd.min_amount', 'ccd.interest_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
+            'ccd.status', 'ccd.due_date', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name')    
             ->where('ptp.payment_term_id', $id)
             ->where('ccd.status', 0)
+            ->orderBy('ccd.due_date', 'asc')
+            ->get(); 
+            
+
+
+         return response()->json($data); 
+    }
+
+           public function fetchCreditCardPaidList($id)
+    {
+            $data = DB::table('credit_card_due as ccd')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->select( 'ccd.id', 'ccd.min_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
+            'ccd.status', 'ccd.due_date', 'ccd.interest_amount', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name')    
+            ->where('ptp.payment_term_id', $id)
+            ->where('ccd.status', 1)
             ->orderBy('ccd.due_date', 'asc')
             ->get(); 
             
@@ -167,7 +184,7 @@ class CreditCardDueController extends Controller
     {
         $creditCardDue = CreditCardDue::find($request->input('id'));
 
-        $paymentTypePo = PaymentTypePo::find( $creditCardDue->payment_type_po_id);
+        $paymentTypePo = PaymentTypePo::find($creditCardDue->payment_type_po_id);
        
 
             $creditCardPay = new CreditCardPay;
@@ -175,12 +192,15 @@ class CreditCardDueController extends Controller
             $creditCardPay->amount = $request->input('amount_paid');
             $creditCardPay->payment_type_po_id = $request->input('payment_type_po_id');
             $creditCardPay->status = 1;
-            $creditCardPay->save();
+           
 
             $creditCardDue->amount_paid =  $creditCardDue->amount_paid +  $request->input('amount_paid'); 
 
+            if ($paymentTypePo->payment_term_id == 3) {
+                $creditCardPay->amount = $request->input('constant_amount');  
+            }
            
-
+            $creditCardPay->save();
             $credit_card_pay = DB::table('credit_card_pay')
             ->select(DB::raw('SUM(amount) as total_amount'))  
             ->where('credit_card_due_id', $creditCardDue->id)  
@@ -199,11 +219,13 @@ class CreditCardDueController extends Controller
             $paymentTypePo->save();    
         }
 
+
+
     
         $creditCardDue->save();
-      
+ 
 
-        return response()->json($request->input('id'));
+        return response()->json($request->input('constant_amount'));
     }
 
     /**
