@@ -49,7 +49,7 @@ class OrderSupplierController extends Controller
             'price' => 'required',
             'quantity_order' => 'required' 
         ]);
-
+ 
         $orderSupplier = new OrderSupplier;
         $orderSupplier->order_supplier_transaction_id = $request->input('order_supplier_transaction_id');
         $orderSupplier->product_id = $request->input('product_id');
@@ -57,7 +57,19 @@ class OrderSupplierController extends Controller
         $orderSupplier->quantity = $request->input('quantity_order');
         $orderSupplier->total_price = $request->input('price') * $request->input('quantity_order');
         $orderSupplier->stock_remaining = $request->input('quantity_order');
+        $orderSupplier->expiration = $request->input('expiration');
        
+
+        $orderSupplier_result = DB::table('order_supplier')
+        ->select(DB::raw('COUNT(id) as result'))  
+        ->where('product_id', $request->input('product_id'))  
+        ->first();
+
+        if ($orderSupplier_result->result == 0 ) {
+            $orderSupplier->enable = 1;
+        } else {
+            $orderSupplier->enable = 0;
+        }
 
         if ($request->input('quantity') == 1) {
             $orderSupplier->variation = 'WHOLESALE';
@@ -76,7 +88,7 @@ class OrderSupplierController extends Controller
         
         $products->save();
 
-        return  response()->json($orderSupplier);
+        return  response()->json($orderSupplier_result);
     }
 
     /**
@@ -96,7 +108,7 @@ class OrderSupplierController extends Controller
         $data = DB::table('order_supplier')
             ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
-            ->select('order_supplier.id', 'order_supplier.order_supplier_transaction_id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.stock_remaining',
+            ->select('order_supplier.id', 'order_supplier.order_supplier_transaction_id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.expiration', 'order_supplier.stock_remaining',
              'order_supplier.total_price', 'products.product_name', 'products.id as product_id')    
             ->where('order_supplier_transaction.id', $id)
             ->get();
@@ -108,7 +120,8 @@ class OrderSupplierController extends Controller
         $data = DB::table('order_supplier')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
             ->select('order_supplier.id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.order_supplier_transaction_id',
-             'order_supplier.total_price', 'products.product_name', 'order_supplier.product_id', 'order_supplier.stock_remaining')    
+             'order_supplier.total_price', 'products.product_name', 'order_supplier.product_id', 'order_supplier.stock_remaining',
+              'order_supplier.expiration', 'order_supplier.enable')    
             ->where('order_supplier.id', $id)
             ->first();
             return response()->json($data);   
@@ -119,7 +132,7 @@ class OrderSupplierController extends Controller
         $data = DB::table('order_supplier')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
             ->select('order_supplier.id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.order_supplier_transaction_id',
-             'order_supplier.total_price', 'products.product_name', 'order_supplier.product_id', 'order_supplier.created_at')    
+             'order_supplier.total_price', 'products.product_name', 'order_supplier.product_id', 'order_supplier.created_at', 'order_supplier.expiration')    
             ->where('order_supplier.product_id', $id)
             ->get();
             return response()->json($data);   
@@ -153,9 +166,22 @@ class OrderSupplierController extends Controller
         $orderSupplier->price = $request->input('price');
         $orderSupplier->quantity = $request->input('quantity');
         $orderSupplier->total_price = $request->input('price') * $request->input('quantity');
+        $orderSupplier->expiration = $request->input('expiration');
+        $orderSupplier->enable = $request->input('enable');
 
         $orderSupplier->save();
         // return redirect('/categories')->with('success', 'Categories Created');
+        return  response()->json($orderSupplier);
+    }
+
+    public function setToActiveExpiration(Request $request)
+    {
+        DB::table('order_supplier')->where('product_id', $request->input('product_id'))->update(array('enable' => 0));  
+
+        $orderSupplier = OrderSupplier::find($request->input('id'));
+
+        $orderSupplier->enable = $request->input('enable');
+        $orderSupplier->save();
         return  response()->json($orderSupplier);
     }
 

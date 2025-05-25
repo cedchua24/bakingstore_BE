@@ -82,6 +82,11 @@ Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class,
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
 Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetchProductListV2']);
+Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
+Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
+
+
+
 
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
 Route::get('/products/fetchById/{id}', [ProductController::class, 'fetchById']);
@@ -113,6 +118,7 @@ Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderSuppliers/fetchOrderBySupplierId/{id}', [OrderSupplierController::class, 'fetchOrderBySupplierId']);
 Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierController::class, 'fetchOrderByProductId']);
+Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::class, 'setToActiveExpiration']);
 
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);

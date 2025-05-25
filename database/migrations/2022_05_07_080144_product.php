@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('stock_pc');
             $table->integer('stock_warning');
             $table->integer('weight');
+            $table->string('note');
             $table->string('packaging');
             $table->integer('quantity');
             $table->integer('disabled');
