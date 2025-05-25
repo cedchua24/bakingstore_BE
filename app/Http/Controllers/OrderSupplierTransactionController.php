@@ -252,7 +252,8 @@ class OrderSupplierTransactionController extends Controller
               'message' => "Successfully Added"
           ];
              $orderSupplierTransaction->status = 'CANCELLED';
-             $orderSupplierTransaction->save();
+            //  $orderSupplierTransaction->save();
+             $orderSupplierTransaction->delete();
         } else {
            $response = [
               'id' => $id,

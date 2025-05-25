@@ -6,6 +6,7 @@ use App\Models\ProductPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\StockOrder;
+use Carbon\Carbon;
 
 class ProductController extends Controller
 {
@@ -25,7 +26,7 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
             ->orderBy('products.updated_at', 'DESC')
             ->get();
 
@@ -44,7 +45,7 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
             ->orderBy('products.updated_at', 'DESC')
             ->get();
 
@@ -57,6 +58,61 @@ class ProductController extends Controller
 
            $response = [
               'total_value' =>$total_value,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
+    }
+
+    public function fetchOrderSupplierExpirationList($id)
+    {
+        $data = DB::table('order_supplier as os')
+         ->join('products as p', 'p.id', '=', 'os.product_id')
+         ->select('os.id', 'os.price', 'os.expiration', 'os.enable', 'os.created_at')
+         ->where('p.id', $id)
+         ->where('os.expiration', '!=', '0000-00-00')
+        
+         ->get();
+        return response()->json($data);  
+    }
+
+    public function fetchProductListExpiration($id)
+    {
+        // $products = Product::all();
+        // // return view('categories.index')->with('categories', $categories);
+        // return response()->json($products);
+
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->join('order_supplier as os', 'os.product_id', '=', 'products.id')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
+              'os.expiration', 'products.note')
+            ->where('os.expiration', '!=', '0000-00-00')
+            ->where('os.enable', 1) 
+            ->where('ost.status', 'COMPLETED') 
+            ->where('products.disabled', '==', 0) 
+            ->where('products.stock', '!=', 0) 
+            ->groupBy('products.id')
+            ->orderBy('os.expiration', 'ASC')
+            ->get();
+            
+            
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->first();
+
+           $response = [
+              'total_value' =>$total_value,
+              'today' => date('Y-m-d'),
               'data' => $data,
               'code' => 200,
               'message' => "Successfully Addedz"
@@ -147,7 +203,8 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
             ->where('products.stock_warning', '>', 'products.stock')
             ->where('products.stock_warning', '!=', 0)
             ->orderBy('products.stock', 'ASC')
@@ -175,7 +232,8 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
             ->where('category.id', $id)
             ->orderBy('products.id', 'DESC')
             ->get();
@@ -203,7 +261,8 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled')
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
             ->orderBy('products.id', 'DESC')
             ->limit(20)
             ->get();
@@ -326,6 +385,7 @@ class ProductController extends Controller
         $products->stock_warning = $request->input('stock_warning');
         $products->updated_at = now('GMT+8');
         $products->disabled = $request->input('disabled');
+        $products->note = $request->input('note');
 
         $stockOrder = new StockOrder;
         $stockOrder->product_id = $product->id;

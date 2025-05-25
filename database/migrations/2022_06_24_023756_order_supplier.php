@@ -22,6 +22,8 @@ return new class extends Migration
             $table->double('total_price');
             $table->integer('stock_remaining');
             $table->string('variation');
+            $table->date('expiration');
+            $table->integer('enable');
             $table->timestamps();
         });
     }
