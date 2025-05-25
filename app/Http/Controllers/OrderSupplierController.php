@@ -63,6 +63,7 @@ class OrderSupplierController extends Controller
         $orderSupplier_result = DB::table('order_supplier')
         ->select(DB::raw('COUNT(id) as result'))  
         ->where('product_id', $request->input('product_id'))  
+        ->where('enable', 1)  
         ->first();
 
         if ($orderSupplier_result->result == 0 ) {
