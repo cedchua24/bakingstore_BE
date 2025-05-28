@@ -261,6 +261,9 @@ Route::resource('/creditCardDue', 'App\Http\Controllers\CreditCardDueController'
 Route::get('/creditCardDue/fetallCreditDueById/{id}', [CreditCardDueController::class, 'fetallCreditDueById']);
 Route::get('/creditCardDue/fetchCreditCardDueList/{id}', [CreditCardDueController::class, 'fetchCreditCardDueList']);
 Route::get('/creditCardDue/fetchCreditCardPaidList/{id}', [CreditCardDueController::class, 'fetchCreditCardPaidList']);
+Route::get('/creditCardDue/fetchChequeDueList/{id}', [CreditCardDueController::class, 'fetchChequeDueList']);
+Route::get('/creditCardDue/fetchChequePaidList/{id}', [CreditCardDueController::class, 'fetchChequePaidList']);
+
 
 Route::get('/creditCardDue/fetchCreditCardDetail/{id}', [CreditCardDueController::class, 'fetchCreditCardDetail']);
 Route::get('/creditCardDue/fetchPaymentTypeDetail/{id}', [CreditCardDueController::class, 'fetchPaymentTypeDetail']);

@@ -23,6 +23,22 @@ class OrderSupplierTransactionController extends Controller
              'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
              ->get();
+
+
+             foreach ($data as $sotl) { 
+                
+                $mode_of_payment = DB::table('mode_of_payment_po as mop')
+                 ->select('mop.id', 'mop.payment_type_po_id',  'mop.amount', 'mop.order_supplier_transaction_id', 'b.bank_name',
+                  'pt.account_name', 'pt.account_number', 'pt.account_description')    
+                 ->join('payment_type_po as pt', 'pt.id', '=', 'mop.payment_type_po_id')  
+                 ->join('bank as b', 'b.id', '=', 'pt.bank_id')  
+                 ->where('pt.id', '!=', 1)
+                 ->where('mop.order_supplier_transaction_id', $sotl->id)
+                 ->get();
+                 
+                 $sotl->mode_of_payment = $mode_of_payment;
+             } 
+
             return response()->json($data);   
     }
 

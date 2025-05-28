@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('credit_card_due', function (Blueprint $table) {
             $table->id();
             $table->integer('payment_type_po_id');
+            $table->integer('mode_of_payment_po_id');
             $table->double('min_amount');
             $table->double('amount');
             $table->double('amount_paid');

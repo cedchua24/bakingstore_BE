@@ -37,7 +37,7 @@ class CreditCardDueController extends Controller
         return response()->json($creditCards);   
     }
 
-       public function fetchCreditCardDueList($id)
+    public function fetchCreditCardDueList($id)
     {
             $data = DB::table('credit_card_due as ccd')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
@@ -54,7 +54,47 @@ class CreditCardDueController extends Controller
          return response()->json($data); 
     }
 
-           public function fetchCreditCardPaidList($id)
+       public function fetchChequeDueList($id)
+    {
+            $data = DB::table('credit_card_due as ccd')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->join('mode_of_payment_po as mopp', 'mopp.id', '=', 'ccd.mode_of_payment_po_id')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mopp.order_supplier_transaction_id')
+            ->join('supplier as s', 's.id', '=', 'ost.supplier_id')
+            ->select( 'ccd.id', 'ccd.min_amount', 'ccd.interest_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
+            'ccd.status', 'ccd.due_date', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name',
+              'ost.id as transaction_id',  'ost.invoice_number', 's.supplier_name')    
+            ->where('ptp.payment_term_id', $id)
+            ->where('ccd.status', 0)
+            ->orderBy('ccd.due_date', 'asc')
+            ->get(); 
+            
+
+         return response()->json($data); 
+    }
+    
+           public function fetchChequePaidList($id)
+    {
+            $data = DB::table('credit_card_due as ccd')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->leftJoin('mode_of_payment_po as mopp', 'mopp.id', '=', 'ccd.mode_of_payment_po_id')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mopp.order_supplier_transaction_id')
+            ->join('supplier as s', 's.id', '=', 'ost.supplier_id')
+            ->select( 'ccd.id', 'ccd.min_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
+            'ccd.status', 'ccd.due_date', 'ccd.interest_amount', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name',
+            'ost.id as transaction_id', 'ost.invoice_number', 's.supplier_name')    
+            ->where('ptp.payment_term_id', $id)
+            ->where('ccd.status', 1)
+            ->orderBy('ccd.due_date', 'asc')
+            ->get(); 
+            
+
+         return response()->json($data); 
+    }
+
+    public function fetchCreditCardPaidList($id)
     {
             $data = DB::table('credit_card_due as ccd')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
