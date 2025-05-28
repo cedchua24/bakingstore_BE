@@ -1176,10 +1176,11 @@ class ShopOrderTransactionController extends Controller
           $data = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number',
-             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status'
+             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'ct.customer_type', 'shop_order_transaction.status'
              , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
             ->where('shop_order_transaction.id', $id)
             ->first();

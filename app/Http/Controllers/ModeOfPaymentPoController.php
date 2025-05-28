@@ -109,6 +109,7 @@ class ModeOfPaymentPoController extends Controller
             } else {
                 $creditCardDue = new CreditCardDue;
                 $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
+                // $creditCardDue->mode_of_payment_po_id = $modeOfPaymentPo->id;
                 $creditCardDue->min_amount = 0;
                 $creditCardDue->amount =$request->input('amount');
                 $creditCardDue->interest_amount =0;
@@ -123,6 +124,7 @@ class ModeOfPaymentPoController extends Controller
        } else if ($modeOfPaymentPo->payment_term_id == 3) { 
             $creditCardDue = new CreditCardDue;
             $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
+            $creditCardDue->mode_of_payment_po_id = $modeOfPaymentPo->id;
             $creditCardDue->amount =$request->input('amount');
             $creditCardDue->due_date = $request->input('date');
             $creditCardDue->type = 'CHEQUE';
