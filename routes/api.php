@@ -82,6 +82,7 @@ Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class,
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
 Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetchProductListV2']);
+Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fetchProductListNote']);
 Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
 Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
 

@@ -66,6 +66,39 @@ class ProductController extends Controller
           return response()->json($response);   
     }
 
+    public function fetchProductListNote($id)
+    {
+        // $products = Product::all();
+        // // return view('categories.index')->with('categories', $categories);
+        // return response()->json($products);
+
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('products.note', '!=', '')
+            ->get();
+
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->first();
+
+           $response = [
+              'total_value' =>$total_value,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
+    }
+
     public function fetchOrderSupplierExpirationList($id)
     {
         $data = DB::table('order_supplier as os')
