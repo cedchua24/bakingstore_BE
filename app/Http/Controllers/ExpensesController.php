@@ -180,6 +180,8 @@ class ExpensesController extends Controller
             return response()->json($response);   
     }
 
+
+
                public function fetchExpensesTransaction()
     {
             $expenses_transaction_list = DB::table('expenses as e')
