@@ -32,6 +32,33 @@ class ProductController extends Controller
 
 
           return response()->json($data);   
+
+          $data = DB::table('category')
+          ->join('products', 'category.id', '=', 'products.category_id')
+          ->join('brand', 'brand.id', '=', 'products.brand_id')
+          ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
+           'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+            'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+             'products.disabled', 'products.note')
+          ->where('category.id', $id)
+          ->orderBy('products.id', 'DESC')
+          ->get();
+
+           $total_value = DB::table('category')
+          ->join('products', 'category.id', '=', 'products.category_id')
+          ->join('brand', 'brand.id', '=', 'products.brand_id')
+          ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+           ->where('category.id', $id)
+          ->first();
+
+         $response = [
+            'total_value' =>$total_value,
+            'data' => $data,
+            'code' => 200,
+            'message' => "Successfully Addedz"
+        ];
+
+        return response()->json($response);  
     }
 
      public function fetchProductListV2($id)
@@ -426,7 +453,7 @@ class ProductController extends Controller
 
         $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
         $stockOrder->stock = $request->input('newStocks');
-
+        $stockOrder->pack = $request->input('pack');    
 
         if ($request->input('pack') == 'Pc') {
           $stockOrder->total_stock = $products->stock_pc / $products->quantity;

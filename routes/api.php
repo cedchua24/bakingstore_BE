@@ -40,6 +40,7 @@ use App\Http\Controllers\CreditCardDueController;
 use App\Http\Controllers\CreditCardPayController;
 use App\Http\Controllers\CreditCardInstallmentDtailsController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SpoilageController;
 
 
 
@@ -85,6 +86,11 @@ Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fe
 Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
 Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
 
+Route::resource('/spoilage', 'App\Http\Controllers\SpoilageController');
+Route::get('/spoilage/fetchById/{id}', [SpoilageController::class, 'fetchById']);
+Route::get('/spoilage/fetchSpoilageToday/{id}', [SpoilageController::class, 'fetchSpoilageToday']);
+Route::post('/spoilage/fetchSpoilageReport', [SpoilageController::class, 'fetchSpoilageReport']);
+Route::get('/spoilage/fetchSpoilageReportByDate/{id}', [SpoilageController::class, 'fetchSpoilageReportByDate']);
 
 
 
