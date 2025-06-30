@@ -165,6 +165,7 @@ Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReport']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
+Route::get('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
@@ -192,6 +193,7 @@ Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 
 Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
 Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
+Route::get('/expensesType/fetchExpenseTypeTransaction/{id}', [ExpensesTypeController::class, 'fetchExpenseTypeTransaction']);
 Route::resource('/expensesCategory', 'App\Http\Controllers\ExpensesCategoryController');
 Route::post('/expenses/fetchExpensesTransactionByDate', [ExpensesController::class, 'fetchExpensesTransactionByDate']);
 Route::get('/expenses/fetchExpensesTransaction/{id}', [ExpensesController::class, 'fetchExpensesTransaction']);
