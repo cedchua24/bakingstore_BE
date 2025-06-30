@@ -448,6 +448,120 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+    public function fetctProductOrderTransaction($id)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+            ->select('shop.shop_name','shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
+             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
+              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name')    
+             ->where('shop.shop_type_id', 3)
+             ->where('so.product_id', $id)
+             ->orderBy('shop_order_transaction.id', 'DESC')
+             ->get();
+            
+            $data = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'),  DB::raw('COUNT(shop_id) as total_count'),)  
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+            ->where('shop.shop_type_id', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('so.product_id', $id)
+            ->first();
+
+
+           $cash = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(mop.amount) as total_cash'))  
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('so.product_id', $id)
+            ->where('pt.type', 1)
+            ->first();
+
+            $online = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(mop.amount) as total_online'))  
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('shop_order_transaction.status', 1)
+            ->where('so.product_id', $id)
+            ->where('pt.type', 2)
+            ->first();
+
+           $payment_type = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('SUM(mop.is_paid) as total_paid_count'), DB::raw('COUNT(mop.id) as total_count'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->where('so.product_id', $id)
+            ->where('sot.status', 1)
+            ->groupBy('pt.id')
+            ->get();
+
+           $total = DB::table('shop_order_transaction')
+            ->select(DB::raw('COUNT(shop_id) as total_count'),)  
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id') 
+            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id') 
+            ->where('shop.shop_type_id', 3)
+            ->where('so.product_id', $id)
+            ->first();
+
+            $emails = DB::table('email as e')
+            ->select('e.email')  
+            ->where('e.status', 1)
+            ->get();
+
+            $array_email = array();
+            foreach ($emails as $email) { 
+             array_push($array_email, $email->email);  
+            }
+
+
+
+            foreach ($shop_order_transaction_list as $sotl) { 
+                
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
+                ->where('pt.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+                
+                $sotl->mode_of_payment = $mode_of_payment;
+            }
+
+           $response = [
+              'shop_name' => $shop_order_transaction_list->count() != 0 ? $shop_order_transaction_list[0]->shop_name: '',
+              'emails' => $array_email,
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'total_count' =>$total->total_count,
+              'total_cash' =>$cash->total_cash,
+              'total_online' =>$online->total_online,
+              'data' => $shop_order_transaction_list,
+              'payment' => $payment_type,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
        public function fetchPendingTransactionList(Request $request)
     {
         $currentTime = Carbon::now('GMT+8');

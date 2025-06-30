@@ -29,6 +29,36 @@ class ExpensesTypeController extends Controller
 
     }
 
+    public function fetchExpenseTypeTransaction($id)
+    {
+          $data = DB::table('expenses_type as ep')
+            ->join('expenses as e', 'ep.id', '=', 'e.expenses_type_id')
+            ->select('e.id', 'ep.expenses_name',  'ep.expenses_category_id',
+              'e.details', 'e.amount', 'e.date')    
+            ->where('ep.id', $id)   
+            ->get();
+
+            $total_amount = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_amount'))    
+            ->where('e.expenses_type_id', $id) 
+            ->first();
+
+
+
+           $response = [
+              'data' => $data,
+              'name' => $data[0]->expenses_name,
+              'total_amount' => $total_amount->total_amount,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);    
+
+    }
+
     /**
      * Show the form for creating a new resource.
      *
