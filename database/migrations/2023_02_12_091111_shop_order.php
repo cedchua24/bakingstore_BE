@@ -23,6 +23,10 @@ return new class extends Migration
             $table->integer('shop_order_price');
             $table->double('shop_order_total_price');
             $table->double('shop_order_profit');
+            $table->integer('discount_percentage');
+            $table->string('discount');
+            $table->double('discount_amount');
+            $table->double('fixed_price');
             $table->timestamps();
         });
     }

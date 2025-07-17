@@ -177,7 +177,7 @@ class OrderSupplierTransactionController extends Controller
                 $initialStock = $product->stock;
                 if ($row->variation === 'WHOLESALE') {
                       $product->stock = ($initialStock + $row->quantity);
-                        if ($product->quantity > 0) {
+                        if ($product->quantity > 1) {
                             $newStock = 0;
                             $newStock = $product->quantity * $row->quantity;  
                             $product->stock_pc = $product->stock_pc + $newStock;
@@ -185,7 +185,7 @@ class OrderSupplierTransactionController extends Controller
                 } else {
                     $newStock = $product->stock_pc + $row->quantity;
                     $product->stock_pc = $newStock;
-                    $product->stock = (int)($product->stock_pc / $product->quantity);
+                    $product->stock = floor($product->stock_pc / $product->quantity);
                 }
 
                 $product->save();
