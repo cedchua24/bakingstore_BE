@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductSupplier;
 use App\Models\ProductSupplierPrice;
-
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 Use Exception;
@@ -104,14 +104,27 @@ class ProductSupplierController extends Controller
 
         public function fetchProductSupplierById($id)
     {
-        $data = DB::table('product_supplier as ps')
-          ->join('products as p', 'p.id', '=', 'ps.product_id')
-          ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
-          ->join('category as c', 'p.category_id', '=', 'c.id')
-          ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'p.price',
-            'ps.status', 'p.weight', 'ps.product_id', 'c.category_name')
-         ->where('ps.supplier_id',$id)
-          ->get();
+        $suppliers = Supplier::find($id);
+        if ($suppliers->status == 2) {
+            $data = DB::table('products as p')
+            ->join('category as c', 'p.category_id', '=', 'c.id')
+            ->select('p.id as product_id', 'p.quantity', 'p.product_name', 'p.price',
+              'p.weight', 'c.category_name')
+           ->where('p.disabled', 0)
+           ->get();
+            
+        } else {
+            $data = DB::table('product_supplier as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
+            ->join('category as c', 'p.category_id', '=', 'c.id')
+            ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'p.price',
+              'ps.status', 'p.weight', 'ps.product_id', 'c.category_name')
+           ->where('ps.supplier_id',$id)
+            ->get();
+
+        }
+        
         return response()->json($data);  
     }
 

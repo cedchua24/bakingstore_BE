@@ -345,8 +345,30 @@ class ProductController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+
+     public function testController(Request $request)
+     {
+        $data = DB::table('products as p')
+        ->select('p.id', 'p.stock', 'p.stock_pc', 'p.quantity')
+        ->where('p.disabled', 0)
+        // ->where('p.id', '>', 1)
+        // ->where('p.id', '<', 101)
+        ->get();
+
+        for($x=0; $x<= sizeof($data)-1; $x++) {
+           
+            $product = Product::find($data[$x]->id);
+            $product->stock = floor($product->stock_pc / $product->quantity);
+            $product->save();
+        }
+        return  response()->json($data);
+     }
+
     public function store(Request $request)
     {
+
+
+
         $this->validate($request, [
             'category_id' => 'required',
             'brand_id' => 'required',
@@ -456,9 +478,9 @@ class ProductController extends Controller
         $stockOrder->pack = $request->input('pack');    
 
         if ($request->input('pack') == 'Pc') {
-          $stockOrder->total_stock = $products->stock_pc / $products->quantity;
+          $stockOrder->total_stock = floor($products->stock_pc / $products->quantity);
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
-          $products->stock  = $products->stock_pc / $products->quantity;
+          $products->stock  = floor($products->stock_pc / $products->quantity);
          
         } else {
           $stockOrder->total_stock = $products->stock + $request->input('newStocks');  

@@ -45,11 +45,11 @@ class ShopOrderController extends Controller
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'products.quantity',
-              'products.weight', 'products.packaging', 'products.variation', 'mup.id as mark_up_product_id', 'mup.business_type')    
+             'products.weight', 'products.packaging', 'products.variation', 'mup.id as mark_up_product_id', 'mup.business_type',
+             'shop_order.discount_percentage',  'shop_order.discount' , 'shop_order.discount_amount' , 'shop_order.fixed_price')    
             ->where('shop_order.shop_transaction_id', $id)
             ->get();
 
-        
             $shopOrderTransaction = ShopOrderTransaction::find($id);    
             $response = [
               'shopOrderList'=> $data,
@@ -93,6 +93,12 @@ class ShopOrderController extends Controller
         $shopOrder->shop_order_price = $request->input('shop_order_price');
         $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
         $shopOrder->shop_order_profit = $request->input('shop_order_profit');;
+
+        $shopOrder->discount_percentage = $request->input('discount_percentage');
+        $shopOrder->discount = $request->input('discount');
+        $shopOrder->discount_amount = $request->input('discount_amount');
+        $shopOrder->fixed_price = $request->input('fixed_price');;
+
         $shopOrder->save();
 
         $data = DB::table('shop_order')
@@ -130,7 +136,7 @@ class ShopOrderController extends Controller
         } else {
           $newStock = $product->stock_pc - $request->input('shop_order_quantity');
           $product->stock_pc = $newStock;
-          $product->stock = (int)($product->stock_pc / $product->quantity);
+          $product->stock = floor((int)($product->stock_pc / $product->quantity));
           $product->save();
         }
 
@@ -243,11 +249,11 @@ class ShopOrderController extends Controller
         } else {
           if ($product->stock_pc != null) {
             $stock_pc = ($product->stock_pc + $shopOrderQuantity) - $request->input('shop_order_quantity');
-            $retailStock = (int)($shopOrderQuantity / $product->weight) + $product->stock;   
-            $stock = $retailStock - (int)($request->input('shop_order_quantity') / $product->weight); 
+            $retailStock = floor((int)($shopOrderQuantity / $product->weight) + $product->stock);   
+            $stock = $retailStock - floor((int)($request->input('shop_order_quantity') / $product->weight)); 
             //
             $product->stock_pc = $stock_pc;
-            $product->stock = (int)($product->stock_pc / $product->quantity);
+            $product->stock = floor((int)($product->stock_pc / $product->quantity));
           } 
         }  
 
@@ -330,7 +336,7 @@ class ShopOrderController extends Controller
         } else {
           $newStock = $product->stock_pc + $shopOrder->shop_order_quantity;
           $product->stock_pc = $newStock;
-          $product->stock = (int)($newStock / $product->quantity);
+          $product->stock = floor((int)($newStock / $product->quantity));
           $product->save();
         }
          $reducedStock->delete();

@@ -86,6 +86,7 @@ Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetc
 Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fetchProductListNote']);
 Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
 Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
+Route::post('/products/testController', [ProductController::class, 'testController']);
 
 Route::resource('/spoilage', 'App\Http\Controllers\SpoilageController');
 Route::get('/spoilage/fetchById/{id}', [SpoilageController::class, 'fetchById']);

@@ -67,9 +67,9 @@ class SpoilageController extends Controller
             
         $total_cost = 0;
         if ($request->input('pack') == 'Pc') {
-          $stockOrder->total_stock = $products->stock_pc / $products->quantity;
+          $stockOrder->total_stock = floor($products->stock_pc / $products->quantity);
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
-          $products->stock  = $products->stock_pc / $products->quantity;
+          $products->stock  = floor($products->stock_pc / $products->quantity);
           $total_cost = $products->price / $products->quantity;
         } else {
           $stockOrder->total_stock = $products->stock + $request->input('newStocks');  
@@ -264,20 +264,22 @@ class SpoilageController extends Controller
       $products = Product::find($stockOrder->product_id);
 
       if ($stockOrder->pack == 'Pc') {
-        $products->stock_pc  = $products->stock_pc + $stockOrder->stock;
+        $products->stock_pc  = $products->stock_pc + abs($stockOrder->stock);
         $products->stock  = $products->stock_pc / $products->quantity;
       } else {
-        $products->stock = $products->stock +  $stockOrder->stock;
-        
         if ($products->quantity > 1) {
-          $wsStocks = $products->quantity * $stockOrder->stock;
+          $wsStocks = $products->quantity * abs($stockOrder->stock);
           $products->stock_pc = $products->stock_pc + $wsStocks;  
+          $products->stock = floor($products->stock_pc / $products->quantity);
+        } else {
+          $products->stock = $products->stock - $stockOrder->stock;
         }
+
       }
       $products->save();
       $stockOrder->delete();
       $spoilage->delete();
-      return response()->json("test");
+      return response()->json($products);
     }
 
 
