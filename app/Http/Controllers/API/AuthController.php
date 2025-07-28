@@ -33,7 +33,8 @@ class AuthController extends Controller
             ]);
 
            // $user->createToken('token-name', ['server:update'])->plainTextToken;
-           $token = $user->createToken($user->email.'_Token')->plainTextToken;
+        //    $token = $user->createToken($user->email.'_Token', now()->addWeek())->plainTextToken;
+            $token = $user->createToken($user->email.'_Token', [''], now()->addDays(2))->plainTextToken;
 
             return response()->json([
                 'status'=>200,
@@ -89,10 +90,11 @@ class AuthController extends Controller
 
                 if ($user->role_as == 1 ) { //admin
                     $role = 'admin';
-                    $token = $user->createToken($user->email.'_AdminToken', ['server:admin'])->plainTextToken;
+
+                    $token = $user->createToken($user->email.'_AdminToken', ['server:admin'], now()->addDays(2))->plainTextToken;
                 } else {
                     $role ='user';
-                    $token = $user->createToken($user->email.'_Token', [''])->plainTextToken;
+                    $token = $user->createToken($user->email.'_Token', [''], now()->addDays(2))->plainTextToken;
                 }
             
 
