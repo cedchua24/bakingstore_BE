@@ -152,6 +152,7 @@ Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, '
 Route::resource('/shop', 'App\Http\Controllers\ShopController');
 Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
 Route::get('/shop/fetchShopActive/{id}', [ShopController::class, 'fetchShopActive']);
+Route::get('/shop/fetchCurrentShop/{id}', [ShopController::class, 'fetchCurrentShop']);
 Route::get('/shop/fetchShopCurrent/{id}', [ShopController::class, 'fetchShopCurrent']);
 Route::get('/shop/fetcOnlineShopList/{id}', [ShopController::class, 'fetcOnlineShopList']);
 Route::get('/shop/fetchPhysicalStoreList/{id}', [ShopController::class, 'fetchPhysicalStoreList']);
