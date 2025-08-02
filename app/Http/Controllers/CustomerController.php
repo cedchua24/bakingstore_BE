@@ -25,6 +25,15 @@ class CustomerController extends Controller
             return response()->json($data); 
     }
 
+      public function fetchAllCustomer()
+    {
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
+            ->orderBy('c.first_name', 'asc') 
+            ->get();
+            return response()->json($data);  
+    }
+
      public function fetchCustomerTransactionList($id)
     {
         // return view('categories.index')->with('categories', $categories);

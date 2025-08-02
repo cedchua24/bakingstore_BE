@@ -106,6 +106,7 @@ Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class, 'customerLastOrderList']);
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
+Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
 Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
 Route::get('/customers/fetchCustomerProduct/{id}', [CustomerController::class, 'fetchCustomerProduct']);
 
