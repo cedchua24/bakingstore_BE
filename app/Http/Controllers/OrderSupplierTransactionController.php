@@ -22,14 +22,14 @@ class OrderSupplierTransactionController extends Controller
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
-             ->get();
+            ->get();
 
-
-             foreach ($data as $sotl) { 
+             foreach ($data as $sotl) {  
                 
                 $mode_of_payment = DB::table('mode_of_payment_po as mop')
                  ->select('mop.id', 'mop.payment_type_po_id',  'mop.amount', 'mop.order_supplier_transaction_id', 'b.bank_name',
                   'pt.account_name', 'pt.account_number', 'pt.account_description')    
+                 ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mop.order_supplier_transaction_id')  
                  ->join('payment_type_po as pt', 'pt.id', '=', 'mop.payment_type_po_id')  
                  ->join('bank as b', 'b.id', '=', 'pt.bank_id')  
                  ->where('pt.id', '!=', 1)
@@ -39,7 +39,68 @@ class OrderSupplierTransactionController extends Controller
                  $sotl->mode_of_payment = $mode_of_payment;
              } 
 
-            return response()->json($data);   
+           $total_balance = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
+            ->where('ost.payment_status', 0)
+            ->first();
+
+          $response = [
+              'data' => $data,
+              'total_balance' => $total_balance,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+            return response()->json($response);   
+    }
+
+        public function fetchOrderSupplierByDateV2($date)
+    {
+        
+        if ($date == 0) {
+            $date = date('Y-m-d');
+        }
+
+            $data = DB::table('order_supplier_transaction')
+            ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
+            ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+             'order_supplier_transaction.order_date', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+            ->where('order_supplier_transaction.order_date', $date)
+            ->orderBy('order_supplier_transaction.id', 'desc')
+            ->get();
+
+             foreach ($data as $sotl) {  
+                
+                $mode_of_payment = DB::table('mode_of_payment_po as mop')
+                 ->select('mop.id', 'mop.payment_type_po_id',  'mop.amount', 'mop.order_supplier_transaction_id', 'b.bank_name',
+                  'pt.account_name', 'pt.account_number', 'pt.account_description')    
+                 ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mop.order_supplier_transaction_id')  
+                 ->join('payment_type_po as pt', 'pt.id', '=', 'mop.payment_type_po_id')  
+                 ->join('bank as b', 'b.id', '=', 'pt.bank_id')  
+                 ->where('pt.id', '!=', 1)
+                 ->where('mop.order_supplier_transaction_id', $sotl->id)
+                 ->where('ost.order_date', $date)
+                 ->get();
+                 
+                 $sotl->mode_of_payment = $mode_of_payment;
+             } 
+
+           $total_balance = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
+            ->where('ost.payment_status', 0)
+            ->where('ost.order_date', $date)
+            ->first();
+
+          $response = [
+              'data' => $data,
+              'total_balance' => $total_balance,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+            return response()->json($response);   
     }
 
         public function fetchOrderSupplierByDate($date)
