@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('requestor');
             $table->integer('checker');
             $table->integer('status');
+            $table->integer('type');
             $table->integer('customer_type_id');
             $table->string('rider_name');
             $table->integer('is_pickup');
