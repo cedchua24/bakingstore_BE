@@ -61,7 +61,45 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
-       public function fetchShopOrderTransactionListByDate($date)
+
+        public function fetchBranchOrder() // branch
+    {
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
+            ->where('shop_order_transaction.type', '=', 1)    
+            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->orderBy('shop_order_transaction.id', 'DESC')
+            ->get();
+         
+
+            $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
+            ->where('shop_order_transaction.type', '=', 1)    
+            ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.date', date('Y-m-d'))
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+ 
+            return response()->json($response);   
+    }
+
+       public function fetchShopOrderTransactionListByDate($date) // branch
     {
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
@@ -74,6 +112,7 @@ class ShopOrderTransactionController extends Controller
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
              ->where('shop.shop_type_id', '!=', 3)
              ->where('shop_order_transaction.date', $date)
+             ->where('shop_order_transaction.type', '=', 1)
              ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
 
@@ -82,6 +121,7 @@ class ShopOrderTransactionController extends Controller
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->where('shop.shop_type_id', '!=', 3)
+            ->where('shop_order_transaction.type', '=', 1)
             ->where('shop_order_transaction.status', 1)
             ->where('shop_order_transaction.date', $date)
             ->first();
@@ -232,6 +272,7 @@ class ShopOrderTransactionController extends Controller
             ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->where('sot.status', 1)
+            ->where('sot.type', 0)
             ->groupBy('c.id')
             ->orderBy($param1, $param2)
             ->get();
@@ -244,6 +285,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.status', 1)
             ->where('sot.date', '>=', $request->input('dateFrom'))
             ->where('sot.date', '<=', $request->input('dateTo'))
+            ->where('sot.type', 0)
             ->groupBy('c.id')
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
@@ -306,6 +348,7 @@ class ShopOrderTransactionController extends Controller
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->where('sot.status', 1)
+            ->where('sot.type', 0)
             ->groupBy('mup.id') 
             ->orderBy($param1, $param2)
             ->get();
@@ -319,6 +362,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.date', '>=', $request->input('dateFrom'))
             ->where('sot.date', '<=', $request->input('dateTo'))
             ->where('sot.status', 1)
+            ->where('sot.type', 0)
             ->groupBy('mup.id') 
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
@@ -771,6 +815,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
             ->where('shop.shop_type_id', 3)
             ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.type', 0)
             ->orderBy('shop_order_transaction.id', 'DESC')
             ->groupBy('shop_order_transaction.date')
             ->get();
@@ -822,37 +867,6 @@ class ShopOrderTransactionController extends Controller
 
     
 
-           public function fetchShopOrderTransactionListReport()
-    {
-      
-            $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(profit) as total_profit') , DB::raw('shop_order_transaction.date'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->where('shop.shop_type_id', '!=', 3) 
-            ->where('shop_order_transaction.status', 1)
-            ->orderBy('shop_order_transaction.id', 'DESC')
-            ->groupBy('shop_order_transaction.date')
-            ->get();
-
-
-            $total_sales = 0;
-            $total_profit = 0;
-            foreach ($shop_order_transaction_list as $datavals) {
-               
-                $total_sales += $datavals->total_sales;
-                $total_profit += $datavals->total_profit;
-            }
-           $response = [
-              'data' => $shop_order_transaction_list,
-              'code' => 200,
-              'total_sales' => $total_sales,
-              'total_profit' => $total_profit,
-              'message' => "Successfully Added"
-          ];
-
-
-            return response()->json($response);   
-    }
 
            public function fetchOnlineShopOrderTransactionListReportByDate(Request $request)
     {
@@ -922,36 +936,68 @@ class ShopOrderTransactionController extends Controller
     public function fetchShopOrderTransactionListReportByDate(Request $request)
     {
       
-            $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(profit) as total_profit') , DB::raw('shop_order_transaction.date'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->where('shop.shop_type_id', '!=', 3) 
+        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '') {
+            //
+         $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
+            ->where('shop_order_transaction.type', '=', 1)    
+            ->orderBy('shop_order_transaction.id', 'DESC')
+            ->get();
+         
+
+            $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
+            ->where('shop_order_transaction.type', '=', 1)    
             ->where('shop_order_transaction.status', 1)
+            ->first();
+
+   
+        } else {
+             $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
+            ->where('shop_order_transaction.type', '=', 1)    
             ->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
             ->where('shop_order_transaction.date', '<=', $request->input('dateTo'))
             ->orderBy('shop_order_transaction.id', 'DESC')
-            ->groupBy('shop_order_transaction.date')
             ->get();
+         
 
+            $data = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
+            ->where('shop_order_transaction.type', '=', 1)    
+            ->where('shop_order_transaction.status', 1)
+            ->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
+            ->where('shop_order_transaction.date', '<=', $request->input('dateTo'))             
+            ->first();
 
+        }
 
-            $total_sales = 0;
-            $total_profit = 0;
-            foreach ($shop_order_transaction_list as $datavals) {
-               
-                $total_sales += $datavals->total_sales;
-                $total_profit += $datavals->total_profit;
-            }
+        
            $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
               'data' => $shop_order_transaction_list,
               'code' => 200,
-              'total_sales' => $total_sales,
-              'total_profit' => $total_profit,
-              'message' => "Successfully Added"
+              'message' => "Successfully Addedz"
           ];
-
-
-            return response()->json($response);   
+ 
+            return response()->json($response);
     }
 
 
@@ -1367,6 +1413,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->checker = $request->input('checker');
         $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->type = $request->input('type');
         $shopOrderTransaction->customer_type_id = $request->input('customer_type_id');
         $shopOrderTransaction->date = $request->input('date');
         $shopOrderTransaction->updated_at = now('GMT+8');

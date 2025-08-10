@@ -8,6 +8,7 @@ use App\Models\ShopOrderTransaction;
 use App\Models\BranchStockTransaction;
 use App\Models\Product;
 use App\Models\ModeOfPayment;
+use App\Models\Discount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -87,19 +88,29 @@ class ShopOrderController extends Controller
         $shopOrder->shop_transaction_id	= $request->input('shop_transaction_id');
         $shopOrder->branch_stock_transaction_id	= $request->input('branch_stock_transaction_id');
         $shopOrder->mark_up_product_id = $request->input('mark_up_product_id');
-        $shopOrder->shop_order_profit = $request->input('shop_order_profit');
         $shopOrder->product_id = $request->input('product_id');
         $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
         $shopOrder->shop_order_price = $request->input('shop_order_price');
         $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
-        $shopOrder->shop_order_profit = $request->input('shop_order_profit');;
-
+       if ($request->input('shop_order_profit') > 0) {
+           $shopOrder->shop_order_profit = $request->input('shop_order_profit');
+          } else { // no profit
+           $shopOrder->shop_order_profit = 0;
+       }
         $shopOrder->discount_percentage = $request->input('discount_percentage');
         $shopOrder->discount = $request->input('discount');
         $shopOrder->discount_amount = $request->input('discount_amount');
         $shopOrder->fixed_price = $request->input('fixed_price');;
 
         $shopOrder->save();
+        
+        if ($request->input('shop_order_profit') < 1) { // no profit
+           $discount = new Discount;
+           $discount->shop_order_id = $shopOrder->id;
+           $discount->loss_amount = $request->input('shop_order_profit');
+           $discount->status = 0;
+           $discount->save();
+       }
 
         $data = DB::table('shop_order')
           ->select(DB::raw('SUM(shop_order_profit) as shop_order_total_profit'),DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
@@ -210,7 +221,21 @@ class ShopOrderController extends Controller
           $shopOrder->product_id = $request->input('product_id');
           $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
           $shopOrder->shop_order_price = $request->input('shop_order_price');
-          $shopOrder->shop_order_profit = $request->input('shop_order_profit');
+       if ($request->input('shop_order_profit') > 0) {
+           $shopOrder->shop_order_profit = $request->input('shop_order_profit');
+          } else { // no profit
+           $shopOrder->shop_order_profit = 0;
+
+           DB::table('discount')->where('shop_order_id', $shopOrder->id)->delete();
+           $discountDelete->delete();
+
+           $discount = new Discount;
+           $discount->shop_order_id = $shopOrder->id;
+           $discount->loss_amount = $request->input('shop_order_profit');
+           $discount->status = 0;
+           $discount->save();
+       }
+        
           $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
           $shopOrder->save();
 
@@ -284,10 +309,13 @@ class ShopOrderController extends Controller
     public function destroy(Request $request, ShopOrder $shopOrder)
     {
   
+        DB::table('discount')->where('shop_order_id', $shopOrder->id)->delete();
+
         $shopOrderDelete = ShopOrder::find($shopOrder->id);
         $shopOrderDelete->delete();
    
-
+        
+        
         $data = DB::table('shop_order')
             ->select(DB::raw('SUM(shop_order_profit) as shop_order_total_profit'), DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
             ->where('shop_order.shop_transaction_id', $shopOrder->shop_transaction_id)

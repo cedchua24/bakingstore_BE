@@ -24,6 +24,7 @@ class ExpensesTypeController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('ep.id', 'ep.expenses_name',  'ep.details', 'ep.expenses_category_id',
               'ec.expenses_category_name')    
+            ->where('ep.expenses_category_id', 1) 
             ->get();
             return response()->json($data);   
 
