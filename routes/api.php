@@ -41,6 +41,8 @@ use App\Http\Controllers\CreditCardPayController;
 use App\Http\Controllers\CreditCardInstallmentDtailsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SpoilageController;
+use App\Http\Controllers\DiscountController;
+
 
 
 
@@ -92,6 +94,12 @@ Route::get('/spoilage/fetchById/{id}', [SpoilageController::class, 'fetchById'])
 Route::get('/spoilage/fetchSpoilageToday/{id}', [SpoilageController::class, 'fetchSpoilageToday']);
 Route::post('/spoilage/fetchSpoilageReport', [SpoilageController::class, 'fetchSpoilageReport']);
 Route::get('/spoilage/fetchSpoilageReportByDate/{id}', [SpoilageController::class, 'fetchSpoilageReportByDate']);
+
+
+Route::resource('/discount', 'App\Http\Controllers\DiscountController');
+Route::post('/discount/fetchDiscountReport', [DiscountController::class, 'fetchDiscountReport']);
+Route::post('/discount/fetchDiscountLossReport', [DiscountController::class, 'fetchDiscountLossReport']);
+
 
 
 

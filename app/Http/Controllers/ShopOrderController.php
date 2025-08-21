@@ -104,10 +104,13 @@ class ShopOrderController extends Controller
 
         $shopOrder->save();
         
-        if ($request->input('shop_order_profit') < 1) { // no profit
+        if ($request->input('shop_order_profit') !=  $request->input('fixed_price')) { 
            $discount = new Discount;
            $discount->shop_order_id = $shopOrder->id;
-           $discount->loss_amount = $request->input('shop_order_profit');
+           $discount->discount_amount = $request->input('discount_amount');
+           if ($request->input('shop_order_profit') < 1) {
+             $discount->loss_amount = $request->input('shop_order_profit');
+           }
            $discount->status = 0;
            $discount->save();
        }
@@ -221,7 +224,7 @@ class ShopOrderController extends Controller
           $shopOrder->product_id = $request->input('product_id');
           $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
           $shopOrder->shop_order_price = $request->input('shop_order_price');
-       if ($request->input('shop_order_profit') > 0) {
+        if ($request->input('shop_order_profit') !=  $request->input('fixed_price')) { 
            $shopOrder->shop_order_profit = $request->input('shop_order_profit');
           } else { // no profit
            $shopOrder->shop_order_profit = 0;
@@ -231,7 +234,10 @@ class ShopOrderController extends Controller
 
            $discount = new Discount;
            $discount->shop_order_id = $shopOrder->id;
-           $discount->loss_amount = $request->input('shop_order_profit');
+           $discount->discount_amount = $request->input('discount_amount');
+           if ($request->input('shop_order_profit') < 1) {
+             $discount->loss_amount = $request->input('shop_order_profit');
+           }
            $discount->status = 0;
            $discount->save();
        }
