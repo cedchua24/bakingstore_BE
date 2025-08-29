@@ -29,6 +29,7 @@ class AuthController extends Controller
             $user = User::create([
                 'name'=>$request->name,
                 'email'=>$request->email,
+                'role_as'=>$request->role_as,
                 'password'=>Hash::make($request->password),
             ]);
 
@@ -39,9 +40,9 @@ class AuthController extends Controller
             return response()->json([
                 'status'=>200,
                 'id'=>$user->id,
+                'role_as'=>$request->role_as,
                 'name'=>$user->name,
                 'email'=>$user->email,
-                'name'=>$user->name,
                 'token'=>$token,
                 'message'=>'Registered Successfull',
             ]);
@@ -89,11 +90,11 @@ class AuthController extends Controller
             else {
 
                 if ($user->role_as == 1 ) { //admin
-                    $role = 'admin';
+                    $role_as = $user->role_as;
 
                     $token = $user->createToken($user->email.'_AdminToken', ['server:admin'], now()->addDays(2))->plainTextToken;
                 } else {
-                    $role ='user';
+                    $role_as = $user->role_as;
                     $token = $user->createToken($user->email.'_Token', [''], now()->addDays(2))->plainTextToken;
                 }
             
@@ -104,7 +105,7 @@ class AuthController extends Controller
                 'username'=>$user->name,
                 'name'=>$user->name,
                 'email'=>$user->email,
-                'role'=>$role,
+                'role_as'=>$role_as,
                 'token'=>$token,
                 'message'=>'Logged in Successfull',
             ]);
