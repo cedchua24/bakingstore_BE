@@ -32,8 +32,11 @@ class ShopOrderController extends Controller
         $data = DB::table('shop_order')
             ->join('mark_up_product as mup', 'mup.id', '=', 'shop_order.mark_up_product_id')
             ->join('products', 'products.id', '=', 'mup.product_id')
-            ->select('shop_order.id', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
-             'shop_order.shop_order_total_price','products.variation', 'products.product_name', 'products.id as product_id', 'mup.business_type', 'mup.id as mark_up_product_id')    
+            ->select('shop_order.id', 'shop_order.discount_amount', 'shop_order.discount', 'shop_order.discount_percentage', 
+            'mup.new_price', 'mup.profit', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
+             'shop_order.shop_order_total_price',
+             'products.variation', 'products.product_name', 'products.id as product_id', 'products.stock', 'products.sale_price', 'products.stock_pc',
+              'mup.business_type', 'mup.id as mark_up_product_id')    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -104,12 +107,12 @@ class ShopOrderController extends Controller
 
         $shopOrder->save();
         
-        if ($request->input('shop_order_price') !=  $request->input('fixed_price')) { 
+        if ($request->input('shop_order_price') <  $request->input('fixed_price')) { 
            $discount = new Discount;
            $discount->shop_order_id = $shopOrder->id;
-           $discount->discount_amount = $request->input('discount_amount');
+           $discount->discount_amount = $request->input('discount_amount') *  $request->input('shop_order_quantity');
            if ($request->input('shop_order_profit') < 1) {
-             $discount->loss_amount = $request->input('shop_order_profit');
+             $discount->loss_amount = $request->input('shop_order_profit') *  $request->input('shop_order_quantity');
            }
            $discount->status = 0;
            $discount->save();
@@ -223,25 +226,42 @@ class ShopOrderController extends Controller
 
           $shopOrder->product_id = $request->input('product_id');
           $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
-          $shopOrder->shop_order_price = $request->input('shop_order_price');
-        if ($request->input('shop_order_price') !=  $request->input('fixed_price')) { 
+          
+
+
+       //
+       if ($request->input('shop_order_profit') > 0) {
            $shopOrder->shop_order_profit = $request->input('shop_order_profit');
           } else { // no profit
            $shopOrder->shop_order_profit = 0;
+       }
+        $shopOrder->discount_percentage = $request->input('discount_percentage');
+        $shopOrder->discount = $request->input('discount');
+        $shopOrder->discount_amount = $request->input('discount_amount');
+        $shopOrder->fixed_price = $request->input('fixed_price');;
+        $shopOrder->discount = '';
+        $shopOrder->discount_amount = 0;
 
-           DB::table('discount')->where('shop_order_id', $shopOrder->id)->delete();
-           $discountDelete->delete();
+
+
+
+        
+         DB::table('discount')->where('shop_order_id', $shopOrder->id)->delete();
+        if ($request->input('shop_order_price') <  $request->input('fixed_price')) { 
+          $shopOrder->discount_amount = $request->input('discount_amount');
+          $shopOrder->discount = $request->input('discount');
 
            $discount = new Discount;
            $discount->shop_order_id = $shopOrder->id;
-           $discount->discount_amount = $request->input('discount_amount');
+           $discount->discount_amount = $request->input('discount_amount') * $request->input('shop_order_quantity');
            if ($request->input('shop_order_profit') < 1) {
-             $discount->loss_amount = $request->input('shop_order_profit');
+             $discount->loss_amount = $request->input('shop_order_profit') * $request->input('shop_order_quantity');
            }
            $discount->status = 0;
            $discount->save();
        }
-        
+       //
+          $shopOrder->shop_order_price = $request->input('shop_order_price'); 
           $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
           $shopOrder->save();
 
