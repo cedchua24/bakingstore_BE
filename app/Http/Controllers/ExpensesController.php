@@ -24,7 +24,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
-            ->where('e.date', date('Y-m-d'))    
+            ->where('e.date', date('Y-m-d')) 
+            ->where('ec.id', 1)    
             ->get();
             return response()->json($data);   
     }
@@ -45,7 +46,7 @@ class ExpensesController extends Controller
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
             ->where('e.date', $newDate)    
-             ->where('ec.id', 1) 
+            ->where('ec.id', 1) 
             ->get();
 
 
@@ -76,54 +77,6 @@ class ExpensesController extends Controller
             return response()->json($response);   
       }
 
-          public function fetchExpensesNonMandatoryToday($date)
-      {
-
-         $currentTime = date('Y-m-d');
-            $newDate = '';
-             if ($date == 0 || $date === "undefined") {
-                $newDate = $currentTime;
-            } else {
-                $newDate =$date;
-            }       
-
-         $data = DB::table('expenses as e')
-            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
-            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
-            ->select('e.id', 'e.details',  'e.amount', 'e.date',
-              'ep.expenses_name', 'ec.expenses_category_name')
-            ->where('e.date', $newDate)    
-             ->where('ec.id', 2) 
-            ->get();
-
-
-            $expenses_transaction_list = DB::table('expenses as e')
-            ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
-            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
-            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
-            ->orderBy('e.id', 'DESC')
-            ->groupBy('e.date')
-            ->where('e.date', $newDate)  
-            ->where('ec.id', 2)    
-            ->get();
-
-
-            
-            $total_expenses = 0;
-            foreach ($expenses_transaction_list as $datavals) {    
-                $total_expenses += $datavals->total_expenses;
-            }
-           $response = [
-              'data' => $data,
-              'code' => 200,
-              'total_expenses' => $total_expenses,
-              'message' => "Successfully Added"
-          ];
-
-
-            return response()->json($response);   
-      }
-      
 
 
   public function fetchExpensesByDate($date)
@@ -134,7 +87,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->orderBy('e.id', 'DESC')
             ->groupBy('e.date')
-            ->where('e.date', $date)    
+            ->where('e.date', $date)   
+            ->where('ec.id', 1)  
             ->get();
 
 
@@ -161,7 +115,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->orderBy('e.id', 'DESC')
             ->groupBy('e.date')
-            ->where('e.date', date('Y-m-d'))    
+            ->where('e.date', date('Y-m-d'))  
+            ->where('ec.id', 1)   
             ->get();
 
 
@@ -182,7 +137,7 @@ class ExpensesController extends Controller
 
 
 
-               public function fetchExpensesTransaction()
+         public function fetchExpensesTransaction() 
     {
             $expenses_transaction_list = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
@@ -190,7 +145,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->orderBy('e.id', 'DESC')
             ->groupBy('e.date')
-            ->get();
+            ->where('ec.id', 1) 
+            ->get(); 
 
 
             $total_expenses = 0;
@@ -216,6 +172,7 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->where('e.date', '>=', $request->input('dateFrom'))
             ->where('e.date', '<=', $request->input('dateTo'))
+            ->where('ec.id', 1) 
             ->orderBy('e.id', 'DESC')
             ->groupBy('e.date')
             ->get();
@@ -252,13 +209,17 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
-               ->where('e.date', $newDate)    
+            ->where('e.date', $newDate)  
+            ->where('ec.id', 1)         
             ->get();
 
 
             $expenses_transaction_list = DB::table('expenses as e')
+              ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select(DB::raw('SUM(e.amount) as total_expenses'))  
-             ->where('e.date', $newDate)    
+            ->where('e.date', $newDate)  
+            ->where('ec.id', 1)      
             ->first();
 
            $response = [
@@ -313,7 +274,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name', 'ep.expenses_name', 'ec.id as category_id')
-               ->where('e.id', $id)    
+               ->where('e.id', $id)   
+               ->where('ec.id', 1)     
             ->first();
 
         //return view('categories.show')->with('category', $category);
@@ -337,7 +299,8 @@ class ExpensesController extends Controller
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->select('e.id', 'e.details',  'e.amount', 'e.date',
               'ep.expenses_name', 'ec.expenses_category_name')
-               ->where('e.id', $expenses->id)    
+               ->where('e.id', $expenses->id)   
+               ->where('ec.id', 1)     
             ->get();
         return  response()->json($data);
     }
