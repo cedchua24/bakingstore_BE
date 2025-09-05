@@ -31,7 +31,6 @@ class DiscountController extends Controller
 
         public function fetchDiscountReport(Request $request)
     {
-      $test = 0;
         if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' &&  $request->input('today') == '') {
                $test = 1;
              $data = DB::table('discount as d')
@@ -52,7 +51,6 @@ class DiscountController extends Controller
             ->first();
 
         } else if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' &&  $request->input('today') != '') {
-               $test = 2;
              $data = DB::table('discount as d')
             ->join('shop_order as so', 'so.id', '=', 'd.shop_order_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
@@ -75,7 +73,6 @@ class DiscountController extends Controller
         } 
         
         else {
-               $test = 3;
              $data = DB::table('discount as d')
             ->join('shop_order as so', 'so.id', '=', 'd.shop_order_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
@@ -100,7 +97,6 @@ class DiscountController extends Controller
 
            $response = [
               'data' => $data,
-              'test' => $test,
               'date' => $request->input('today'),
               'code' => 200,
               'total_amount' => $sum->discount_amount,
