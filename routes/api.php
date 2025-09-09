@@ -105,6 +105,7 @@ Route::post('/discount/fetchDiscountLossReport', [DiscountController::class, 'fe
 
 
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
+Route::get('/products/fetchModifiedStockDaily/{id}', [ProductController::class, 'fetchModifiedStockDaily']);
 Route::get('/products/fetchById/{id}', [ProductController::class, 'fetchById']);
 Route::resource('/productTransactions', 'App\Http\Controllers\ProductTransaction');
 Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTransaction::class, 'fetchProductTransactionList']);
@@ -291,7 +292,7 @@ Route::get('/creditCardDue/fetchCreditCardDueList/{id}', [CreditCardDueControlle
 Route::get('/creditCardDue/fetchCreditCardPaidList/{id}', [CreditCardDueController::class, 'fetchCreditCardPaidList']);
 Route::get('/creditCardDue/fetchChequeDueList/{id}', [CreditCardDueController::class, 'fetchChequeDueList']);
 Route::get('/creditCardDue/fetchChequePaidList/{id}', [CreditCardDueController::class, 'fetchChequePaidList']);
-
+Route::post('/creditCardDue/createCreditDueYearly', [CreditCardDueController::class, 'createCreditDueYearly']);
 
 Route::get('/creditCardDue/fetchCreditCardDetail/{id}', [CreditCardDueController::class, 'fetchCreditCardDetail']);
 Route::get('/creditCardDue/fetchPaymentTypeDetail/{id}', [CreditCardDueController::class, 'fetchPaymentTypeDetail']);

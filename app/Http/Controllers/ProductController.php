@@ -272,13 +272,47 @@ class ProductController extends Controller
             return response()->json($data);    
     }
 
+          public function fetchModifiedStockDaily($date)
+    {
+        if ($date === 'undefined') {
+            $data = DB::table('stock_order as so')
+            ->join('products as p', 'p.id', '=', 'so.product_id')
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->where('so.updated_at', 'like', date('Y-m-d').'%')
+            ->orderBy('so.id', 'desc')
+            ->get();
+
+            // $newDateFormat2 = date('Y-m-d', strtotime($data[0]->updated_at));
+        } else {
+            $data = DB::table('stock_order as so')
+            ->join('products as p', 'p.id', '=', 'so.product_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->where('so.updated_at', 'like', $date.'%')
+            ->orderBy('so.id', 'desc')
+            ->get();
+
+        }
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);
+    }
+
     
         public function fetchById($id)
     {
             $data = DB::table('products as p')
             ->join('stock_order as so', 'so.product_id', '=', 'p.id')
             ->select('so.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
-             'so.updated_at')
+             'so.stock_reason', 'so.updated_at')
             ->orderBy('so.id', 'DESC')
             ->where('p.id', $id)
             ->get();
@@ -471,6 +505,7 @@ class ProductController extends Controller
 
         $stockOrder = new StockOrder;
         $stockOrder->product_id = $product->id;
+        $stockOrder->stock_reason = $request->input('stock_reason');
         if ($request->input('newStocks') != null) {
 
         $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";

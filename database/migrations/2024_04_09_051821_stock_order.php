@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('product_id');
             $table->string('pack');
             $table->string('stock_type');
+            $table->string('stock_reason');
             $table->integer('stock');
             $table->integer('total_stock');
             $table->timestamps();

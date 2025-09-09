@@ -498,6 +498,8 @@ class ShopOrderTransactionController extends Controller
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('products as p', 'p.id', '=', 'mup.product_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->select('shop.shop_name','shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
@@ -505,7 +507,8 @@ class ShopOrderTransactionController extends Controller
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
-              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'so.shop_order_quantity')    
+              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'so.shop_order_quantity',
+              'mup.business_type', 'p.quantity')    
              ->where('shop.shop_type_id', 3)
              ->where('so.product_id', $id)
              ->orderBy('shop_order_transaction.id', 'DESC')

@@ -7,6 +7,8 @@ use App\Models\CreditCardPay;
 use App\Models\PaymentTypePo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
 
 class CreditCardDueController extends Controller
 {
@@ -43,7 +45,7 @@ class CreditCardDueController extends Controller
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
             ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
             ->select( 'ccd.id', 'ccd.min_amount', 'ccd.interest_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
-            'ccd.status', 'ccd.due_date', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name')    
+            'ccd.status', 'ccd.due_date', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.credit_limit', 'ptp.total_balance_due', 'b.bank_name')    
             ->where('ptp.payment_term_id', $id)
             ->where('ccd.status', 0)
             ->orderBy('ccd.due_date', 'asc')
@@ -165,6 +167,50 @@ class CreditCardDueController extends Controller
         //
     }
 
+
+    public function createCreditDueYearly(Request $request)
+    {
+        $currentDate = Carbon::now('GMT+8');
+        $year = $currentDate->year;
+        $due_date = '';
+        $due_date_final ='';
+        $dueRequest = (string)$request->input('due_date');
+        $due_date_list = array();
+        
+
+          for($i=1; $i <=12; $i++) { 
+            $due_date = $year."-".$i."-".$dueRequest;
+            $due_date_final =  date("Y-m-d", strtotime($due_date));
+
+            $data = DB::table('credit_card_due as ccd')
+             ->where('ccd.payment_type_po_id', $request->input('payment_type_po_id'))
+             ->where('ccd.due_date', $due_date_final)
+             ->first();
+            if ($data == null) {
+                $creditCardDue = new CreditCardDue;
+                $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
+                $creditCardDue->due_date = $due_date_final;
+                $creditCardDue->type = $request->input('type');
+                $creditCardDue->save();          
+                array_push($due_date_list, $due_date_final);       
+            }
+            
+          }
+
+
+           $response = [
+              'id' => $request->input('payment_type_po_id'),
+              'data' => $due_date_list,
+              'date' => $currentDate->year,
+              'due_date' => $due_date_final,
+              'code' => 200,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
     /**
      * Display the specified resource.
      *
@@ -266,7 +312,7 @@ class CreditCardDueController extends Controller
         $creditCardDue->save();
  
 
-        return response()->json($request->input('constant_amount'));
+        return response()->json($paymentTypePo);
     }
 
     /**
