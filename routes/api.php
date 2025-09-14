@@ -42,6 +42,7 @@ use App\Http\Controllers\CreditCardInstallmentDtailsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SpoilageController;
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\DeliveryCustomerController;
 
 
 
@@ -183,6 +184,9 @@ Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::get('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
+Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchDeliveryTransaction']);
+Route::post('/shopOrderTransaction/fetchPendingDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransaction']);
+
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatus/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatus']);
@@ -199,6 +203,10 @@ Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopO
 Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);
 Route::delete('/shopOrderTransaction/deleteShopOrderTransaction/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'deleteShopOrderTransaction']);
 
+
+Route::resource('/deliveryCustomer', 'App\Http\Controllers\DeliveryCustomerController');
+Route::get('/deliveryCustomer/fetchDeliveryById/{id}', [DeliveryCustomerController::class, 'fetchDeliveryById']);
+Route::delete('/deliveryCustomer/deleteTransaction/{id}', [DeliveryCustomerController::class, 'deleteTransaction']);
 
 Route::resource('/shopOrder', 'App\Http\Controllers\ShopOrderController');
 Route::get('/shopOrder/fetchShopOrderDTO/{id}', [ShopOrderController::class, 'fetchShopOrderDTO']);
