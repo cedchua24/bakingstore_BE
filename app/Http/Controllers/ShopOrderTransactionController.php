@@ -306,6 +306,103 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+      public function fetchSalesByCategory(Request $request)
+    {
+        $currentTime = Carbon::now('GMT+8');
+        $param1 = '';
+        $param2 = '';
+
+        $limit = 1000;
+
+        $id = $request->input('status');
+
+        switch ($id) {
+        case "0":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "1":
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+            break;
+        case "2":
+            $param1 = 'total_quantity';
+            $param2 = 'ASC';
+            break;
+        case "3":
+            $param1 = 'total_price';
+            $param2 = 'DESC';
+            break; 
+        case "4":
+            $param1 = 'total_price';
+            $param2 = 'ASC';
+            break;          
+        default:
+            $param1 = 'total_quantity';
+            $param2 = 'DESC';
+        }
+        if ($id === 0) {
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.status', 1)
+            ->where('sot.type', 0)
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->get();
+        } else if($request->input('type') != '') {
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.date', '>=', $request->input('dateFrom'))
+            ->where('sot.date', '<=', $request->input('dateTo'))
+            ->where('sot.status', 1)
+            ->where('sot.type', 0)
+            ->where('c.id',  $request->input('categoryId'))
+            ->where('mup.business_type',  $request->input('type'))
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->limit($request->input('limit'))
+            ->get();
+
+        } else {
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.date', '>=', $request->input('dateFrom'))
+            ->where('sot.date', '<=', $request->input('dateTo'))
+            ->where('sot.status', 1)
+            ->where('sot.type', 0)
+            ->where('c.id',  $request->input('categoryId'))
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->limit($request->input('limit'))
+            ->get();
+
+        }
+
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'id' => $id,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
         public function fetchSortedProductReport(Request $request)
     {
         $currentTime = Carbon::now('GMT+8');
@@ -352,8 +449,24 @@ class ShopOrderTransactionController extends Controller
             ->groupBy('mup.id') 
             ->orderBy($param1, $param2)
             ->get();
-        } else {
+        } else if($request->input('type') != '') {
 
+           $data = DB::table('products as p')
+            ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
+            ->join('shop_order as so', 'so.product_id', '=', 'p.id')  
+            ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->where('sot.date', '>=', $request->input('dateFrom'))
+            ->where('sot.date', '<=', $request->input('dateTo'))
+            ->where('mup.business_type',  $request->input('type'))
+            ->where('sot.status', 1)
+            ->where('sot.type', 0)
+            ->groupBy('mup.id') 
+            ->orderBy($param1, $param2)
+            ->limit($request->input('limit'))
+            ->get();
+
+        } else {
            $data = DB::table('products as p')
             ->select('mup.id as mark_up_product_id', 'p.id', 'mup.business_type', 'p.product_name', 'p.stock', 'p.stock_pc', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
             ->join('shop_order as so', 'so.product_id', '=', 'p.id')  

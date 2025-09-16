@@ -78,17 +78,18 @@ class ModeOfPaymentPoController extends Controller
             // $newDate = date('Y-m-d', strtotime($addMonth));
 
             $statement_day =  $paymentTypePo->statement_date;
+            $minus = 0;
 
             if ($statement_day > $day ) {
-                $addMonth = Carbon::parse($request->input('date'))->addMonths(1);
+                $addMonth = Carbon::parse($request->input('date'));
             } else {
                 $minus = $paymentTypePo->statement_date - $day;
-                if ($minus >=  $paymentTypePo->buffer_days)
-                 {
-                    $addMonth = Carbon::parse($request->input('date'))->addMonths(3);
-                 } else {
-                    $addMonth = Carbon::parse($request->input('date'))->addMonths(2);
-                 }
+                // if ($minus >=  $paymentTypePo->buffer_days)
+                //  {
+                //     $addMonth = Carbon::parse($request->input('date'))->addMonths(3);
+                //  } else {
+                    $addMonth = Carbon::parse($request->input('date'))->addMonths(1);
+                //  }
             }                          
             $newDate =  strtotime($addMonth);
             $month = date('m', $newDate);
@@ -136,14 +137,15 @@ class ModeOfPaymentPoController extends Controller
         $orderSupplierTransaction->save();
     
         $response = [
-            //   'date' => $request->input('date'),
-            //   'day' => $day,
-            //   'month' => $month,
-            //   'year' => $year,
-            //   'addMonth' => $addMonth,     
-            //   'newDate' => $newDate,   
-            //   'due_date' => $due_date, 
-            //   'creditCardDue' => $creditCardDue,
+              'date' => $request->input('date'),
+              'day' => $day,
+              'month' => $month,
+              'minus' => $minus,
+              'year' => $year,
+              'addMonth' => $addMonth,     
+              'newDate' => $newDate,   
+              'due_date' => $due_date, 
+              'creditCardDue' => $creditCardDue,
               'message' => "Successfully Added"
           ];
         return  response()->json($response);

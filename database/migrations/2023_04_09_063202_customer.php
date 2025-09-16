@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('address')->nullable();
             $table->integer('disabled');
+            $table->integer('ads');
             $table->timestamps();
         });
     }

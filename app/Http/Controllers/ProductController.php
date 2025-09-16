@@ -6,6 +6,7 @@ use App\Models\ProductPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\StockOrder;
+use App\Models\Spoilage;
 use Carbon\Carbon;
 
 class ProductController extends Controller
@@ -274,6 +275,7 @@ class ProductController extends Controller
 
           public function fetchModifiedStockDaily($date)
     {
+         $stock_order_ids = Spoilage::all('stock_order_id');
         if ($date === 'undefined') {
             $data = DB::table('stock_order as so')
             ->join('products as p', 'p.id', '=', 'so.product_id')
@@ -282,6 +284,7 @@ class ProductController extends Controller
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
             ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', date('Y-m-d').'%')
+            ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
 
@@ -293,6 +296,44 @@ class ProductController extends Controller
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
             ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', $date.'%')
+            ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
+            ->orderBy('so.id', 'desc')
+            ->get();
+
+        }
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);
+    }
+
+       public function fetchModifiedReportList(Request $request)
+    {
+       $stock_order_ids = Spoilage::all('stock_order_id');
+
+       if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '') {
+            $data = DB::table('stock_order as so')
+            ->join('products as p', 'p.id', '=', 'so.product_id')
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
+            ->orderBy('so.id', 'desc')
+            ->get();
+
+            // $newDateFormat2 = date('Y-m-d', strtotime($data[0]->updated_at));
+        } else {
+            $data = DB::table('stock_order as so')
+            ->join('products as p', 'p.id', '=', 'so.product_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->where('so.updated_at', '>=', $request->input('dateFrom'))
+            ->where('so.updated_at', '<=', $request->input('dateTo'))
+            ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
 

@@ -17,18 +17,65 @@ class CustomerController extends Controller
     public function index()
     {
         // return view('categories.index')->with('categories', $categories);
-         $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
-            ->orderBy('c.first_name', 'asc') 
+      $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+            ->orderBy('c.id', 'desc') 
             ->limit(100)
             ->get();
+            return response()->json($data); 
+    }
+
+    public function fetchCustomerByDate(Request $request) {
+        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
+            $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->orderBy('c.first_name', 'asc') 
+                ->get();
+        }  else {      
+            $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->orderBy('c.first_name', 'asc') 
+                ->where('c.created_at', '>=', $request->input('dateFrom'))
+                ->where('c.created_at', '<=', $request->input('dateTo'))
+                ->get();
+        }
+
+            return response()->json($data); 
+    }
+
+    public function fetchCustomerAds(Request $request)
+    {
+
+        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
+
+            $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+                ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+                ->orderBy('c.first_name', 'asc') 
+                ->groupBy('c.id')
+                ->where('c.ads', 1)
+                ->get();
+         } else {
+              $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+                ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+                ->orderBy('c.first_name', 'asc') 
+                ->groupBy('c.id')
+                ->where('c.ads', 1)
+                ->where('c.updated_at', '>=', $request->input('dateFrom'))
+                ->where('c.updated_at', '<=', $request->input('dateTo'))
+                ->get();
+
+          }
             return response()->json($data); 
     }
 
       public function fetchAllCustomer()
     {
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
             ->orderBy('c.first_name', 'asc') 
             ->get();
             return response()->json($data);  
@@ -38,7 +85,7 @@ class CustomerController extends Controller
     {
         // return view('categories.index')->with('categories', $categories);
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
             ->orderBy('c.first_name', 'asc') 
@@ -46,6 +93,7 @@ class CustomerController extends Controller
             ->get();
             return response()->json($data); 
     }
+
 
     
     public function customerLastOrderList($idParam, Request $request) {
@@ -127,7 +175,8 @@ class CustomerController extends Controller
       
         if ($request->input('dateFrom') != '' ) {
           $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' ,
+             'c.disabled', 'c.ads', 'c.created_at', 'sot.date', 'sot.shop_order_transaction_total_price')   
              ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->where('sot.date', '<=', $request->input('dateFrom'))
             ->whereIn('sot.id', $sots)    
@@ -135,7 +184,8 @@ class CustomerController extends Controller
             ->get();
         } else {
            $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled'
+            ,'c.ads', 'c.created_at', 'sot.date', 'sot.shop_order_transaction_total_price')   
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->whereIn('sot.id', $sots)    
             ->groupBy('c.id')
@@ -182,7 +232,7 @@ class CustomerController extends Controller
        public function fetchCustomerEnabled($id)
     {
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.disabled', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address')   
+            ->select('c.id', 'c.disabled', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address', 'c.ads', 'c.created_at')   
             ->orderBy('c.first_name', 'asc') 
             ->where('c.disabled', 0)
             ->groupBy('c.id')
@@ -235,7 +285,8 @@ class CustomerController extends Controller
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
-              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name')    
+              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type',
+               'shop_order_transaction.rider_name', 'c.ads', 'c.created_at')    
              ->where('shop_order_transaction.requestor', $id)
              ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
@@ -344,6 +395,7 @@ class CustomerController extends Controller
         $customer->contact_number = $request->input('contact_number');
         $customer->email = $request->input('email');
         $customer->address = $request->input('address');
+        $customer->ads = $request->input('ads');
         $customer->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($customer);
@@ -391,6 +443,7 @@ class CustomerController extends Controller
         $customer->email = $request->input('email');
         $customer->address = $request->input('address');
         $customer->disabled = $request->input('disabled');
+        $customer->ads = $request->input('ads');
         $customer->save();
       
 
