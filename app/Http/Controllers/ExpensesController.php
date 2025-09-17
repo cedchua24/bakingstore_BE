@@ -272,7 +272,7 @@ class ExpensesController extends Controller
         $data = DB::table('expenses as e')
             ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
-            ->select('e.id', 'e.details',  'e.amount', 'e.date',
+            ->select('e.id', 'e.details',  'e.amount', 'e.date', 'e.expenses_type_id',
               'ep.expenses_name', 'ec.expenses_category_name', 'ep.expenses_name', 'ec.id as category_id')
                ->where('e.id', $id)   
                ->where('ec.id', 1)     
@@ -331,9 +331,7 @@ class ExpensesController extends Controller
         $expenses = Expenses::find($request->input('id'));
         $expenses->expenses_type_id = $request->input('expenses_type_id');
         $expenses->details = $request->input('details');
-        $expenses->amount = $request->input('amount');    
-        $expenses->date = $request->input('date');  
-        $expenses->date = $request->input('date');    
+        $expenses->amount = $request->input('amount');      
         $expenses->save();
         return  response()->json($request);
     }
