@@ -137,14 +137,14 @@ class ModeOfPaymentPoController extends Controller
         $orderSupplierTransaction->save();
     
         $response = [
-              'date' => $request->input('date'),
-              'day' => $day,
-              'month' => $month,
-              'minus' => $minus,
-              'year' => $year,
-              'addMonth' => $addMonth,     
-              'newDate' => $newDate,   
-              'due_date' => $due_date, 
+            //   'date' => $request->input('date'),
+            //   'day' => $day,
+            //   'month' => $month,
+            //   'minus' => $minus,
+            //   'year' => $year,
+            //   'addMonth' => $addMonth,     
+            //   'newDate' => $newDate,   
+            //   'due_date' => $due_date, 
               'creditCardDue' => $creditCardDue,
               'message' => "Successfully Added"
           ];

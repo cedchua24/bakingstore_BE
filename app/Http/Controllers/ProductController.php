@@ -18,21 +18,6 @@ class ProductController extends Controller
      */
     public function index()
     {
-        // $products = Product::all();
-        // // return view('categories.index')->with('categories', $categories);
-        // return response()->json($products);
-
-            $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
-            ->orderBy('products.updated_at', 'DESC')
-            ->get();
-
-
-          return response()->json($data);   
 
           $data = DB::table('category')
           ->join('products', 'category.id', '=', 'products.category_id')
@@ -64,9 +49,6 @@ class ProductController extends Controller
 
      public function fetchProductListV2($id)
     {
-        // $products = Product::all();
-        // // return view('categories.index')->with('categories', $categories);
-        // return response()->json($products);
 
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
@@ -94,12 +76,63 @@ class ProductController extends Controller
           return response()->json($response);   
     }
 
+         public function fetchProductListDisabled($id)
+    {
+        if ($id == 0) {
+          $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('products.disabled', 1)
+            ->get();
+
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->where('products.disabled', 1)
+            ->first();
+
+        } else {
+          $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('products.disabled', 1)
+            ->where('category.id',$id)
+            ->get();
+
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->where('products.disabled', 1)
+            ->where('category.id',$id)
+            ->first();
+                           
+        }
+
+           $response = [
+              'total_value' =>$total_value,
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
+    }
+
     public function fetchProductListNote($id)
     {
-        // $products = Product::all();
-        // // return view('categories.index')->with('categories', $categories);
-        // return response()->json($products);
-
+        if ($id == 0) {
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
@@ -116,6 +149,27 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
             ->first();
+        } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+            ->orderBy('products.updated_at', 'DESC')
+            ->where('products.note', '!=', '')
+            ->where('category.id', $id)
+            ->get();
+
+
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->where('category.id' ,$id)
+            ->first();
+        }
+
 
            $response = [
               'total_value' =>$total_value,
@@ -141,11 +195,8 @@ class ProductController extends Controller
 
     public function fetchProductListExpiration($id)
     {
-        // $products = Product::all();
-        // // return view('categories.index')->with('categories', $categories);
-        // return response()->json($products);
-
-            $data = DB::table('category')
+        if ($id == 0) {
+          $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->join('order_supplier as os', 'os.product_id', '=', 'products.id')
@@ -163,13 +214,41 @@ class ProductController extends Controller
             ->orderBy('os.expiration', 'ASC')
             ->get();
             
-            
-
             $total_value = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
             ->first();
+
+        } else {
+                        $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->join('order_supplier as os', 'os.product_id', '=', 'products.id')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
+              'os.expiration', 'products.note')
+            ->where('os.expiration', '!=', '0000-00-00')
+            ->where('os.enable', 1) 
+            ->where('ost.status', 'COMPLETED') 
+            ->where('products.disabled', '==', 0) 
+            ->where('products.stock', '!=', 0) 
+            ->where('category.id',  $id)
+            ->groupBy('products.id')
+            ->orderBy('os.expiration', 'ASC')
+            ->get();
+            
+            $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->first();
+
+        }
+
+
 
            $response = [
               'total_value' =>$total_value,
@@ -257,8 +336,49 @@ class ProductController extends Controller
           return response()->json($response);   
     }
 
-      public function fetchByStockWarning()
+          public function fetchOutOfStock($category_id)
     {
+        if ($category_id == 0) {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.disabled', 0)
+            ->where('products.stock', 0)
+            ->where('products.stock_pc', 0)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+        } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.disabled',  0)
+            ->where('products.stock', 0)
+            ->where('products.stock_pc', 0)
+            ->where('category.id',  $category_id)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+        }
+
+        $response = [
+              'data' => $data,
+              'id' => $category_id,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);    
+    }
+
+      public function fetchByStockWarning($category_id)
+    {
+        if ($category_id == 0) {
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
@@ -268,9 +388,34 @@ class ProductController extends Controller
                'products.disabled', 'products.note')
             ->where('products.stock_warning', '>', 'products.stock')
             ->where('products.stock_warning', '!=', 0)
+            ->where('products.disabled', '==', 0)
+            ->where('products.stock_pc', '!=', 0)
             ->orderBy('products.stock', 'ASC')
             ->get();
-            return response()->json($data);    
+        } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.stock_warning', '>', 'products.stock')
+            ->where('products.stock_warning', '!=', 0)
+            ->where('products.disabled', '==', 0)
+            ->where('products.stock_pc', '!=', 0)
+            ->where('category.id',  $category_id)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+        }
+
+        $response = [
+              'data' => $data,
+              'id' => $category_id,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);    
     }
 
           public function fetchModifiedStockDaily($date)
@@ -362,13 +507,31 @@ class ProductController extends Controller
 
             public function fetchProductByCategoryId($id)
     {
+        if ($id == 0) {
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note')
+               'products.disabled','products.stock_warning',  'products.note')
+            ->orderBy('products.id', 'DESC')
+            ->get();
+
+             $total_value = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->first();
+
+        } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.stock_warning', 'products.note')
             ->where('category.id', $id)
             ->orderBy('products.id', 'DESC')
             ->get();
@@ -380,6 +543,8 @@ class ProductController extends Controller
              ->where('category.id', $id)
             ->first();
 
+        }
+
            $response = [
               'total_value' =>$total_value,
               'data' => $data,
@@ -389,7 +554,7 @@ class ProductController extends Controller
 
           return response()->json($response);     
     }
-                public function fetchProductByCategoryIdV2($id)
+        public function fetchProductByCategoryIdV2($id)
     {
             $data = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')

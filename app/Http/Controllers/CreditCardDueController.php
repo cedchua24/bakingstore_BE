@@ -101,7 +101,6 @@ class CreditCardDueController extends Controller
             $data = DB::table('credit_card_due as ccd')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'ccd.payment_type_po_id')
             ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
-            ->join('mode_of_payment_po as mopp', 'mopp.id', '=', 'ptp.bank_id')
             ->select( 'ccd.id', 'ccd.min_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
             'ccd.status', 'ccd.due_date', 'ccd.interest_amount', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name')    
             ->where('ptp.payment_term_id', $id)
