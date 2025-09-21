@@ -140,9 +140,10 @@ class PaymentTermController extends Controller
          $data = DB::table('payment_type_po as ptt')
             ->join('bank as b', 'b.id', '=', 'ptt.bank_id')
             ->select( 'ptt.id', 'ptt.account_number', 'ptt.account_name', 'ptt.account_description',
-            'ptt.due_date', 'ptt.buffer_days', 'ptt.credit_limit',
+            'ptt.due_date', 'ptt.buffer_days', 'ptt.credit_limit', 'ptt.due_date', 'ptt.statement_date',
             'ptt.statement_date', 'ptt.total_balance_due', 'ptt.status', 'b.bank_name')    
             ->where('ptt.payment_term_id', 4)
+            ->where('ptt.status', 0)
             ->get();
 
          for($x=0; $x<= sizeof($data)-1; $x++) {
@@ -152,8 +153,9 @@ class PaymentTermController extends Controller
               ->where('status', 0)
               ->where('payment_type_po_id',  $data[$x]->id)
               ->first();  
+               $data[$x]->balance_due =  $data[$x]->credit_limit -  $data[$x]->total_balance_due; 
               if ($creditCards != null) {
-                $data[$x]->amount_due = $creditCards->amount - $creditCards->amount_paid;
+                 $data[$x]->amount_due = $creditCards->amount - $creditCards->amount_paid;
                  $data[$x]->due = $creditCards->due_date;
               }   else {
                 $data[$x]->amount_due = 0;

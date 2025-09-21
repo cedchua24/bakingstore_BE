@@ -105,6 +105,8 @@ Route::post('/discount/fetchDiscountLossReport', [DiscountController::class, 'fe
 
 
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
+Route::get('/products/fetchOutOfStock/{id}', [ProductController::class, 'fetchOutOfStock']);
+Route::get('/products/fetchProductListDisabled/{id}', [ProductController::class, 'fetchProductListDisabled']);
 Route::get('/products/fetchModifiedStockDaily/{id}', [ProductController::class, 'fetchModifiedStockDaily']);
 Route::post('/products/fetchModifiedReportList', [ProductController::class, 'fetchModifiedReportList']);
 Route::get('/products/fetchById/{id}', [ProductController::class, 'fetchById']);

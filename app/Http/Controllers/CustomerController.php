@@ -113,8 +113,8 @@ class CustomerController extends Controller
            $max_ids = DB::table('shop_order_transaction')
             ->select(DB::raw('max(id) as id'))   
             ->groupBy('requestor')
-            ->limit(100)
-            ->offset(0)
+            // ->limit(100)
+            // ->offset(0)
             ->orderBy('id', 'desc') 
             ->get();
        } else {
@@ -122,8 +122,8 @@ class CustomerController extends Controller
            $max_ids = DB::table('shop_order_transaction')
             ->select(DB::raw('max(id) as id'))   
             ->groupBy('requestor')
-            ->limit(100)
-            ->offset($pageCount)
+            // ->limit(100)
+            // ->offset($pageCount)
             ->orderBy('id', 'desc') 
             ->get();
        } 
@@ -138,8 +138,8 @@ class CustomerController extends Controller
             ->select(DB::raw('max(id) as id'))   
             ->where('date', '<=', $request->input('dateFrom'))
             ->groupBy('requestor')
-            ->limit(100)
-            ->offset(0)
+            // ->limit(100)
+            // ->offset(0)
             ->orderBy('id', 'desc') 
             ->get();
        } else {
@@ -148,8 +148,8 @@ class CustomerController extends Controller
             ->select(DB::raw('max(id) as id'))  
             ->where('date', '<=', $request->input('dateFrom')) 
             ->groupBy('requestor')
-            ->limit(100)
-            ->offset($pageCount)
+            // ->limit(100)
+            // ->offset($pageCount)
             ->orderBy('id', 'desc') 
             ->get();
        } 
