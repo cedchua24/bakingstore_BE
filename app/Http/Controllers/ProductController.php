@@ -26,25 +26,10 @@ class ProductController extends Controller
            'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
             'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
              'products.disabled', 'products.note')
-          ->where('category.id', $id)
           ->orderBy('products.id', 'DESC')
           ->get();
 
-           $total_value = DB::table('category')
-          ->join('products', 'category.id', '=', 'products.category_id')
-          ->join('brand', 'brand.id', '=', 'products.brand_id')
-          ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
-           ->where('category.id', $id)
-          ->first();
-
-         $response = [
-            'total_value' =>$total_value,
-            'data' => $data,
-            'code' => 200,
-            'message' => "Successfully Addedz"
-        ];
-
-        return response()->json($response);  
+        return response()->json($data);  
     }
 
      public function fetchProductListV2($id)

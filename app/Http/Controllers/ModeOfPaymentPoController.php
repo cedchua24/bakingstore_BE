@@ -145,7 +145,7 @@ class ModeOfPaymentPoController extends Controller
             //   'addMonth' => $addMonth,     
             //   'newDate' => $newDate,   
             //   'due_date' => $due_date, 
-              'creditCardDue' => $creditCardDue,
+            //   'creditCardDue' => $creditCardDue,
               'message' => "Successfully Added"
           ];
         return  response()->json($response);
