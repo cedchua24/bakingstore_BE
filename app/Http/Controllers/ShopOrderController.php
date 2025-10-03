@@ -112,7 +112,7 @@ class ShopOrderController extends Controller
            $discount->shop_order_id = $shopOrder->id;
            $discount->discount_amount = $request->input('discount_amount') *  $request->input('shop_order_quantity');
            if ($request->input('shop_order_profit') < 1) {
-             $discount->loss_amount = $request->input('shop_order_profit') *  $request->input('shop_order_quantity');
+             $discount->loss_amount = $request->input('shop_order_profit');
            }
            $discount->status = 0;
            $discount->save();
@@ -160,7 +160,8 @@ class ShopOrderController extends Controller
       //  DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
         $response = [
-              'message' => "Successfully Added"
+              'message' => "Successfully Added",
+              'request' => $request
           ];
         return  response()->json($response);
     }
