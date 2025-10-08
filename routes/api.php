@@ -43,7 +43,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SpoilageController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\DeliveryCustomerController;
-
+use App\Http\Controllers\CustomerUpdateController;
 
 
 
@@ -79,6 +79,8 @@ Route::delete('/register/{user}', [AuthController::class, 'destroy']);
 Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');
 Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 Route::resource('/customerTypes', 'App\Http\Controllers\CustomerTypeController');
+
+Route::resource('/customerUpdate', 'App\Http\Controllers\CustomerUpdateController');
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
@@ -116,11 +118,15 @@ Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/emails', 'App\Http\Controllers\EmailController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class, 'customerLastOrderList']);
+Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'customerConvoList']);
+
 Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetchCustomerByDate']);
 
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
 Route::post('/customers/fetchCustomerAds', [CustomerController::class, 'fetchCustomerAds']);
+Route::post('/customers/fetchCustomerTransactionListByDate', [CustomerController::class, 'fetchCustomerTransactionListByDate']);
+
 
 Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
 Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
