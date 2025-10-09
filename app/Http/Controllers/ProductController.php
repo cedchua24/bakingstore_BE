@@ -61,6 +61,43 @@ class ProductController extends Controller
           return response()->json($response);   
     }
 
+         public function fetchProductToNotify($id)
+    {
+        if ($id == 0) {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+             ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+            ->orderBy('products.updated_at', 'DESC')
+            ->get();
+        } else {
+           $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+             ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
+            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
+              ->where('category.id', $id)
+            ->orderBy('products.updated_at', 'DESC')
+            ->get();
+        }
+
+
+
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'message' => "Successfully Addedz"
+          ];
+
+          return response()->json($response);   
+    }
+
          public function fetchProductListDisabled($id)
     {
         if ($id == 0) {
@@ -389,6 +426,42 @@ class ProductController extends Controller
             ->where('products.stock_warning', '!=', 0)
             ->where('products.disabled', '==', 0)
             ->where('products.stock_pc', '!=', 0)
+            ->where('category.id',  $category_id)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+        }
+
+        $response = [
+              'data' => $data,
+              'id' => $category_id,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);    
+    }
+
+          public function fetchNoStockWarning($category_id)
+    {
+        if ($category_id == 0) {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.stock_warning', '==', 0)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+        } else {
+            $data = DB::table('category')
+            ->join('products', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.stock_warning', '==', 0)
             ->where('category.id',  $category_id)
             ->orderBy('products.stock', 'ASC')
             ->get();

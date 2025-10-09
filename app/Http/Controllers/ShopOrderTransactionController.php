@@ -350,7 +350,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->where('sot.status', 1)
             ->where('sot.type', 0)
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->get();
         } else if($request->input('type') != '') {
@@ -366,7 +366,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.type', 0)
             ->where('c.id',  $request->input('categoryId'))
             ->where('mup.business_type',  $request->input('type'))
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
             ->get();
@@ -383,7 +383,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.status', 1)
             ->where('sot.type', 0)
             ->where('c.id',  $request->input('categoryId'))
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
             ->get();
@@ -446,7 +446,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->where('sot.status', 1)
             ->where('sot.type', 0)
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->get();
         } else if($request->input('type') != '') {
@@ -461,7 +461,7 @@ class ShopOrderTransactionController extends Controller
             ->where('mup.business_type',  $request->input('type'))
             ->where('sot.status', 1)
             ->where('sot.type', 0)
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
             ->get();
@@ -476,7 +476,7 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.date', '<=', $request->input('dateTo'))
             ->where('sot.status', 1)
             ->where('sot.type', 0)
-            ->groupBy('mup.id') 
+            ->groupBy('p.id') 
             ->orderBy($param1, $param2)
             ->limit($request->input('limit'))
             ->get();

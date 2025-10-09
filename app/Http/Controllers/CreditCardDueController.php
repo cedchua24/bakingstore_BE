@@ -66,7 +66,7 @@ class CreditCardDueController extends Controller
             ->join('supplier as s', 's.id', '=', 'ost.supplier_id')
             ->select( 'ccd.id', 'ccd.min_amount', 'ccd.interest_amount', 'ccd.amount', 'ccd.amount_paid', 'ccd.due_date', 'ccd.type', 'ccd.is_installment',
             'ccd.status', 'ccd.due_date', 'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'b.bank_name',
-              'ost.id as transaction_id',  'ost.invoice_number', 's.supplier_name')    
+              's.supplier_name')    
             ->where('ptp.payment_term_id', $id)
             ->where('ccd.status', 0)
             ->orderBy('ccd.due_date', 'asc')
