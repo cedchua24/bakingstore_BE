@@ -44,6 +44,7 @@ use App\Http\Controllers\SpoilageController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\DeliveryCustomerController;
 use App\Http\Controllers\CustomerUpdateController;
+use App\Http\Controllers\OutOfStockUpdateController;
 
 
 
@@ -88,6 +89,8 @@ Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class,
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
 Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetchProductListV2']);
+Route::get('/products/fetchProductToNotify/{id}', [ProductController::class, 'fetchProductToNotify']);
+
 Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fetchProductListNote']);
 Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
 Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
@@ -106,8 +109,12 @@ Route::post('/discount/fetchDiscountLossReport', [DiscountController::class, 'fe
 
 
 
+Route::resource('/outOfStockUpdate', 'App\Http\Controllers\OutOfStockUpdateController');
+Route::get('/outOfStockUpdate/fetchCustomerToNotify/{id}', [OutOfStockUpdateController::class, 'fetchCustomerToNotify']);
+
 
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
+Route::get('/products/fetchNoStockWarning/{id}', [ProductController::class, 'fetchNoStockWarning']);
 Route::get('/products/fetchOutOfStock/{id}', [ProductController::class, 'fetchOutOfStock']);
 Route::get('/products/fetchProductListDisabled/{id}', [ProductController::class, 'fetchProductListDisabled']);
 Route::get('/products/fetchModifiedStockDaily/{id}', [ProductController::class, 'fetchModifiedStockDaily']);
