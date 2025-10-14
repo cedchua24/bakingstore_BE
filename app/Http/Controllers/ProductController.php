@@ -398,6 +398,59 @@ class ProductController extends Controller
             return response()->json($response);    
     }
 
+       public function fetchStockWarningPerSupplier($supplier_id)
+    {
+
+            $data = DB::table('product_supplier as ps')
+            ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
+            ->join('products', 'products.id', '=', 'ps.product_id')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('s.supplier_name', 'products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.disabled',  0)
+            ->where('products.stock', '=<', 'products.stock_warning')
+            ->where('ps.supplier_id',  $supplier_id)
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+            
+        $response = [
+              'data' => $data,
+              'id' => $supplier_id,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);    
+    }
+
+           public function fetchStockPerSupplier($supplier_id)
+    {
+
+            $data = DB::table('product_supplier as ps')
+            ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
+            ->join('products', 'products.id', '=', 'ps.product_id')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select('s.supplier_name', 'products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+               'products.disabled', 'products.note')
+            ->where('products.disabled',  0)
+            ->where('ps.supplier_id',  $supplier_id)
+            ->orderBy('products.stock', 'DESC')
+            ->get();
+            
+        $response = [
+              'data' => $data,
+              'id' => $supplier_id,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+            return response()->json($response);    
+    }
+
       public function fetchByStockWarning($category_id)
     {
         if ($category_id == 0) {

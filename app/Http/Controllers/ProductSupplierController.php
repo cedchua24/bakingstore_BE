@@ -102,6 +102,22 @@ class ProductSupplierController extends Controller
         
     }
 
+       public function fetchSupplierByProductId($id)
+    {
+
+         $data = DB::table('products as p')
+            ->join('product_supplier as ps', 'ps.product_id', '=', 'p.id')
+            ->join('supplier as s', 'ps.supplier_id', '=', 's.id')
+            ->select('s.id', 's.supplier_name')
+           ->where('ps.product_id', $id)
+           ->orderBy('p.stock', 'asc')
+           ->get();
+            
+   
+        
+        return response()->json($data);  
+    }
+
         public function fetchProductSupplierById($id)
     {
         $suppliers = Supplier::find($id);
@@ -109,8 +125,9 @@ class ProductSupplierController extends Controller
             $data = DB::table('products as p')
             ->join('category as c', 'p.category_id', '=', 'c.id')
             ->select('p.id as product_id', 'p.quantity', 'p.product_name', 'p.price',
-              'p.weight', 'c.category_name')
+              'p.weight', 'c.category_name', 'p.stock', 'p.stock_warning')
            ->where('p.disabled', 0)
+           ->orderBy('p.stock', 'asc')
            ->get();
             
         } else {
@@ -119,8 +136,9 @@ class ProductSupplierController extends Controller
             ->join('supplier as s', 's.id', '=', 'ps.supplier_id')
             ->join('category as c', 'p.category_id', '=', 'c.id')
             ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'p.price',
-              'ps.status', 'p.weight', 'ps.product_id', 'c.category_name')
+              'ps.status', 'p.weight', 'ps.product_id', 'p.stock', 'p.stock_warning', 'c.category_name')
            ->where('ps.supplier_id',$id)
+           ->orderBy('p.stock', 'asc')
             ->get();
 
         }

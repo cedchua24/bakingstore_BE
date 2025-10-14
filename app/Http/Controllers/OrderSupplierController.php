@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderSupplier;
+use App\Models\OrderSupplierTransaction;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -177,13 +178,73 @@ class OrderSupplierController extends Controller
 
     public function setToActiveExpiration(Request $request)
     {
-        DB::table('order_supplier')->where('product_id', $request->input('product_id'))->update(array('enable' => 0));  
+        DB::table('order_supplier')->where('product_id', $request->input('product_id'))->update(array('enable' => 0));  //update query
 
         $orderSupplier = OrderSupplier::find($request->input('id'));
 
         $orderSupplier->enable = $request->input('enable');
         $orderSupplier->save();
         return  response()->json($orderSupplier);
+    }
+
+        public function saveAutoPo(Request $request)
+    {
+          $data = DB::table('product_supplier as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->select('ps.id', 'ps.product_id', 'p.product_name', 'p.price', 'p.stock', 'p.stock_warning')    
+            ->where('ps.supplier_id', $request->input('supplier_id'))
+            ->where('p.stock', '=<', 'p.stock_warning')
+            ->where('p.disabled', 0)
+            ->get();
+          $added_product = '';
+          for($i=0; $i<= sizeof($data)-1; $i++) {
+            $orderSupplier = OrderSupplier::where(['order_supplier_transaction_id' => $request->input('order_supplier_transaction_id'),
+                                 'product_id' => $data[$i]->product_id])->first();
+            if ( is_null($orderSupplier) ) {
+                $orderSupplier = new OrderSupplier;
+                $orderSupplier->order_supplier_transaction_id = $request->input('order_supplier_transaction_id');
+                $orderSupplier->product_id = $data[$i]->product_id;
+                $orderSupplier->price = $data[$i]->price;
+                $orderSupplier->quantity = 1;
+                $orderSupplier->total_price = $data[$i]->price * 1;
+                $orderSupplier->stock_remaining = 1;
+                $orderSupplier->variation = 'WHOLESALE';
+
+                 $orderSupplier_result = DB::table('order_supplier')
+                ->select(DB::raw('COUNT(id) as result'))  
+                ->where('product_id', $request->input('product_id'))  
+                ->where('enable', 1)  
+                ->first();
+
+                if ($orderSupplier_result->result == 0 ) {
+                    $orderSupplier->enable = 1;
+                } else {
+                    $orderSupplier->enable = 0;
+                }
+
+                $added_product = $added_product.", ".$data[$i]->product_name;
+                $orderSupplier->save();
+            } 
+
+          }
+          
+          if ($added_product === "") {
+            $added_product = "All Auto PO product already Added!";
+            $code = 202;
+          }  else {
+            $code = 200;
+          }
+
+           $response = [
+              'data' => $data,
+              'code' => $code,
+              'added_product' => $added_product,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+
+        return  response()->json($response);
     }
 
     /**
