@@ -45,6 +45,8 @@ use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\DeliveryCustomerController;
 use App\Http\Controllers\CustomerUpdateController;
 use App\Http\Controllers\OutOfStockUpdateController;
+use App\Http\Controllers\ReturnToSellerController;
+
 
 
 
@@ -102,6 +104,9 @@ Route::get('/spoilage/fetchSpoilageToday/{id}', [SpoilageController::class, 'fet
 Route::post('/spoilage/fetchSpoilageReport', [SpoilageController::class, 'fetchSpoilageReport']);
 Route::get('/spoilage/fetchSpoilageReportByDate/{id}', [SpoilageController::class, 'fetchSpoilageReportByDate']);
 
+Route::resource('/rts', 'App\Http\Controllers\ReturnToSellerController');
+Route::get('/rts/fetchById/{id}', [ReturnToSellerController::class, 'fetchById']);
+
 
 Route::resource('/discount', 'App\Http\Controllers\DiscountController');
 Route::post('/discount/fetchDiscountReport', [DiscountController::class, 'fetchDiscountReport']);
@@ -114,6 +119,8 @@ Route::get('/outOfStockUpdate/fetchCustomerToNotify/{id}', [OutOfStockUpdateCont
 
 
 Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fetchByStockWarning']);
+Route::get('/products/fetchStockWarningPerSupplier/{id}', [ProductController::class, 'fetchStockWarningPerSupplier']);
+Route::get('/products/fetchStockPerSupplier/{id}', [ProductController::class, 'fetchStockPerSupplier']);
 Route::get('/products/fetchNoStockWarning/{id}', [ProductController::class, 'fetchNoStockWarning']);
 Route::get('/products/fetchOutOfStock/{id}', [ProductController::class, 'fetchOutOfStock']);
 Route::get('/products/fetchProductListDisabled/{id}', [ProductController::class, 'fetchProductListDisabled']);
@@ -163,9 +170,12 @@ Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierContr
 Route::get('/orderSuppliers/fetchOrderBySupplierId/{id}', [OrderSupplierController::class, 'fetchOrderBySupplierId']);
 Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierController::class, 'fetchOrderByProductId']);
 Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::class, 'setToActiveExpiration']);
+Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'saveAutoPo']);
 
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
+Route::get('/markUpPrice/fetchMarkUpBySupplierId/{id}', [MarkUpProductController::class, 'fetchMarkUpBySupplierId']);
+
 
 
 Route::resource('/orderCustomers', 'App\Http\Controllers\OrderCustomerController');
@@ -273,6 +283,8 @@ Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrde
 
 Route::resource('/productSupplier', 'App\Http\Controllers\ProductSupplierController');
 Route::get('/productSupplier/fetchProductSupplierById/{id}', [ProductSupplierController::class, 'fetchProductSupplierById']);
+Route::get('/productSupplier/fetchSupplierByProductId/{id}', [ProductSupplierController::class, 'fetchSupplierByProductId']);
+
 
 Route::resource('/modeOfPaymentPo', 'App\Http\Controllers\ModeOfPaymentPoController');
 Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeOfPaymentPoController::class, 'fetchPaymentTypePoByShopTransactionId']);
