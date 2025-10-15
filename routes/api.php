@@ -46,6 +46,7 @@ use App\Http\Controllers\DeliveryCustomerController;
 use App\Http\Controllers\CustomerUpdateController;
 use App\Http\Controllers\OutOfStockUpdateController;
 use App\Http\Controllers\ReturnToSellerController;
+use App\Http\Controllers\SalesRepController;
 
 
 
@@ -84,6 +85,8 @@ Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 Route::resource('/customerTypes', 'App\Http\Controllers\CustomerTypeController');
 
 Route::resource('/customerUpdate', 'App\Http\Controllers\CustomerUpdateController');
+Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController'); 
+
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
