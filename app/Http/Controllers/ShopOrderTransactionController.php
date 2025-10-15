@@ -101,29 +101,31 @@ class ShopOrderTransactionController extends Controller
 
        public function fetchShopOrderTransactionListByDate($date) // branch
     {
-        $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
-            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
-             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
-              'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
-             ->where('shop.shop_type_id', '!=', 3)
-             ->where('shop_order_transaction.date', $date)
-             ->where('shop_order_transaction.type', '=', 1)
-             ->orderBy('shop_order_transaction.id', 'DESC')
+        $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('users as r', 'r.id', '=', 'sot.requestor')
+            ->join('users as c', 'c.id', '=', 'sot.checker')
+            ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
+            ->select('sot.id', 'sot.shop_order_transaction_total_quantity',
+             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.updated_at', 's.shop_name', 's.shop_type_id',
+             'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor',
+              'sot.status',  'sot.date', 'sot.profit', 'sr.first_name as sr_name')    
+             ->where('s.shop_type_id', '!=', 3)
+             ->where('sot.date', $date)
+             ->where('sot.type', '=', 1)
+             ->orderBy('sot.id', 'DESC')
              ->get();
 
 
-            $data = DB::table('shop_order_transaction')
+            $data = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->where('shop.shop_type_id', '!=', 3)
-            ->where('shop_order_transaction.type', '=', 1)
-            ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', $date)
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
+            ->where('s.shop_type_id', '!=', 3)
+            ->where('sot.type', '=', 1)
+            ->where('sot.status', 1)
+            ->where('sot.date', $date)
             ->first();
 
 
@@ -1774,52 +1776,53 @@ class ShopOrderTransactionController extends Controller
 
         switch ($shopOrderTransaction->id) {
         case 1:
-           $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
-            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name', 'shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number', 
-             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
-            ->where('shop_order_transaction.id', $id)
+           $data = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('users as r', 'r.id', '=', 'sot.requestor')
+            ->join('users as c', 'c.id', '=', 'sot.checker')
+            ->select('sot.id', 'sot.shop_order_transaction_total_quantity',
+             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.updated_at',  's.shop_name', 's.shop_type_id', 's.status', 's.address', 's.contact_number', 
+             'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
+            ->where('sot.id', $id)
             ->first();
             break;
         case 2:
-           $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
-            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number',
-             'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status')    
-            ->where('shop_order_transaction.id', $id)
+           $data = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('users as r', 'r.id', '=', 'sot.requestor')
+            ->join('users as c', 'c.id', '=', 'sot.checker')
+            ->select('sot.id', 'sot.shop_order_transaction_total_quantity',
+             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
+             'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
+            ->where('sot.id', $id)
             ->first();
             break;
         case 3 :
-          $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
-            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number',
-             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'ct.customer_type', 'shop_order_transaction.status'
+          $data = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('customer as r', 'r.id', '=', 'sot.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
+            ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
+            ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sr.first_name as sr_name',
+             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
+             'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'ct.customer_type', 'sot.status'
              , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
-            ->where('shop_order_transaction.id', $id)
+            ->where('sot.id', $id)
             ->first();
             break;
          case 4 :
-          $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('customer as r', 'r.id', '=', 'shop_order_transaction.requestor')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at',  'shop.shop_name','shop.shop_type_id', 'shop.status', 'shop.address', 'shop.contact_number',
-             'r.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status'
+          $data = DB::table('shop_order_transaction as sot')
+            ->join('shop as s', 's.id', '=', 'sot.shop_id')
+            ->join('customer as r', 'r.id', '=', 'sot.requestor')
+            ->select('sot.id', 'sot.shop_order_transaction_total_quantity',
+             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
+             'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'sot.status'
              , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
-            ->where('shop_order_transaction.id', $id)
+            ->where('sot.id', $id)
             ->first();
             break;
         default:
@@ -1876,6 +1879,8 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->shop_order_transaction_total_price = $request->input('shop_order_transaction_total_price');
         $shopOrderTransaction->requestor = $request->input('requestor');
         $shopOrderTransaction->checker = $request->input('checker');
+        $shopOrderTransaction->sales_rep_id = $request->input('sales_rep_id');
+        $shopOrderTransaction->user_id = $request->input('user_id');
         $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
         $shopOrderTransaction->type = $request->input('type');

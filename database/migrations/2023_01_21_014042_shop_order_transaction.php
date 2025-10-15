@@ -22,6 +22,8 @@ return new class extends Migration
             $table->double('total_cash');
             $table->double('total_online');
             $table->integer('requestor');
+            $table->integer('sales_rep_id');
+            $table->integer('user_id');
             $table->integer('checker');
             $table->integer('status');
             $table->integer('type');
