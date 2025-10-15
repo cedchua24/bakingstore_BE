@@ -50,6 +50,7 @@ class CustomerUpdateController extends Controller
         // Create Post
         $customerUpdate = new CustomerUpdate;
         $customerUpdate->customer_id = $request->input('customer_id');
+        $customerUpdate->user_id = $request->input('user_id');
         $customerUpdate->status = 0;
         $customerUpdate->chat = $request->input('chat');
         $customerUpdate->promo = $request->input('promo');
