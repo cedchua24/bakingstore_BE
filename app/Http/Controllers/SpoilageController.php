@@ -144,13 +144,13 @@ class SpoilageController extends Controller
         //
     }
 
-    public function fetchSpoilageToday()
+    public function fetchSpoilageToday($dateToday)
     {
             $expenses_transaction_list = DB::table('spoilage as s')
             ->select(DB::raw('SUM(s.total_cost) as total_cost'), DB::raw('s.created_at'),  DB::raw('s.id'))  
             ->orderBy('s.id', 'DESC')
             ->groupBy('s.created_at')
-            ->where('s.created_at', date('Y-m-d'))    
+            ->where('s.created_at', $dateToday)    
             ->get();
 
 
