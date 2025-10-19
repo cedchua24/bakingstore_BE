@@ -146,6 +146,7 @@ class CustomerController extends Controller
 
 
 
+
     public function customerConvoList($idParam, Request $request) {
     $pageCount = 0;
     $start = 0;
@@ -176,7 +177,7 @@ class CustomerController extends Controller
             ->where('cu.status', 0)    
             ->where('cu.created_at', '>=', $request->input('dateFrom'))
             ->where('cu.created_at', '<=', $request->input('dateTo'))    
-            ->orderBy('cu.created_at', 'desc')      
+            ->orderBy('sot.date', 'desc')      
             ->get();
 
         } else {
@@ -197,7 +198,7 @@ class CustomerController extends Controller
                     'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price', 'sot.profit',
                     'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
             ->groupBy('c.id') 
-            ->where('cu.status', 0)   
+            ->where('cu.status', 0) 
             ->orderBy('cu.created_at', 'desc')        
             ->get();
     
@@ -221,11 +222,28 @@ class CustomerController extends Controller
         //         }
         // }  
         // } else {
-            for($i=0; $i<= sizeof($data)-1; $i++) {
-               $diffDay = $date->diffInDays($data[$i]->date);
-               $data[$i]->last_order = $diffDay;
-               $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+            // for($i=0; $i<= sizeof($data)-1; $i++) {
+            //    $diffDay = $date->diffInDays($data[$i]->date);
+            //    $data[$i]->today = $date;
+            //    $data[$i]->last_order = $diffDay;
+            //    $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+
+            // }
+
+            foreach ($data as $key => $value) {
+                $diffDay = $date->diffInDays($value->date);
+                $value->last_order = $diffDay;
+                $value->date2 = date('Y-m-d');
+                $value->last_chat = $date->diffInDays($value->update_date);
+                if ($value->date >= $value->update_date ) {
+                    // if ($value->last_order == 0) {
+                        $data->forget($key);
+                    // }
+                }
             }
+
+             $data = array_values($data->toArray());
+
         // }
 
 
@@ -234,6 +252,112 @@ class CustomerController extends Controller
               'request' =>$request->input('dateFrom')
           ];
       return response()->json($response);
+    }
+
+
+        public function customerReorder($idParam, Request $request) {
+        $pageCount = 0;
+        $start = 0;
+        $minus = 0;
+        $max_ids = 0;
+    
+
+      
+        if ( $request->input('dateFrom') != '' &&  $request->input('dateTo') != '' ) {
+
+            $latestshop_order_transaction = DB::table('shop_order_transaction')
+                ->select('requestor', DB::raw('MAX(created_at) as max_date'))
+                ->groupBy('requestor');
+
+            $data = DB::table('customer as c')
+                ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')          
+                ->join('shop_order_transaction as sot', function ($join) use ($latestshop_order_transaction) {
+                    $join->on('sot.requestor', '=', 'cu.customer_id')
+                        ->joinSub($latestshop_order_transaction, 'latest_shop_order_transaction', function ($join) {
+                            $join->on('sot.requestor', '=', 'latest_shop_order_transaction.requestor')
+                                ->on('sot.created_at', '=', 'latest_shop_order_transaction.max_date');
+                        });
+                })
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+                        'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',  'sot.profit',
+                        'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                ->groupBy('c.id') 
+                ->where('cu.status', 0)    
+                ->where('cu.created_at', '>=', $request->input('dateFrom'))
+                ->where('cu.created_at', '<=', $request->input('dateTo'))    
+                ->orderBy('sot.date', 'desc')      
+                ->get();
+
+            } else {
+            $latestshop_order_transaction = DB::table('shop_order_transaction')
+                ->select('requestor', DB::raw('MAX(created_at) as max_date'))
+                ->groupBy('requestor');
+
+            $data = DB::table('customer as c')
+                ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')          
+                ->join('shop_order_transaction as sot', function ($join) use ($latestshop_order_transaction) {
+                    $join->on('sot.requestor', '=', 'cu.customer_id')
+                        ->joinSub($latestshop_order_transaction, 'latest_shop_order_transaction', function ($join) {
+                            $join->on('sot.requestor', '=', 'latest_shop_order_transaction.requestor')
+                                ->on('sot.created_at', '=', 'latest_shop_order_transaction.max_date');
+                        });
+                })
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+                        'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price', 'sot.profit',
+                        'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                ->groupBy('c.id') 
+                ->where('cu.status', 0) 
+                // ->where('sot.date', '>=', 'cu.created_at')   
+                ->orderBy('cu.created_at', 'desc')        
+                ->get();
+        
+
+            }
+            $shift_difference = 0;
+
+            $date = Carbon::parse(date('Y-m-d'));
+            $diffSearch =  Carbon::parse($request->input('dateFrom'));
+            $shift_difference = $date->diffInDays($diffSearch);
+
+
+            //  if ( $request->input('dateFrom') != '' &&  $request->input('dateTo') != '' ) {
+            //      for($i=0; $i<= sizeof($data)-1; $i++) {
+            //       $diffDay = $date->diffInDays($data[$i]->date);
+            //         if ($shift_difference <= $diffDay) {
+            //          $data[$i]->last_order = $diffDay;
+            //          $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+            //         } else {
+            //             // unset($data[$i]);  
+            //         }
+            // }  
+            // } else {
+                // for($i=0; $i<= sizeof($data)-1; $i++) {
+                //    $diffDay = $date->diffInDays($data[$i]->date);
+                //    $data[$i]->today = $date;
+                //    $data[$i]->last_order = $diffDay;
+                //    $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+
+                // }
+
+                foreach ($data as $key => $value) {
+                    $diffDay = $date->diffInDays($value->date);
+                    $value->last_order = $diffDay;
+                    $value->last_chat = $date->diffInDays($value->update_date);
+                    if ($value->date < $value->update_date) {
+                        $data->forget($key);
+                    }
+                }
+
+                $data = array_values($data->toArray());
+
+            // }
+
+
+        $response = [
+                'data' => $data,
+                'request' =>$request->input('dateFrom')
+            ];
+        return response()->json($response);
     }
 
     

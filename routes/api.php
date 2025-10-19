@@ -136,6 +136,8 @@ Route::resource('/emails', 'App\Http\Controllers\EmailController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
 Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class, 'customerLastOrderList']);
 Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'customerConvoList']);
+Route::post('/customers/customerReorder/{id}', [CustomerController::class, 'customerReorder']);
+
 
 Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetchCustomerByDate']);
 
