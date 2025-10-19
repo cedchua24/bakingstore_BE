@@ -190,6 +190,9 @@ class CreditCardDueController extends Controller
                 $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
                 $creditCardDue->due_date = $due_date_final;
                 $creditCardDue->type = $request->input('type');
+                // if ($due_date_final < date('Y-m-d')) {
+                    $creditCardDue->status = 1;
+                // }
                 $creditCardDue->save();          
                 array_push($due_date_list, $due_date_final);       
             }
