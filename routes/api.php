@@ -219,7 +219,7 @@ Route::post('/shopOrderTransaction/fetchSortedProductReport', [ShopOrderTransact
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
-Route::get('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
+Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
 Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchDeliveryTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransaction']);
