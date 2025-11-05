@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 
+
+
 class ShopOrderTransactionController extends Controller
 {
     /**
@@ -195,6 +197,59 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+      public function fetchProductSoldToday(Request $request) 
+    {
+            $data = DB::table('products as p')
+                ->select(
+                    'p.id',
+                    'p.product_name',
+                    'p.quantity',
+                    DB::raw("
+                        SUM(
+                            CASE 
+                                WHEN mup.business_type = 'WHOLESALE' 
+                                    THEN so.shop_order_quantity * p.quantity 
+                                ELSE 
+                                    so.shop_order_quantity 
+                            END
+                        ) as total_quantity
+                    "),
+                    DB::raw("
+                        CASE 
+                            WHEN SUM(CASE WHEN mup.business_type = 'WHOLESALE' THEN 1 ELSE 0 END) > 0 
+                                THEN p.stock
+                            ELSE 
+                                p.stock_pc
+                        END as stock
+                    "),
+                    DB::raw("
+                        CASE 
+                            WHEN p.quantity = 1 
+                                THEN p.stock 
+                            ELSE 
+                                p.stock_pc 
+                        END as stock_all
+                    ")
+                    )
+                ->join('shop_order as so', 'so.product_id', '=', 'p.id')
+                ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+                ->where('sot.status', 1)
+                ->where('sot.date', $request->input('today'))
+                ->groupBy('p.id', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.quantity')
+                ->get();
+
+           $response = [
+              'data' => $data,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    }
+
 
       public function fetchSortedCustomer($id)
     {
@@ -240,6 +295,8 @@ class ShopOrderTransactionController extends Controller
 
             return response()->json($response);   
     }
+
+
 
     public function fetchSortedCustomerReport(Request $request)
     {

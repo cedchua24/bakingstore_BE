@@ -47,7 +47,9 @@ use App\Http\Controllers\CustomerUpdateController;
 use App\Http\Controllers\OutOfStockUpdateController;
 use App\Http\Controllers\ReturnToSellerController;
 use App\Http\Controllers\SalesRepController;
-
+use App\Http\Controllers\DashBoardController;
+use App\Http\Controllers\DailySessionController;
+use App\Http\Controllers\ProductSoldDailyController;
 
 
 
@@ -213,6 +215,20 @@ Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransact
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
 Route::post('/shopOrderTransaction/fetchSortedCustomerReport', [ShopOrderTransactionController::class, 'fetchSortedCustomerReport']);
+
+//Route::get('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
+Route::post('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
+Route::resource('/dashboard', 'App\Http\Controllers\DashBoardController');
+Route::resource('/dailySession', 'App\Http\Controllers\DailySessionController');
+Route::get('/dailySession/fetchDailySessionByDate/{id}', [DailySessionController::class, 'fetchDailySessionByDate']);
+Route::get('/dailySession/fetchDailySession/{id}', [DailySessionController::class, 'fetchDailySession']);
+
+Route::resource('/productSoldDaily', 'App\Http\Controllers\ProductSoldDailyController');
+Route::get('/productSoldDaily/fetchProductSoldListByDate/{id}', [ProductSoldDailyController::class, 'fetchProductSoldListByDate']);
+Route::post('/productSoldDaily/updateMultiple', [ProductSoldDailyController::class, 'updateMultiple']);
+
+
+
 Route::post('/shopOrderTransaction/fetchSalesByCategory', [ShopOrderTransactionController::class, 'fetchSalesByCategory']);
 Route::post('/shopOrderTransaction/fetchSortedProductReport', [ShopOrderTransactionController::class, 'fetchSortedProductReport']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
@@ -227,6 +243,8 @@ Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{i
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatus/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatus']);
 Route::get('/shopOrderTransaction/fetchSortedProduct/{id}', [ShopOrderTransactionController::class, 'fetchSortedProduct']);
+Route::post('/shopOrderTransaction/fetchProductSoldToday', [ShopOrderTransactionController::class, 'fetchProductSoldToday']);
+
 Route::get('/shopOrderTransaction/fetchSortedCustomer/{id}', [ShopOrderTransactionController::class, 'fetchSortedCustomer']);
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListByDate']);
 
