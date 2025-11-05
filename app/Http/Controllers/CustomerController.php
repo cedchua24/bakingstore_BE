@@ -177,6 +177,7 @@ class CustomerController extends Controller
             ->where('cu.status', 0)    
             ->where('cu.created_at', '>=', $request->input('dateFrom'))
             ->where('cu.created_at', '<=', $request->input('dateTo'))    
+            ->where('sot.checker', 0) 
             ->orderBy('sot.date', 'desc')      
             ->get();
 
@@ -199,6 +200,7 @@ class CustomerController extends Controller
                     'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
             ->groupBy('c.id') 
             ->where('cu.status', 0) 
+            ->where('sot.checker', 0) 
             ->orderBy('cu.created_at', 'desc')        
             ->get();
     
@@ -283,6 +285,7 @@ class CustomerController extends Controller
                         'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
                 ->groupBy('c.id') 
                 ->where('cu.status', 0)    
+                ->where('sot.checker', 0) 
                 ->where('cu.created_at', '>=', $request->input('dateFrom'))
                 ->where('cu.created_at', '<=', $request->input('dateTo'))    
                 ->orderBy('sot.date', 'desc')      
@@ -307,6 +310,7 @@ class CustomerController extends Controller
                         'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
                 ->groupBy('c.id') 
                 ->where('cu.status', 0) 
+                ->where('sot.checker', 0) 
                 // ->where('sot.date', '>=', 'cu.created_at')   
                 ->orderBy('cu.created_at', 'desc')        
                 ->get();
@@ -377,6 +381,7 @@ public function customerLastOrderList($idParam, Request $request) {
 
            $total_page =  DB::table('shop_order_transaction')
             ->distinct()
+            ->where('checker',  0)
             ->count('requestor');
 
        if ($idParam == 1 ) {
@@ -386,6 +391,7 @@ public function customerLastOrderList($idParam, Request $request) {
             ->limit(100)
             ->offset(0)  
             ->orderBy('id', 'desc') 
+            ->where('checker',  0)
             ->get();
 
 
@@ -395,7 +401,8 @@ public function customerLastOrderList($idParam, Request $request) {
            $start = ($idParam * 100);
            $minus = ($idParam * 100) - 101;
            $max_ids = DB::table('shop_order_transaction')
-              ->select(DB::raw('max(id) as id'))   
+              ->select(DB::raw('max(id) as id'))  
+              ->where('checker',  0) 
             ->groupBy('requestor')
             ->limit(100)
             ->offset($pageCount)
@@ -406,12 +413,14 @@ public function customerLastOrderList($idParam, Request $request) {
     } else {
            $total_page =  DB::table('shop_order_transaction')
             ->where('date', '<=', $request->input('dateFrom'))
+            ->where('checker',  0)
             ->distinct()
             ->count('requestor');
 
         if ($idParam == 1 ) {
            $max_ids = DB::table('shop_order_transaction')
             ->select(DB::raw('max(id) as id'))     
+            ->where('checker',  0)
             ->where('date', '<=', $request->input('dateFrom'))
             ->groupBy('requestor')
             ->limit(100)
@@ -424,6 +433,7 @@ public function customerLastOrderList($idParam, Request $request) {
            $minus = ($idParam * 100) - 100;
            $max_ids = DB::table('shop_order_transaction')
             ->select(DB::raw('max(id) as id'))    
+            ->where('checker',  0)
             ->where('date', '<=', $request->input('dateFrom')) 
             ->groupBy('requestor')
             ->limit(100)
@@ -444,6 +454,7 @@ public function customerLastOrderList($idParam, Request $request) {
 
          $sotList = DB::table('shop_order_transaction')
             ->select('id')   
+            ->where('checker',  0)
             ->whereIn('id', $ids)
             ->get();
 
@@ -460,6 +471,7 @@ public function customerLastOrderList($idParam, Request $request) {
              ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
              ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
             ->where('sot.date', '<=', $request->input('dateFrom'))
+            ->where('sot.checker',  0)
              ->where('cu.customer_id', null)  
             ->whereIn('sot.id', $sots)     
             ->groupBy('c.id')
@@ -472,6 +484,7 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
             ->whereIn('sot.id', $sots)  
+             ->where('sot.checker',  0)
             ->where('cu.customer_id', null)   
             ->groupBy('c.id')
             ->get();
