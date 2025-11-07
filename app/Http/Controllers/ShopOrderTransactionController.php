@@ -234,7 +234,6 @@ class ShopOrderTransactionController extends Controller
                 ->join('shop_order as so', 'so.product_id', '=', 'p.id')
                 ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
                 ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
-                ->where('sot.status', 1)
                 ->where('sot.date', $request->input('today'))
                 ->groupBy('p.id', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.quantity')
                 ->get();
