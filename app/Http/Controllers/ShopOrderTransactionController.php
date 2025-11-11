@@ -407,9 +407,9 @@ class ShopOrderTransactionController extends Controller
                     'p.packaging',
                     'p.quantity',
                     DB::raw("
-                            (CASE 
-                                WHEN mup.business_type = 'WHOLESALE' THEN SUM(so.shop_order_quantity * p.quantity)
-                                ELSE SUM(so.shop_order_quantity)
+                            SUM(CASE 
+                                WHEN mup.business_type = 'WHOLESALE' THEN so.shop_order_quantity * p.quantity
+                                ELSE so.shop_order_quantity
                             END) AS total_quantity
                           "),
                     DB::raw('SUM(so.shop_order_total_price) as total_price'),
@@ -482,11 +482,13 @@ class ShopOrderTransactionController extends Controller
                         'p.packaging',
                          'p.quantity',                       
                         DB::raw("
-                            (CASE 
-                                WHEN mup.business_type = 'WHOLESALE' THEN SUM(so.shop_order_quantity * p.quantity)
-                                ELSE SUM(so.shop_order_quantity)
-                            END) AS total_quantity
-                          "),
+                                SUM(
+                                    CASE WHEN mup.business_type = 'WHOLESALE' THEN so.shop_order_quantity * p.quantity
+                                        WHEN mup.business_type = 'RETAIL' THEN so.shop_order_quantity
+                                        ELSE 0
+                                    END
+                                ) AS total_quantity
+                        "),  
                         DB::raw('SUM(so.shop_order_total_price) as total_price'),
                         DB::raw('SUM(so.shop_order_profit) as total_profit')
                     )
@@ -503,9 +505,8 @@ class ShopOrderTransactionController extends Controller
                     // No date filter for id = 0
                 } else {
                     $query->whereBetween('sot.date', [$request->input('dateFrom'), $request->input('dateTo')]);
-                    if ($type === "All") {    
-                    } else {
-                         $query->where('mup.business_type', $type);
+                    if ($type !== "All") {
+                        $query->where('mup.business_type', $type);
                     }
                     $query->limit($limit);
                 }
