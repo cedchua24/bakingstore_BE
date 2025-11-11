@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('total_stock');
             $table->integer('current_stock');
             $table->integer('stock_input');
+            $table->integer('discrepancy');
             $table->date('date');
             $table->integer('status');
             $table->timestamps();

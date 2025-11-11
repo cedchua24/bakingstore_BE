@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ModeOfPayment;
 use App\Models\ShopOrderTransaction;
-
+use App\Http\Controllers\ShopOrderTransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +35,7 @@ class ModeOfPaymentController extends Controller
          $data = DB::table('mode_of_payment as mop')
             ->join('payment_type as p', 'p.id', '=', 'mop.payment_type_id')
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'mop.shop_order_transaction_id')
-            ->select('mop.id', 'mop.shop_order_transaction_id',  'mop.amount', 'p.payment_type',
+            ->select('mop.id', 'mop.shop_order_transaction_id',  'mop.amount', 'mop.created_at', 'p.payment_type',
               'p.payment_type_description', 'p.status', 'sot.shop_order_transaction_total_price', 'mop.payment_type_id')
            ->where('mop.shop_order_transaction_id', '=', $id)    
             ->get();
@@ -97,13 +97,37 @@ class ModeOfPaymentController extends Controller
         $modeOfPayment->payment_type_id = $request->input('payment_type_id');
         $modeOfPayment->shop_order_transaction_id = $request->input('shop_order_transaction_id');
         $modeOfPayment->amount = $request->input('amount');
+        $modeOfPayment->created_at = $request->input('created_at');
         $modeOfPayment->save();
 
         $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
         $shopOrderTransaction->status = 2;
         $shopOrderTransaction->save();
-        // return redirect('/categories')->with('success', 'Categories Created');
-        return  response()->json($modeOfPayment);
+
+
+        $fetchBalance = $this->fetchPaymentTypeByShopTransactionId($request->input('shop_order_transaction_id'))->getData(true);
+            
+        $balance = $fetchBalance['balance'];
+        $status = 2;
+        if ($balance == 0) {
+            $status = 1;
+        }
+            $request = new Request([
+                'id' => $request->input('shop_order_transaction_id'),             
+                'status' => $status         
+            ]);
+
+            $shopOrderTransactionController = new ShopOrderTransactionController();
+            $productSoldTodayList = $shopOrderTransactionController
+            ->updateShopOrderTransactionStatus(0, $request);
+   
+
+        $response = [
+            'message' => "Successfully Added",
+            'balance' => $balance
+        ];
+
+        return response()->json($response);
     }
 
     /**

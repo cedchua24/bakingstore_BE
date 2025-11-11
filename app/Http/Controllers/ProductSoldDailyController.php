@@ -59,6 +59,7 @@ public function store(Request $request)
         $totalQuantity = $item['total_quantity'];
         $stock = $item['stock'];
         $stockAll = $item['stock_all'];
+        $discrepancy = $item['discrepancy'];
 
         $today = $request->input('today');
         $productCode = "{$id}-{$today}";
@@ -75,6 +76,7 @@ public function store(Request $request)
             'total_stock' => $totalQuantity,
             'current_stock' => $stockAll,
             'stock_input' => 0,
+            'discrepancy' => $discrepancy,       
             'date' => $today,
             'status' => 0,
         ]);
@@ -82,11 +84,15 @@ public function store(Request $request)
         $productSoldDaily->save();
     }
 
-    return response()->json([
-        'code' => 200,
-        'date' => now()->toDateString(),
-        'message' => 'Successfully added.'
-    ]);
+    // return response()->json([
+    //     'code' => 200,
+    //     'date' => now()->toDateString(),
+    //     'message' => 'Successfully added.'
+    // ]);
+
+    
+          return response()->json($productSoldTodayList);
+    
 }
 
 public function updateMultiple(Request $request)
@@ -117,6 +123,7 @@ public function fetchProductSoldListByDate($date)
             'psd.total_stock',
             'psd.current_stock',
             'psd.stock_input',
+            'psd.discrepancy',
             'psd.date',
             'psd.status'
         )
@@ -139,6 +146,7 @@ public function fetchProductSoldListByDate($date)
         'code' => 200,
         'message' => "Successfully fetched product sold list for {$date}"
     ]);
+
 }
 
     /**
