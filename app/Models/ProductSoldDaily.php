@@ -21,6 +21,7 @@ class ProductSoldDaily extends Model
         'total_stock',
         'current_stock',
         'stock_input',
+        'discrepancy',
         'date',
         'status',
     ];
