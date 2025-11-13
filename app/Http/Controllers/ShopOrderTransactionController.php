@@ -534,7 +534,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'sot.checker', 'sot.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
              'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status')    
@@ -554,8 +554,7 @@ class ShopOrderTransactionController extends Controller
 
 
             $total_sales_completed = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_sales_completed'))  
-            ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')  
+            ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales_completed'))  
             ->join('shop', 'shop.id', '=', 'sot.shop_id') 
             ->where('shop.shop_type_id', 3)
             ->where('sot.status', 1)
@@ -743,7 +742,7 @@ class ShopOrderTransactionController extends Controller
                     'shop.shop_name', 'sot.id', 'sot.shop_order_transaction_total_quantity',
                     'sot.shop_order_transaction_total_price', 'sot.created_at',
                     'sot.updated_at', 'sot.is_pickup', 'shop.shop_type_id',
-                    'c.first_name as requestor_name', 'sot.checker', 'sot.requestor',
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
                     'sot.status', 'sot.date', 'sot.profit', 'sot.total_cash',
                     'sot.total_online', 'ct.customer_type', 'sot.rider_name',
                     'so.shop_order_quantity', 'mup.business_type', 'p.quantity'
@@ -868,7 +867,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -955,7 +954,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1027,7 +1026,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1124,7 +1123,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1195,7 +1194,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1305,7 +1304,7 @@ class ShopOrderTransactionController extends Controller
             ->select('mop.id', 'mop.amount','sot.id as shop_order_transaction_id','sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'sot.checker', 'sot.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit', 'mop.is_paid',
               'sot.total_cash', 'sot.total_online', 'ct.customer_type', 'sot.rider_name')    
              ->where('shop.shop_type_id', 3)
@@ -1609,7 +1608,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
              'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
              'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status' ) 
                 
@@ -1712,7 +1711,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
              'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
              'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name' ) 
                 
@@ -1806,7 +1805,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
              'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
              'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name' ) 
                 
