@@ -30,7 +30,6 @@ class ProductExcelExport implements FromCollection, WithHeadings
                 'p.stock_pc',
             )        
             ->where('p.disabled', 0)
-             ->where('p.stock', '>', 0)
             ->orderBy('c.category_name', 'asc')
             ->get();
 
