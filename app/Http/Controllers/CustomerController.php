@@ -367,17 +367,15 @@ class CustomerController extends Controller
     
     
 public function customerLastOrderList($idParam, Request $request) {
+    $newData = [];
     $pageCount = 0;
     $start = 0;
     $minus = 0;
     $max_ids = 0;
+    $required_amount = $request->input('required_amount');
     
      if ($request->input('dateFrom') == null ) {
 
-        //  $total_page = DB::table('shop_order_transaction')
-        //     ->select(DB::raw('COUNT(id) as total_count'))  
-        //     ->distinct()
-        //     ->first();
 
            $total_page =  DB::table('shop_order_transaction')
             ->distinct()
@@ -411,21 +409,23 @@ public function customerLastOrderList($idParam, Request $request) {
             ->get();
        } 
     } else {
-           $total_page =  DB::table('shop_order_transaction')
+          $total_page =  DB::table('shop_order_transaction')
             ->where('date', '<=', $request->input('dateFrom'))
             ->where('checker',  0)
             ->distinct()
             ->count('requestor');
-
         if ($idParam == 1 ) {
-           $max_ids = DB::table('shop_order_transaction')
-            ->select(DB::raw('max(id) as id'))     
-            ->where('checker',  0)
+
+
+            $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('max(id) as id'))   
             ->where('date', '<=', $request->input('dateFrom'))
+            ->where('checker',  0)
             ->groupBy('requestor')
             ->limit(100)
-            ->offset(0)
-            ->orderBy('id', 'desc');
+            ->offset(0)  
+            ->orderBy('id', 'desc')        
+            ->get();
             // ->skip(0)->take(100)->get();
        } else {
            $pageCount = ($idParam * 100) - 99;
@@ -484,11 +484,12 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
             ->whereIn('sot.id', $sots)  
-             ->where('sot.checker',  0)
+            ->where('sot.checker',  0)
             ->where('cu.customer_id', null)   
             ->groupBy('c.id')
             ->get();
         }
+        $data = $data->toArray();
         $shift_difference = 0;
 
          $date = Carbon::parse(date('Y-m-d'));
@@ -497,32 +498,61 @@ public function customerLastOrderList($idParam, Request $request) {
 
 
         if ($request->input('dateFrom') != '' ) { 
-             for($i=0; $i<= sizeof($data)-1; $i++) {
-              $diffDay = $date->diffInDays($data[$i]->date);
-                if ($shift_difference <= $diffDay) {
-                 $data[$i]->last_order = $diffDay;
-                 $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
-                } else {
-                    unset($data[$i]);  
-                }
-        }  
+           
+
+                foreach ($data as $item) {
+                                $diffDay = $date->diffInDays($item->date);
+                                $item->last_order = $diffDay;
+                                $item->last_chat = $date->diffInDays($item->update_date);
+
+                                $total_sales = DB::table('shop_order_transaction as sot')
+                                    ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'))
+                                    ->where('sot.requestor', $item->id)
+                                    ->first();
+
+                                $item->total_sales = $total_sales->total_sales;
+
+                                // FILTER LOGIC
+                                if ($request->input('dateFrom') != '') {
+                                    if ($shift_difference > $diffDay) {
+                                        continue; // skip item
+                                    }
+                                }
+
+                                if ($item->total_sales < $required_amount) {
+                                    continue; // skip item
+                                }
+
+                                $newData[] = $item; // keep item
+                            }
+        
         } else {
             for($i=0; $i<= sizeof($data)-1; $i++) {
                $diffDay = $date->diffInDays($data[$i]->date);
                $data[$i]->last_order = $diffDay;
                $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+
+               $total_sales = DB::table('shop_order_transaction as sot')
+                ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'))  
+                ->where('sot.requestor', $data[$i]->id)
+                ->first();
+
+                 $data[$i]->total_sales = $total_sales->total_sales;
+                 if ($data[$i]->total_sales < $required_amount) {
+                    unset($data[$i]);  
+                    $data = array_values($data);
+                 }
             }
         }
 
 
       $response = [
-              'data' => $data,
-              'total_page' => $total_page,
+              'data' => count($newData) == 0 ? $data : $newData,
+              'total_page' => count($newData) == 0 ? $total_page : count($newData),
               'pageCount' => $pageCount,
               'start' => $start,
               'minus' => $minus,
               'max_ids' => $max_ids,
-              
               'day_count' => $shift_difference,
               'page' => $idParam,
               'request' =>$request->input('dateFrom')
