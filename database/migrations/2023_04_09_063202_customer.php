@@ -20,7 +20,9 @@ return new class extends Migration
             $table->integer('contact_number')->nullable();
             $table->string('email')->nullable();
             $table->string('address')->nullable();
+            $table->string('store_name')->nullable();
             $table->integer('disabled');
+            $table->integer('backlog');
             $table->integer('ads');
             $table->timestamps();
         });
