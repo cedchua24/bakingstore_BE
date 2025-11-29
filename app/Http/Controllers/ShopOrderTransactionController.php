@@ -1487,7 +1487,7 @@ class ShopOrderTransactionController extends Controller
             ->where('shop_order_transaction.status', 1)
             ->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
             ->where('shop_order_transaction.date', '<=', $request->input('dateTo'))
-            ->orderBy('shop_order_transaction.id', 'DESC')
+            ->orderBy('shop_order_transaction.date', 'DESC')
             ->groupBy('shop_order_transaction.date')
             ->get();
 

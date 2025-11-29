@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomerUpdate;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -55,6 +56,13 @@ class CustomerUpdateController extends Controller
         $customerUpdate->chat = $request->input('chat');
         $customerUpdate->promo = $request->input('promo');
         $customerUpdate->save();
+        $customer = Customer::find($request->input('customer_id'));
+        if ($request->input('backlog') == 1) {
+           $customer->backlog = 1;            
+        } else {
+           $customer->backlog = 0;
+        }
+         $customer->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($customerUpdate);
     }

@@ -18,7 +18,7 @@ class CustomerController extends Controller
     {
         // return view('categories.index')->with('categories', $categories);
       $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
             ->orderBy('c.id', 'desc') 
             ->limit(100)
             ->get();
@@ -28,12 +28,12 @@ class CustomerController extends Controller
     public function fetchCustomerByDate(Request $request) {
         if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
                 ->orderBy('c.first_name', 'asc') 
                 ->get();
         }  else {      
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
                 ->orderBy('c.first_name', 'asc') 
                 ->where('c.created_at', '>=', $request->input('dateFrom'))
                 ->where('c.created_at', '<=', $request->input('dateTo'))
@@ -364,84 +364,265 @@ class CustomerController extends Controller
         return response()->json($response);
     }
 
+        
+    public function customerBacklogList($idParam, Request $request) {
+        $newData = [];
+        $pageCount = 0;
+        $offset = 0;
+        $max_ids = 0;
+        $required_amount = $request->input('required_amount');
+        $dateFrom = $request->input('dateFrom');
+        
+        if ($request->input('dateFrom') == null ) {
+            $total_page =  DB::table('shop_order_transaction as sot')
+                ->join('customer as c', 'c.id', '=', 'sot.requestor')   
+                ->distinct()
+                ->where('sot.checker',  0)
+                ->where('c.backlog',  1)
+                ->count('sot.requestor');
+
+            if ($idParam == 1) {
+                $offset = 0;
+            } else {
+                $offset = ($idParam - 1) * 100;   // Proper zero-based offset
+            }
+
+            $max_ids = DB::table('shop_order_transaction as sot')
+                ->join('customer as c', 'c.id', '=', 'sot.requestor')  
+                ->select(DB::raw('MAX(sot.id) as id'))
+                ->where('sot.checker', 0)
+                ->groupBy('sot.requestor')
+                ->orderByRaw('MAX(sot. id) DESC')   // Sort before pagination
+                ->where('c.backlog',  1)
+                ->offset($offset)
+                ->limit(100)
+                ->get();
+            } else {
+
+
+            $total_page = DB::table('shop_order_transaction as sot')
+                ->join('customer as c', 'c.id', '=', 'sot.requestor')  
+                ->select('sot.requestor')
+                ->where('sot.checker', 0)
+                ->where('sot.date', '<=', $dateFrom)
+                ->where('c.backlog',  1)
+                ->groupBy('sot.requestor')
+                ->havingRaw('SUM(sot.shop_order_transaction_total_price) >= ?', [$required_amount])
+                ->count();
+                
+                if ($idParam == 1) {
+                    $offset = 0;
+                } else {
+                    $offset = ($idParam - 1) * 100;  // Correct pagination offset
+                }
+
+                $query = DB::table('shop_order_transaction as sot')
+                    ->join('customer as c', 'c.id', '=', 'sot.requestor')  
+                    ->select(
+                        DB::raw('MAX(sot. id) as id'),
+                        DB::raw('SUM(sot. shop_order_transaction_total_price) as total_sales')
+                    )
+                    ->where('sot.checker', 0)
+                    ->where('sot.date', '<=', $request->input('dateFrom'))
+                    ->where('c.backlog',  1)
+                    ->groupBy('sot.requestor')
+                    ->orderByRaw('MAX(sot.id) DESC')       // correct sorting
+                    ->offset($offset)
+                    ->limit(100);
+
+                // Apply SUM filter only on pages after page 1
+                if ($idParam != 1) {
+                    $query->havingRaw('SUM(sot.shop_order_transaction_total_price) >= ?', [$required_amount]);
+                }
+
+                $max_ids = $query->get();
+
+        }
+
+
+                
+            $ids = array();
+                foreach ($max_ids as $id) { 
+                array_push($ids, $id->id);  
+                }
+
+            $sotList = DB::table('shop_order_transaction as sot')
+                ->join('customer as c', 'c.id', '=', 'sot.requestor')
+                ->select('sot.id')   
+                ->where('sot.checker',  0)
+                ->where('c.backlog',  1)
+                ->whereIn('sot.id', $ids)
+                ->get();
+
+            $sots = array();
+                foreach ($sotList as $sot) { 
+                array_push($sots, $sot->id);  
+                }   
+        
+            if ($request->input('dateFrom') != '' ) {
+            $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' ,
+                'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
+                'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')  
+                ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+                ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
+                ->where('sot.date', '<=', $request->input('dateFrom'))
+                ->where('sot.checker',  0)
+                ->where('c.backlog',  1)
+                // ->where('cu.customer_id', null)  
+                ->whereIn('sot.id', $sots)     
+                ->groupBy('c.id')
+                ->get();
+            } else {
+            $data = DB::table('customer as c')
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+                'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
+                'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')   
+                ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+                ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
+                ->whereIn('sot.id', $sots)  
+                ->where('sot.checker',  0)
+                ->where('c.backlog',  1)   
+                ->groupBy('c.id')
+                ->get();
+            }
+            $data = $data->toArray();
+            $shift_difference = 0;
+
+            $date = Carbon::parse(date('Y-m-d'));
+            $diffSearch =  Carbon::parse($request->input('dateFrom'));
+            $shift_difference = $date->diffInDays($diffSearch);
+
+
+            if ($request->input('dateFrom') != '' ) { 
+            
+
+                    foreach ($data as $item) {
+                                    $diffDay = $date->diffInDays($item->date);
+                                    $item->last_order = $diffDay;
+                                    $item->last_chat = $date->diffInDays($item->update_date);
+
+                                    $total_sales = DB::table('shop_order_transaction as sot')
+                                        ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'))
+                                        ->where('sot.requestor', $item->id)
+                                        ->first();
+
+                                    $item->total_sales = $total_sales->total_sales;
+
+                                    // FILTER LOGIC
+                                    if ($request->input('dateFrom') != '') {
+                                        if ($shift_difference > $diffDay) {
+                                            continue; // skip item
+                                        }
+                                    }
+
+                                    if ($item->total_sales < $required_amount) {
+                                        continue; // skip item
+                                    }
+
+                                    $newData[] = $item; // keep item
+                                }
+            
+            } else {
+                for($i=0; $i<= sizeof($data)-1; $i++) {
+                $diffDay = $date->diffInDays($data[$i]->date);
+                $data[$i]->last_order = $diffDay;
+                $data[$i]->last_chat = $date->diffInDays($data[$i]->update_date);
+
+                $total_sales = DB::table('shop_order_transaction as sot')
+                    ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'))  
+                    ->where('sot.requestor', $data[$i]->id)
+                    ->first();
+
+                    $data[$i]->total_sales = $total_sales->total_sales;
+                    if ($data[$i]->total_sales < $required_amount) {
+                        unset($data[$i]);  
+                        $data = array_values($data);
+                    }
+                }
+            }
+
+
+        $response = [
+                'data' => count($newData) == 0 ? $data : $newData,
+                'total_page' => $total_page,
+                'pageCount' => $pageCount,
+                'sots' => $sots,
+                'data2' => $data,
+                'max_ids' => $max_ids,
+                'day_count' => $shift_difference,
+                'page' => $idParam,
+                'request' =>$request->input('dateFrom')
+            ];
+        return response()->json($response);
+        }
+
+
     
     
 public function customerLastOrderList($idParam, Request $request) {
     $newData = [];
     $pageCount = 0;
-    $start = 0;
-    $minus = 0;
+    $offset = 0;
     $max_ids = 0;
     $required_amount = $request->input('required_amount');
+    $dateFrom = $request->input('dateFrom');
     
      if ($request->input('dateFrom') == null ) {
-
-
            $total_page =  DB::table('shop_order_transaction')
             ->distinct()
             ->where('checker',  0)
             ->count('requestor');
 
-       if ($idParam == 1 ) {
-           $max_ids = DB::table('shop_order_transaction')
-            ->select(DB::raw('max(id) as id'))   
+        if ($idParam == 1) {
+            $offset = 0;
+        } else {
+            $offset = ($idParam - 1) * 100;   // Proper zero-based offset
+        }
+
+        $max_ids = DB::table('shop_order_transaction')
+            ->select(DB::raw('MAX(id) as id'))
+            ->where('checker', 0)
             ->groupBy('requestor')
+            ->orderByRaw('MAX(id) DESC')   // Sort before pagination
+            ->offset($offset)
             ->limit(100)
-            ->offset(0)  
-            ->orderBy('id', 'desc') 
-            ->where('checker',  0)
             ->get();
+        } else {
 
 
-            // ->skip(0)->take(100)->get();
-       } else {
-         $pageCount = ($idParam * 100) - 99;
-           $start = ($idParam * 100);
-           $minus = ($idParam * 100) - 101;
-           $max_ids = DB::table('shop_order_transaction')
-              ->select(DB::raw('max(id) as id'))  
-              ->where('checker',  0) 
-            ->groupBy('requestor')
-            ->limit(100)
-            ->offset($pageCount)
-             ->orderBy('id', 'desc') 
-            // ->skip($minus)->take($start)->get();
-            ->get();
-       } 
-    } else {
-          $total_page =  DB::table('shop_order_transaction')
-            ->where('date', '<=', $request->input('dateFrom'))
-            ->where('checker',  0)
-            ->distinct()
-            ->count('requestor');
-        if ($idParam == 1 ) {
+           $total_page = DB::table('shop_order_transaction as sot')
+            ->select('sot.requestor')
+            ->where('sot.checker', 0)
+            ->where('sot.date', '<=', $dateFrom)
+            ->groupBy('sot.requestor')
+            ->havingRaw('SUM(sot.shop_order_transaction_total_price) >= ?', [$required_amount])
+            ->count();
+            
+            if ($idParam == 1) {
+                $offset = 0;
+            } else {
+                $offset = ($idParam - 1) * 100;  // Correct pagination offset
+            }
 
+            $query = DB::table('shop_order_transaction')
+                ->select(
+                    DB::raw('MAX(id) as id'),
+                    DB::raw('SUM(shop_order_transaction_total_price) as total_sales')
+                )
+                ->where('checker', 0)
+                ->where('date', '<=', $request->input('dateFrom'))
+                ->groupBy('requestor')
+                ->orderByRaw('MAX(id) DESC')       // correct sorting
+                ->offset($offset)
+                ->limit(100);
 
-            $max_ids = DB::table('shop_order_transaction')
-            ->select(DB::raw('max(id) as id'))   
-            ->where('date', '<=', $request->input('dateFrom'))
-            ->where('checker',  0)
-            ->groupBy('requestor')
-            ->limit(100)
-            ->offset(0)  
-            ->orderBy('id', 'desc')        
-            ->get();
-            // ->skip(0)->take(100)->get();
-       } else {
-           $pageCount = ($idParam * 100) - 99;
-           $start = ($idParam * 100);
-           $minus = ($idParam * 100) - 100;
-           $max_ids = DB::table('shop_order_transaction')
-            ->select(DB::raw('max(id) as id'))    
-            ->where('checker',  0)
-            ->where('date', '<=', $request->input('dateFrom')) 
-            ->groupBy('requestor')
-            ->limit(100)
-            ->offset($pageCount)
-            ->orderBy('date', 'desc') 
-            ->get();
-            // ->skip($minus)->take($start)->get();
-       } 
+            // Apply SUM filter only on pages after page 1
+            if ($idParam != 1) {
+                $query->havingRaw('SUM(shop_order_transaction_total_price) >= ?', [$required_amount]);
+            }
+
+            $max_ids = $query->get();
 
     }
 
@@ -548,10 +729,9 @@ public function customerLastOrderList($idParam, Request $request) {
 
       $response = [
               'data' => count($newData) == 0 ? $data : $newData,
-              'total_page' => count($newData) == 0 ? $total_page : count($newData),
+              'total_page' => $total_page,
               'pageCount' => $pageCount,
-              'start' => $start,
-              'minus' => $minus,
+              'offset' => $offset,
               'max_ids' => $max_ids,
               'day_count' => $shift_difference,
               'page' => $idParam,
@@ -729,9 +909,11 @@ public function customerLastOrderList($idParam, Request $request) {
         $customer->first_name = $request->input('first_name');
         $customer->last_name = $request->input('last_name');
         $customer->contact_number = $request->input('contact_number');
+        $customer->store_name = $request->input('store_name');
         $customer->email = $request->input('email');
         $customer->address = $request->input('address');
         $customer->ads = $request->input('ads');
+        $customer->backlog = 0;
         $customer->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($customer);
@@ -775,6 +957,7 @@ public function customerLastOrderList($idParam, Request $request) {
         
         $customer->first_name = $request->input('first_name');
         $customer->last_name = $request->input('last_name');
+        $customer->store_name = $request->input('store_name');
         $customer->contact_number = $request->input('contact_number');
         $customer->email = $request->input('email');
         $customer->address = $request->input('address');
