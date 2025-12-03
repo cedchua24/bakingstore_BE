@@ -107,15 +107,18 @@ class ExpensesController extends Controller
             return response()->json($response);   
     }
 
-  public function fetchExpensesTransactionToday()
+  public function fetchExpensesTransactionToday($date)
     {
+        if ($date == '') {
+            $date =  date('Y-m-d');
+        } 
             $expenses_transaction_list = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'), DB::raw('e.date'),  DB::raw('e.id'))  
             ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
             ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
             ->orderBy('e.id', 'DESC')
             ->groupBy('e.date')
-            ->where('e.date', date('Y-m-d'))  
+            ->where('e.date', $date)  
             ->where('ec.id', 1)   
             ->get();
 

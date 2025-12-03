@@ -580,38 +580,11 @@ class ShopOrderTransactionController extends Controller
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
             ->where('mop.created_at', $request->input('date'))
             ->where('sot.date', $request->input('date'))
             ->where('pt.type', 1)
             ->first();
-
-
-            $cash_prev = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_cash_prev'))  
-            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
-            ->where('mop.created_at', $request->input('date'))
-            ->where('sot.date', '!=', $request->input('date'))
-            ->where('pt.type', 1)
-            ->first();
-
-            $cash_oudated = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_cash_oudated'))  
-            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
-            ->where('mop.created_at', '!=', $request->input('date'))
-            ->where('sot.date', $request->input('date'))
-            ->where('pt.type', 1)
-            ->first();
-
-            
+    
             $online = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(mop.amount) as total_online'))  
             ->join('shop', 'shop.id', '=', 'sot.shop_id')  
@@ -623,38 +596,21 @@ class ShopOrderTransactionController extends Controller
             ->where('sot.date', $request->input('date'))
             ->where('pt.type', 2)
             ->first();
+            
+            $total_paid = DB::table('mode_of_payment as mop')
+                 ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
+                 ->select(DB::raw('SUM(mop.amount) as total_paid'))  
+                 ->where('mop.created_at', $request->input('date'))
+                 ->where('sot.date', $request->input('date'))
+                 ->first();
 
-            $online_prev = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_online_prev'))  
-            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
-            ->where('mop.created_at', $request->input('date'))
-            ->where('sot.date', '!=', $request->input('date'))
-            ->where('pt.type', 2)
-            ->first();
 
-            $online_outdated = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_online_outdated'))  
-            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
-            ->where('mop.created_at', '!=', $request->input('date'))
-            ->where('sot.date',  $request->input('date'))
-            ->where('pt.type', 2)
-            ->first();
 
            $payment_type = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(mop.amount) as total_amount'), DB::raw('SUM(mop.is_paid) as total_paid_count'), DB::raw('COUNT(mop.id) as total_count'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('mop.created_at', $request->input('date'))
-            // ->where('sot.date', $request->input('date'))
-            // ->where('sot.status', 1)
             ->groupBy('pt.id')
             ->get();
 
@@ -675,26 +631,72 @@ class ShopOrderTransactionController extends Controller
              array_push($array_email, $email->email);  
             }
 
-            $total_paid = DB::table('mode_of_payment as mop')
-                 ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
-                 ->select(DB::raw('SUM(mop.amount) as total_paid'))  
-                 ->where('mop.created_at', $request->input('date'))
-                 ->where('sot.date', $request->input('date'))
-                 ->first();
 
-            $total_paid_prev = DB::table('mode_of_payment as mop')
-                 ->select(DB::raw('SUM(mop.amount) as total_paid_prev'))  
-                 ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
-                 ->where('mop.created_at', $request->input('date'))
-                 ->where('sot.date', '!=', $request->input('date'))
-                 ->first();
+
+
+         $total_paid_prev = DB::table('mode_of_payment as mop')
+            ->select(DB::raw('SUM(mop.amount) as total_paid_prev'))  
+            ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
+            ->where('mop.created_at', $request->input('date'))
+            ->where('sot.date', '<', $request->input('date'))
+            ->first();
+
+            $online_prev = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_online_prev'))  
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('mop.created_at', $request->input('date'))
+            ->where('sot.date', '<', $request->input('date'))
+            ->where('pt.type', 2)
+            ->first();  
             
+             $cash_prev = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_cash_prev'))  
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            // ->where('sot.status', 1)
+            ->where('mop.created_at', $request->input('date'))
+            ->where('sot.date', '<', $request->input('date'))
+            ->where('pt.type', 1)
+            ->first();
+
+////////////////////////////
+            
+            $online_outdated = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_online_outdated'))  
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('mop.created_at', '>', $request->input('date'))
+            ->where('sot.date',  $request->input('date'))
+            ->where('pt.type', 2)
+            ->first();
+            
+            $cash_oudated = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(mop.amount) as total_cash_outdated'))  
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            // ->where('shop.shop_type_id', 3)
+            ->where('mop.created_at', '>', $request->input('date'))
+            ->where('sot.date', $request->input('date'))
+            ->where('pt.type', 1)
+            ->first();                
+           
             $total_paid_outdated = DB::table('mode_of_payment as mop')
-                 ->select(DB::raw('SUM(mop.amount) as total_paid_outdated'))  
-                 ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
-                 ->where('mop.created_at', '!=', $request->input('date'))
-                 ->where('sot.date', $request->input('date'))
-                 ->first();      
+            ->select(DB::raw('SUM(mop.amount) as total_paid_outdated'))  
+            ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id') 
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('mop.created_at', '>', $request->input('date'))
+            ->where('sot.date', $request->input('date'))
+            ->first();      
 
             foreach ($shop_order_transaction_list as $sotl) { 
                 
@@ -716,7 +718,7 @@ class ShopOrderTransactionController extends Controller
               'total_count' =>$total_count->total_count,
               'total_cash' =>$cash->total_cash!= 0 ? $cash->total_cash : 0,
               'total_cash_prev' =>$cash_prev->total_cash_prev!= 0 ? $cash_prev->total_cash_prev : 0,
-              'total_cash_oudated' =>$cash_oudated->total_cash_oudated!= 0 ? $cash_oudated->total_cash_oudated : 0,
+              'total_cash_outdated' =>$cash_oudated->total_cash_outdated!= 0 ? $cash_oudated->total_cash_outdated : 0,
               'total_online' =>$online->total_online!= 0 ? $online->total_online : 0,
               'total_online_prev' =>$online_prev->total_online_prev!= 0 ? $online_prev->total_online_prev : 0,
               'total_online_outdated' =>$online_outdated->total_online_outdated!= 0 ? $online_outdated->total_online_outdated : 0,
@@ -1473,6 +1475,52 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+      public function fetchSalesList(Request $request)
+    {
+
+        $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->select(
+                DB::raw('DATE(mop.created_at) as date'),
+                DB::raw('SUM(mop.amount) as total_sales'),
+                DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as total_cash'),
+                DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online')
+            )
+            ->where('shop.shop_type_id', 3)
+            ->whereBetween('mop.created_at', [
+                $request->input('dateFrom'),
+                $request->input('dateTo')
+            ])
+            ->groupBy(DB::raw('DATE(mop.created_at)'))
+            ->orderBy('date', 'DESC')
+            ->get();
+
+
+            $total_sales = 0;
+            $total_cash = 0;
+            $total_online = 0;
+            foreach ($shop_order_transaction_list as $datavals) {  
+                $total_sales += $datavals->total_sales;
+                $total_cash += $datavals->total_cash;
+                $total_online += $datavals->total_online;
+            }
+
+
+           $response = [
+              'data' => $shop_order_transaction_list,
+              'code' => 200,
+              'total_sales' => $total_sales,
+              'total_cash' => $total_cash,
+              'total_online' => $total_online,
+              'total_cash' =>$total_cash,
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);   
+    } 
     
 
 

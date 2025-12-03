@@ -216,6 +216,8 @@ Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
+Route::post('/shopOrderTransaction/fetchSalesList', [ShopOrderTransactionController::class, 'fetchSalesList']);
+
 Route::post('/shopOrderTransaction/fetchSortedCustomerReport', [ShopOrderTransactionController::class, 'fetchSortedCustomerReport']);
 
 //Route::get('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
