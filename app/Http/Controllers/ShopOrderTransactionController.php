@@ -658,7 +658,6 @@ class ShopOrderTransactionController extends Controller
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
-            // ->where('sot.status', 1)
             ->where('mop.created_at', $request->input('date'))
             ->where('sot.date', '<', $request->input('date'))
             ->where('pt.type', 1)
@@ -1298,6 +1297,87 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+        public function fetchPrev($id, $today, $type)
+    {
+        $conditions = function ($q) use ($type, $today) {
+
+            if ($type == 1) {
+                // TYPE 1
+                $q->where('mop.created_at', $today)
+                ->where('sot.date', '<', $today);
+            } else {
+                // TYPE OTHER
+                $q->where('mop.created_at', '>', $today)
+                ->where('sot.date', $today);
+            }
+
+        };
+
+        // --------------------------
+        // Main transaction list
+        // --------------------------
+        $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->select(
+                'mop.id', 'mop.amount', 'sot.id as shop_order_transaction_id',
+                'sot.shop_order_transaction_total_quantity',
+                'sot.shop_order_transaction_total_price',
+                'sot.created_at', 'sot.is_pickup', 'shop.shop_name',
+                'shop.shop_type_id', DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                'sot.checker', 'sot.requestor', 'sot.status', 'sot.updated_at',
+                'sot.date', 'sot.profit', 'mop.is_paid', 'sot.total_cash',
+                'sot.total_online', 'ct.customer_type', 'sot.rider_name',
+                'pt.payment_type', 'pt.payment_type_description'
+            )
+            ->where('shop.shop_type_id', 3)
+            ->where($conditions)
+            ->where('pt.type', $id)
+            ->orderBy('sot.id', 'DESC')
+            ->get();
+
+        // --------------------------
+        // SUMMARY: totals & profit
+        // --------------------------
+        $data = DB::table('shop_order_transaction as sot')
+            ->select(
+                DB::raw('SUM(shop_order_transaction_total_price) as total_price'),
+                DB::raw('SUM(profit) as total_profit'),
+                DB::raw('SUM(mop.amount) as total_amount')
+            )
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->where('shop.shop_type_id', 3)
+            ->where($conditions)
+            ->where('pt.type', $id)
+            ->first();
+
+        foreach ($shop_order_transaction_list as $sotl) {
+            $sotl->mode_of_payment = DB::table('mode_of_payment as mop')
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id', 'mop.is_paid')
+                ->where('mop.shop_order_transaction_id', $sotl->shop_order_transaction_id)
+                ->where('mop.payment_type_id', $id)
+                ->get();
+        }
+
+        // --------------------------
+        // RESPONSE
+        // --------------------------
+        return response()->json([
+            'total_amount' => $data->total_amount ?? 0,
+            'data' => $shop_order_transaction_list,
+            'code' => 2020,
+            'date' => $today,
+            'id' => $id,
+            'message' => "Successfully Loaded"
+        ]);
+    }
+
 
         
        public function fetchOnlineShopOrderTransactionListByIdDate($id, $date)
@@ -1315,7 +1395,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as c', 'c.id', '=', 'sot.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->select('mop.id', 'mop.amount','sot.id as shop_order_transaction_id','sot.shop_order_transaction_total_quantity',
+            ->select('mop.id', 'sot.id as transaction_id', 'mop.amount','sot.id as shop_order_transaction_id','sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
@@ -1326,6 +1406,8 @@ class ShopOrderTransactionController extends Controller
              ->where('mop.payment_type_id', $id)
              ->orderBy('sot.id', 'DESC')
              ->get();
+
+
             
             $data = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))  
@@ -1527,17 +1609,59 @@ class ShopOrderTransactionController extends Controller
            public function fetchOnlineShopOrderTransactionListReportByDate(Request $request)
     {
       
-            $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(profit) as total_profit') ,
-             DB::raw('shop_order_transaction.date'), DB::raw('SUM(total_cash) as total_cash'), DB::raw('SUM(total_online) as total_online'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
+            $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(sot.profit) as total_profit') ,
+             DB::raw('sot.date'), DB::raw('SUM(sot.total_cash) as total_cash'), DB::raw('SUM(sot.total_online) as total_online'))  
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')  
+            // ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
-            ->where('shop_order_transaction.date', '<=', $request->input('dateTo'))
-            ->orderBy('shop_order_transaction.date', 'DESC')
-            ->groupBy('shop_order_transaction.date')
+            ->where('sot.status', 1)
+            ->whereBetween('sot.date', [
+                $request->input('dateFrom'),
+                $request->input('dateTo')
+            ])
+            ->orderBy('sot.date', 'DESC')
+            ->groupBy('sot.date')
             ->get();
+
+            //         $shop_order_transaction_list = DB::table('shop_order_transaction')
+            // ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            // ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            // ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+            // ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+            // ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+            //  'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+            //  'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
+            //  DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+            //  'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
+            //  'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status' ) 
+                
+            //  ->where('shop.shop_type_id', 3)
+            //  ->where('shop_order_transaction.date', $date)
+            //  ->orderBy('shop_order_transaction.id', 'DESC')
+            // ->get();
+
+
+
+            // $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            // ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            // ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+            // ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            // ->select(
+            //     DB::raw('DATE(mop.created_at) as date'),
+            //     DB::raw('SUM(mop.amount) as total_sales'),
+            //     DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as total_cash'),
+            //     DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online')
+            // )
+            // ->where('shop.shop_type_id', 3)
+            // ->whereBetween('mop.created_at', [
+            //     $request->input('dateFrom'),
+            //     $request->input('dateTo')
+            // ])
+            // ->groupBy(DB::raw('DATE(mop.created_at)'))
+            // ->orderBy('date', 'DESC')
+            // ->get();
+
 
             $expenses_mandatory = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'))  
