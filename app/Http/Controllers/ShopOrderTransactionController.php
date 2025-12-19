@@ -120,21 +120,7 @@ class ShopOrderTransactionController extends Controller
              ->orderBy('sot.id', 'DESC')
              ->get();
 
-
-            $data = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
-            ->join('shop as s', 's.id', '=', 'sot.shop_id')
-            ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
-            ->where('s.shop_type_id', '!=', 3)
-            ->where('sot.type', '=', 1)
-            ->where('sot.status', 1)
-            ->where('sot.date', $date)
-            ->first();
-
-
            $response = [
-              'total_price' =>$data->total_price,
-              'total_profit' =>$data->total_profit,
               'data' => $shop_order_transaction_list,
               'code' => 200,
               'message' => "Successfully Added"
@@ -1731,15 +1717,6 @@ class ShopOrderTransactionController extends Controller
             ->orderBy('shop_order_transaction.id', 'DESC')
             ->get();
          
-
-            $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
-            ->where('shop_order_transaction.type', '=', 1)    
-            ->where('shop_order_transaction.status', 1)
-            ->first();
-
-   
         } else {
              $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
@@ -1756,22 +1733,10 @@ class ShopOrderTransactionController extends Controller
             ->orderBy('shop_order_transaction.id', 'DESC')
             ->get();
          
-
-            $data = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))    
-            ->where('shop_order_transaction.type', '=', 1)    
-            ->where('shop_order_transaction.status', 1)
-            ->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
-            ->where('shop_order_transaction.date', '<=', $request->input('dateTo'))             
-            ->first();
-
         }
 
         
            $response = [
-              'total_price' =>$data->total_price,
-              'total_profit' =>$data->total_profit,
               'data' => $shop_order_transaction_list,
               'code' => 200,
               'message' => "Successfully Addedz"
@@ -2189,6 +2154,21 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->save();
         return  response()->json($shopOrderTransaction);
     }
+
+        public function updateShopBranchStatus($id, Request $request)
+    {
+        $shopOrderTransaction = ShopOrderTransaction::find($request->id);
+        $shopOrderTransaction->status = $request->status;
+        
+        $shopOrderTransaction->save();
+
+          $response = [
+              'message' => "Successfully Added"
+          ];
+
+            return response()->json($response);
+    }
+
 
 
     public function updateShopOrderTransactionStatus($id, Request $request)
