@@ -182,6 +182,7 @@ Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'save
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
 Route::get('/markUpPrice/fetchMarkUpBySupplierId/{id}', [MarkUpProductController::class, 'fetchMarkUpBySupplierId']);
+Route::get('/markUpPrice/fetchMarkUpShoporder/{id}', [MarkUpProductController::class, 'fetchMarkUpShoporder']);
 
 
 
@@ -258,6 +259,7 @@ Route::get('/shopOrderTransaction/fetchBranchOrder/{id}', [ShopOrderTransactionC
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
+Route::put('/shopOrderTransaction/updateShopBranchStatus/{id}', [ShopOrderTransactionController::class, 'updateShopBranchStatus']);
 Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);
 Route::delete('/shopOrderTransaction/deleteShopOrderTransaction/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'deleteShopOrderTransaction']);
 

@@ -26,10 +26,28 @@ class MarkUpProductController extends Controller
               'p.weight', 'p.category_id', 'p.variation', 'p.packaging', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type', 'p.sale_price')    
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
             ->where('mup.status', 1) 
-            // ->where('p.stock_pc', '!=', 0)
             ->where('p.disabled', '=', 0)
-            // ->where('p.stock', '!=', 0)
-            // ->orWhere('p.stock_pc', '!=', 0)
+            ->orderBy('mup.id', 'DESC')
+            ->get();
+
+            return response()->json($data);   
+    }
+
+        public function fetchMarkUpShoporder($id) 
+    
+    { 
+            $data = DB::table('mark_up_product as mup')
+            ->join('products as p', 'mup.product_id', '=', 'p.id')
+            ->join('category as c', 'p.category_id', '=', 'c.id')
+            ->leftJoin('branch_stock_transaction as b', 'b.id', '=', 'mup.branch_stock_transaction_id')
+            ->leftJoin('warehouse as w', 'w.id', '=', 'b.warehouse_id')
+            ->select('mup.id', 'mup.product_id', 'mup.price', 'p.disabled',
+             'mup.mark_up_option', 'mup.mark_up_price', 'mup.price as new_price', 'mup.profit', 'mup.mark_up_option', 'p.product_name', 'p.quantity',
+              'p.weight', 'p.category_id', 'p.variation', 'p.packaging', 'c.category_name', 'w.warehouse_name', 'mup.branch_stock_transaction_id', 'mup.business_type', 'p.sale_price')    
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
+            ->selectRaw("0 AS profit")
+            ->where('mup.status', 1) 
+            ->where('p.disabled', '=', 0)
             ->orderBy('mup.id', 'DESC')
             ->get();
 
