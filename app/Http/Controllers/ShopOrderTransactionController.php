@@ -7,6 +7,7 @@ use App\Models\ReducedStock;
 use App\Models\BranchStockTransaction;
 use App\Models\Product;
 use App\Models\ShopOrderTransaction;
+use App\Models\Customer;
 use App\Http\Controllers\ModeOfPaymentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -296,6 +297,20 @@ class ShopOrderTransactionController extends Controller
 
             return response()->json($response);   
     }
+
+      public function fetchCustomerDetails($id)
+    {
+
+           $data = DB::table('customer as c')
+            ->select('c.id as customer_id', 'sot.id', 'c.first_name', 'c.last_name', 'c.address',
+             'c.contact_number', 'c.store_name', 'sot.is_pickup', 'sot.date')  
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->where('sot.id', $id)
+            ->first();
+
+            return response()->json($data);   
+    }
+
 
 
 
@@ -2152,6 +2167,24 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->is_pickup = $request->input('is_pickup');
         $shopOrderTransaction->status = $request->input('status');
         $shopOrderTransaction->save();
+        return  response()->json($shopOrderTransaction);
+    }
+
+
+        public function pickUpAndCustomerUpdate(Request $request)
+    {
+        $shopOrderTransaction = ShopOrderTransaction::find($request->input('id'));
+        $shopOrderTransaction->is_pickup = $request->input('is_pickup');
+        $shopOrderTransaction->save();
+
+        $customer = Customer::find($request->input('customer_id'));
+        $customer->last_name = $request->input('last_name');
+        $customer->store_name = $request->input('store_name');
+        $customer->contact_number = $request->input('contact_number');
+        $customer->address = $request->input('address');
+        $customer->save();
+
+
         return  response()->json($shopOrderTransaction);
     }
 
