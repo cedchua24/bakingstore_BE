@@ -233,8 +233,9 @@ Route::get('/productSoldDaily/fetchProductSoldListByDate/{id}', [ProductSoldDail
 Route::post('/productSoldDaily/updateMultiple', [ProductSoldDailyController::class, 'updateMultiple']);
 
 
-
+Route::get('/shopOrderTransaction/fetchCustomerDetails/{id}', [ShopOrderTransactionController::class, 'fetchCustomerDetails']);
 Route::post('/shopOrderTransaction/fetchSalesByCategory', [ShopOrderTransactionController::class, 'fetchSalesByCategory']);
+Route::post('/shopOrderTransaction/pickUpAndCustomerUpdate', [ShopOrderTransactionController::class, 'pickUpAndCustomerUpdate']);
 Route::post('/shopOrderTransaction/fetchSortedProductReport', [ShopOrderTransactionController::class, 'fetchSortedProductReport']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
