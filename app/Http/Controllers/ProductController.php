@@ -367,11 +367,11 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note')
+               'products.disabled', 'products.note', 'products.updated_at')
             ->where('products.disabled', 0)
             ->where('products.stock', 0)
             ->where('products.stock_pc', 0)
-            ->orderBy('products.stock', 'ASC')
+            ->orderBy('products.updated_at', 'desc')
             ->get();
         } else {
             $data = DB::table('category')
