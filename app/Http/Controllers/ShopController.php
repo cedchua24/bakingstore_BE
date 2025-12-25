@@ -205,25 +205,13 @@ class ShopController extends Controller
     
 
            Mail::send('mail', ['params' => $request], function ($m) use ($request) {
-            $m->from('reports@caloocan.mdrbakingsupplies.com', $request->input('shop_name'));
+            $m->from('caloocan@mdrbakingsupplies.com', $request->input('shop_name'));
             // $m->to('cedchuaa0324@gmail.com')
             $m->to($request->input('emails'))
           //  ->cc(['manalolady88@gmail.com', 'cedchua123@yahoo.com'])
               ->subject("Sales Report");
           });
 
-        //  Mail::send('mail', ['params' => $request], function ($message) use ($request) {
-        //   $message->to('cedchuaa0324@gmail.com', 'Tutorials Point')->subject
-        //       ('Laravel Basic Testing Mail');
-        //   $message->from('reports@caloocan.mdrbakingsupplies.com','Virat Gandhi');
-        // });
-        
-
-          // Mail::send('email.receipt', ['params' => $params], function ($m) use ($params) {
-          //   $m->from($_SERVER['BILLSPAY_MICROSERVICE_EMAIL_FROM'], 'GCash Bills Payment');
-          //   $m->to($params['emails'])
-          //     ->subject($params['subject']);
-          // });
       return response()->json($request);
     }
 
