@@ -64,25 +64,27 @@ class ProductController extends Controller
          public function fetchProductToNotify($id)
     {
         if ($id == 0) {
-            $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
+            $data = DB::table('products')
+            ->join('category', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-             ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
+            ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
             ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
             ->orderBy('products.updated_at', 'DESC')
+            ->groupBy('products.id')
             ->get();
         } else {
-           $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
+           $data = DB::table('products')
+            ->join('category', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-             ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
+            ->join('out_of_stock_update as os', 'os.product_id', '=', 'products.id')
             ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note')
               ->where('category.id', $id)
             ->orderBy('products.updated_at', 'DESC')
+            ->groupBy('products.id')
             ->get();
         }
 
@@ -380,7 +382,7 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note')
+               'products.disabled', 'products.note', 'products.updated_at')
             ->where('products.disabled',  0)
             ->where('products.stock', 0)
             ->where('products.stock_pc', 0)

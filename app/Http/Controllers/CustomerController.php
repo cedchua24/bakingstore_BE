@@ -29,12 +29,12 @@ class CustomerController extends Controller
         if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
             $data = DB::table('customer as c')
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
-                ->orderBy('c.first_name', 'asc') 
+                ->orderBy('c.id', 'desc') 
                 ->get();
         }  else {      
             $data = DB::table('customer as c')
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
-                ->orderBy('c.first_name', 'asc') 
+                ->orderBy('c.id', 'desc') 
                 ->where('c.created_at', '>=', $request->input('dateFrom'))
                 ->where('c.created_at', '<=', $request->input('dateTo'))
                 ->get();
