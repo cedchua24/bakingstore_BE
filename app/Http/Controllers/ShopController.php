@@ -201,14 +201,9 @@ class ShopController extends Controller
 
 
      public function sendReport(Request $request) {
-        $data = array('name'=>"Virat Gandhi");
-    
-
            Mail::send('mail', ['params' => $request], function ($m) use ($request) {
-            $m->from('caloocan@mdrbakingsupplies.com', $request->input('shop_name'));
-            // $m->to('cedchuaa0324@gmail.com')
+            $m->from(env('MAIL_FROM_ADDRESS'), $request->input('shop_name'));
             $m->to($request->input('emails'))
-          //  ->cc(['manalolady88@gmail.com', 'cedchua123@yahoo.com'])
               ->subject("Sales Report");
           });
 

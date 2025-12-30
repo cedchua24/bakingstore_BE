@@ -66,21 +66,21 @@ class ReturnToSellerController extends Controller
           $returnToSeller->price = $products->price / $products->quantity;   
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
           $products->stock  = floor($products->stock_pc / $products->quantity);
-          $total_cost = ($products->price / $products->quantity) * abs($request->input('newStocks'));
+          $total_cost = ($products->price / $products->quantity) * $request->input('newStocks');
         } else {
         $returnToSeller->price = $products->price;     
-          $products->stock = $products->stock + $request->input('newStocks'); 
+          $products->stock = $products->stock + abs($request->input('newStocks'));
           if ($request->input('quantity') > 1) {
             $wsStocks = $request->input('quantity') * $request->input('newStocks');
             $products->stock_pc = $products->stock_pc + $wsStocks;  
           }
-          $total_cost = $products->price * abs($request->input('newStocks'));
+          $total_cost = $products->price * $request->input('newStocks');
         }
          $returnToSeller->total_cost = $total_cost;  
          $returnToSeller->save();
          $products->save();
 
-        return response()->json(abs($request->input('newStocks')));
+        return response()->json($request->input('newStocks'));
     }
 
         public function fetchById($id)
