@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\StockOrder;
 use App\Models\Spoilage;
 use Carbon\Carbon;
+use Mail;
 
 class ProductController extends Controller
 {
@@ -540,7 +541,7 @@ class ProductController extends Controller
             ->join('category as c', 'c.id', '=', 'p.category_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', date('Y-m-d').'%')
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
@@ -552,7 +553,7 @@ class ProductController extends Controller
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', $date.'%')
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
@@ -573,24 +574,26 @@ class ProductController extends Controller
        $stock_order_ids = Spoilage::all('stock_order_id');
 
        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '') {
+           $tst = 2;
             $data = DB::table('stock_order as so')
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('category as c', 'c.id', '=', 'p.category_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.price', 'so.total_cost','p.product_name', 'b.brand_name')
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
 
             // $newDateFormat2 = date('Y-m-d', strtotime($data[0]->updated_at));
         } else {
+            $tst = 1;
             $data = DB::table('stock_order as so')
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'p.product_name', 'b.brand_name')
-            ->where('so.updated_at', '>=', $request->input('dateFrom'))
-            ->where('so.updated_at', '<=', $request->input('dateTo'))
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
+            ->where('so.created_at', '>=', $request->input('dateFrom'))
+            ->where('so.created_at', '<=', $request->input('dateTo'))
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
@@ -598,6 +601,7 @@ class ProductController extends Controller
         }
            $response = [
               'data' => $data,
+                'tst' => $tst,
               'code' => 200,
               'date' => date('Y-m-d'),
               'message' => "Successfully Added"
@@ -822,28 +826,47 @@ class ProductController extends Controller
         $products->disabled = $request->input('disabled');
         $products->note = $request->input('note');
 
-        $stockOrder = new StockOrder;
-        $stockOrder->product_id = $product->id;
-        $stockOrder->stock_reason = $request->input('stock_reason');
+
         if ($request->input('newStocks') != null) {
+            $stockOrder = new StockOrder;
+            $stockOrder->product_id = $product->id;
+            $stockOrder->stock_reason = $request->input('stock_reason');
 
-        $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
-        $stockOrder->stock = $request->input('newStocks');
-        $stockOrder->pack = $request->input('pack');    
+            $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
+            $stockOrder->stock = $request->input('newStocks');
+            $stockOrder->pack = $request->input('pack');    
 
-        if ($request->input('pack') == 'Pc') {
-          $stockOrder->total_stock = floor($products->stock_pc / $products->quantity);
-          $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
-          $products->stock  = floor($products->stock_pc / $products->quantity);
-         
-        } else {
-          $stockOrder->total_stock = $products->stock + $request->input('newStocks');  
-          $products->stock = $products->stock + $request->input('newStocks');
-          
-          if ($request->input('quantity') > 1) {
-            $wsStocks = $request->input('quantity') * $request->input('newStocks');
-            $products->stock_pc = $products->stock_pc + $wsStocks;  
-          }
+            if ($request->input('pack') == 'Pc') {
+                $stockOrder->total_stock = floor($products->stock_pc / $products->quantity);
+                $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
+                $products->stock  = floor($products->stock_pc / $products->quantity);
+                $stockOrder->price =$products->price / $products->quantity;
+                $stockOrder->total_cost = $request->input('newStocks') * ($products->price / $products->quantity);
+            } else {
+                $stockOrder->total_stock = $products->stock + $request->input('newStocks');  
+                $products->stock = $products->stock + $request->input('newStocks');
+                $stockOrder->price = $products->price;
+                $stockOrder->total_cost = $request->input('newStocks') * $products->price;
+            if ($request->input('quantity') > 1) {
+                $wsStocks = $request->input('quantity') * $request->input('newStocks');
+                $products->stock_pc = $products->stock_pc + $wsStocks;  
+            }
+
+                $request->mergeIfMissing([
+                    'email_total_cost' => $stockOrder->total_cost,
+                    'email_price' => $stockOrder->price,                  
+                ]);
+
+                $emails = DB::table('email')
+                        ->where('status', 1)
+                        ->pluck('email')
+                        ->toArray();
+
+                    Mail::send('modify_stock', ['params' => $request], function ($m) use ($request, $emails) {
+                        $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
+                        $m->to($emails)
+                        ->subject('Modified Stock');
+                    });
         }
 
 
