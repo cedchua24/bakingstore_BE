@@ -851,24 +851,24 @@ class ProductController extends Controller
                 $wsStocks = $request->input('quantity') * $request->input('newStocks');
                 $products->stock_pc = $products->stock_pc + $wsStocks;  
             }
+        }
 
-                $request->mergeIfMissing([
-                    'email_total_cost' => $stockOrder->total_cost,
-                    'email_price' => $stockOrder->price,                  
-                ]);
-
-                $emails = DB::table('email')
+             $emails = DB::table('email')
                         ->where('status', 1)
                         ->pluck('email')
                         ->toArray();
 
-                    Mail::send('modify_stock', ['params' => $request], function ($m) use ($request, $emails) {
+                $request->mergeIfMissing([
+                    'email_total_cost' => $stockOrder->total_cost,
+                    'email_price' => $stockOrder->price,   
+                    'emails' => $emails,                 
+                ]);
+
+                    Mail::send('modify_stock', ['params' => $request], function ($m) use ($request) {
                         $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
-                        $m->to($emails)
+                        $m->to($request->input('emails'))
                         ->subject('Modified Stock');
                     });
-        }
-
 
         $stockOrder->save();
       }
