@@ -17,6 +17,8 @@ return new class extends Migration
             $table->id();
             $table->integer('product_id');
             $table->string('pack');
+            $table->double('total_cost');
+            $table->double('price');
             $table->string('stock_type');
             $table->string('stock_reason');
             $table->integer('stock');
