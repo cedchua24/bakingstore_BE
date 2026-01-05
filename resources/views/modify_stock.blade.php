@@ -69,7 +69,7 @@
                         <p>{{ @$params['stock_reason'] }}</p>
                     </td>
                     <td>
-                        <p>{{ @$params['created_at'] }}</p>
+                        <p>{{ @$params['email_date'] }}</p>
                     </td>
                 </tr>
             </tbody>
