@@ -861,6 +861,7 @@ class ProductController extends Controller
                 $request->mergeIfMissing([
                     'email_total_cost' => $stockOrder->total_cost,
                     'email_price' => $stockOrder->price,   
+                    'email_date' => Carbon::now('GMT+8'), 
                     'emails' => $emails,                 
                 ]);
 
