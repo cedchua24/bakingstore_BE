@@ -11,6 +11,9 @@ use App\Models\ModeOfPayment;
 use App\Models\Discount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Mail;
+use Carbon\Carbon;
+
 
 class ShopOrderController extends Controller
 {
@@ -156,6 +159,30 @@ class ShopOrderController extends Controller
           $product->stock = floor((int)($product->stock_pc / $product->quantity));
           $product->save();
         }
+        // email no stock
+        if ($product->stock == 0) {
+                       $emails = DB::table('email')
+                        ->where('status', 1)
+                        ->pluck('email')
+                        ->toArray();
+
+                $request->mergeIfMissing([
+                    'product_name' => $product->product_name,
+                    'price' => $product->price,   
+                    'weight' => $product->weight,   
+                    'quantity' => $product->quantity,   
+                    'variation' => $product->variation,   
+                    'email_date' => Carbon::now('GMT+8'),
+                    'emails' => $emails         
+                ]);
+
+                    Mail::send('no_stock', ['params' => $request], function ($m) use ($request) {
+                        $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
+                        $m->to($request->input('emails'))
+                        ->subject('Out of Stock');
+                    });
+        }
+
 
       //  DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
 
