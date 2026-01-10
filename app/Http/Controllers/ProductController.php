@@ -853,23 +853,23 @@ class ProductController extends Controller
             }
         }
 
-             $emails = DB::table('email')
-                        ->where('status', 1)
-                        ->pluck('email')
-                        ->toArray();
+            //  $emails = DB::table('email')
+            //             ->where('status', 1)
+            //             ->pluck('email')
+            //             ->toArray();
 
-                $request->mergeIfMissing([
-                    'email_total_cost' => $stockOrder->total_cost,
-                    'email_price' => $stockOrder->price,   
-                    'email_date' => Carbon::now('GMT+8'), 
-                    'emails' => $emails,                 
-                ]);
+            //     $request->mergeIfMissing([
+            //         'email_total_cost' => $stockOrder->total_cost,
+            //         'email_price' => $stockOrder->price,   
+            //         'email_date' => Carbon::now('GMT+8'), 
+            //         'emails' => $emails,                 
+            //     ]);
 
-                    Mail::send('modify_stock', ['params' => $request], function ($m) use ($request) {
-                        $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
-                        $m->to($request->input('emails'))
-                        ->subject('Modified Stock');
-                    });
+            //         Mail::send('modify_stock', ['params' => $request], function ($m) use ($request) {
+            //             $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
+            //             $m->to($request->input('emails'))
+            //             ->subject('Modified Stock');
+            //         });
 
         $stockOrder->save();
       }
