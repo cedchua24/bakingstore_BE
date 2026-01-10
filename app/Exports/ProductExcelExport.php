@@ -28,6 +28,7 @@ class ProductExcelExport implements FromCollection, WithHeadings
                 'p.packaging',
                 'p.stock',
                 'p.stock_pc',
+                'p.stock_warning',
             )        
             ->where('p.disabled', 0)
             ->orderBy('c.category_name', 'asc')
@@ -51,6 +52,9 @@ class ProductExcelExport implements FromCollection, WithHeadings
             'Packaging',
             'Stock',
             'Stock (PC)',
+            'Stock Warning',
+            'Input Stock Warning',
+            'Approval',
         ];
     }
 }
