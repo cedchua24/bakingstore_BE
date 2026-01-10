@@ -160,27 +160,38 @@ class ShopOrderController extends Controller
           $product->save();
         }
         // email no stock
-        if ($product->stock == 0) {
-                       $emails = DB::table('email')
-                        ->where('status', 1)
-                        ->pluck('email')
-                        ->toArray();
+        $shouldSendEmail = false;
 
-                $request->mergeIfMissing([
-                    'product_name' => $product->product_name,
-                    'price' => $product->price,   
-                    'weight' => $product->weight,   
-                    'quantity' => $product->quantity,   
-                    'variation' => $product->variation,   
-                    'email_date' => Carbon::now('GMT+8'),
-                    'emails' => $emails         
-                ]);
+        if ($product->quantity == 1 && $product->stock == 0) {
+            $shouldSendEmail = true;
+        } elseif ($product->quantity > 1 && $product->stock_pc == 0) {
+            $shouldSendEmail = true;
+        }
 
-                    Mail::send('no_stock', ['params' => $request], function ($m) use ($request) {
-                        $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
-                        $m->to($request->input('emails'))
-                        ->subject('Out of Stock');
-                    });
+        if ($shouldSendEmail) {
+            // Get all active emails
+            $emails = DB::table('email')
+                ->where('status', 1)
+                ->pluck('email')
+                ->toArray();
+
+            // Merge product info into request
+            $request->mergeIfMissing([
+                'product_name' => $product->product_name,
+                'price' => $product->price,
+                'weight' => $product->weight,
+                'quantity' => $product->quantity,
+                'variation' => $product->variation,
+                'email_date' => Carbon::now('GMT+8'),
+                'emails' => $emails
+            ]);
+
+            // Send email
+            Mail::send('no_stock', ['params' => $request], function ($m) use ($emails) {
+                $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
+                $m->to($emails) // pass array directly
+                  ->subject('Out of Stock');
+            });
         }
 
 
@@ -188,6 +199,7 @@ class ShopOrderController extends Controller
 
         $response = [
               'message' => "Successfully Added",
+              'shouldSendEmail' => $shouldSendEmail,
               'request' => $request
           ];
         return  response()->json($response);
