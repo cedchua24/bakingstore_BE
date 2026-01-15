@@ -821,6 +821,7 @@ class ProductController extends Controller
         $products->stock = $request->input('stock');
         $products->weight = $request->input('weight');
         $products->quantity = $request->input('quantity');
+        $products->variation = $request->input('variation');
         $products->stock_warning = $request->input('stock_warning');
         $products->updated_at = now('GMT+8');
         $products->disabled = $request->input('disabled');
