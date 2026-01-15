@@ -751,7 +751,6 @@ public function customerLastOrderList($idParam, Request $request) {
             ->select('c.id', 'c.disabled', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address', 'c.ads', 'c.created_at')   
             ->orderBy('c.first_name', 'asc') 
             ->where('c.disabled', 0)
-            ->groupBy('c.id')
             ->get();
             return response()->json($data); 
 
@@ -902,9 +901,17 @@ public function customerLastOrderList($idParam, Request $request) {
             'first_name' => 'required'
         ]);
 
-        // $item = UserProfile::create($data);
+        $exists = Customer::where('first_name', $request->first_name)
+                        ->where('last_name', $request->last_name)
+                        ->exists();
 
-        // Create Post
+        if ($exists) {
+               return response()->json([
+            'message' => 'Customer already exists',
+            'code' => 400
+            ], 400);
+        }
+
         $customer = new Customer;
         $customer->first_name = $request->input('first_name');
         $customer->last_name = $request->input('last_name');
@@ -915,8 +922,11 @@ public function customerLastOrderList($idParam, Request $request) {
         $customer->ads = $request->input('ads');
         $customer->backlog = 0;
         $customer->save();
-        // return redirect('/categories')->with('success', 'Categories Created');
-        return  response()->json($customer);
+
+        return response()->json([
+            'message' => 'Success',
+            'code' => 200
+            ], 200);
     }
 
     /**

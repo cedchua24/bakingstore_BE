@@ -112,6 +112,7 @@ class OrderSupplierController extends Controller
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
             ->select('order_supplier.id', 'order_supplier.order_supplier_transaction_id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.expiration', 'order_supplier.stock_remaining',
              'order_supplier.total_price', 'products.product_name', 'products.id as product_id')    
+             ->selectRaw("(CASE WHEN (order_supplier.variation = 'WHOLESALE') THEN products.variation ELSE products.packaging END) as variation")
             ->where('order_supplier_transaction.id', $id)
             ->get();
             return response()->json($data);   
