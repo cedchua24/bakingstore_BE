@@ -62,20 +62,28 @@ class ModeOfPaymentPoController extends Controller
         $modeOfPaymentPo->type = $request->input('type');
         $modeOfPaymentPo->save();
 
+
+
+        $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
+        $orderSupplierTransaction->payment_status = 0;
+        $orderSupplierTransaction->save();
+    
+        $response = [
+              'message' => "Successfully Added"
+          ];
+        return  response()->json($response);
+    }
+
+        public function updateOnlinePaymentPO(Request $request) //online
+    {
         $timestamp = strtotime($request->input('date'));
         $day = date('d', $timestamp);
 
-        if ($modeOfPaymentPo->payment_term_id == 4) {
+        if ($request->input('payment_term_id') == 4) {
             $paymentTypePo = PaymentTypePo::find($request->input('payment_type_po_id'));
 
-            $paymentTypePo->total_balance_due = $paymentTypePo->total_balance_due + $modeOfPaymentPo->amount;
+            $paymentTypePo->total_balance_due = $paymentTypePo->total_balance_due + $request->input('amount');
             $paymentTypePo->save();
-
-
-            // $month = date('m', $timestamp);
-            // $year = date('Y', $timestamp);
-            // $addMonth = Carbon::parse($request->input('date'))->addMonths(5);
-            // $newDate = date('Y-m-d', strtotime($addMonth));
 
             $statement_day =  $paymentTypePo->statement_date;
             $minus = 0;
@@ -84,19 +92,13 @@ class ModeOfPaymentPoController extends Controller
                 $addMonth = Carbon::parse($request->input('date'));
             } else {
                 $minus = $paymentTypePo->statement_date - $day;
-                // if ($minus >=  $paymentTypePo->buffer_days)
-                //  {
-                //     $addMonth = Carbon::parse($request->input('date'))->addMonths(3);
-                //  } else {
                     $addMonth = Carbon::parse($request->input('date'))->addMonths(1);
-                //  }
             }                          
             $newDate =  strtotime($addMonth);
             $month = date('m', $newDate);
             $year = date('Y', $newDate);
             $due_date = $year ."-". $month ."-". $paymentTypePo->due_date;  
 
-            // $creditCardDue = CreditCardDue::where('due_date', $due_date)->first();
               $creditCardDue = DB::table('credit_card_due')
               ->where('payment_type_po_id', $request->input('payment_type_po_id'))
               ->where('due_date',  $due_date)
@@ -110,7 +112,6 @@ class ModeOfPaymentPoController extends Controller
             } else {
                 $creditCardDue = new CreditCardDue;
                 $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
-                // $creditCardDue->mode_of_payment_po_id = $modeOfPaymentPo->id;
                 $creditCardDue->min_amount = 0;
                 $creditCardDue->amount =$request->input('amount');
                 $creditCardDue->interest_amount =0;
@@ -122,33 +123,21 @@ class ModeOfPaymentPoController extends Controller
             }
                $creditCardDue->save();
 
-       } else if ($modeOfPaymentPo->payment_term_id == 3) { 
+       } else if ($request->input('payment_term_id') == 3) { 
             $creditCardDue = new CreditCardDue;
             $creditCardDue->payment_type_po_id = $request->input('payment_type_po_id');
-            $creditCardDue->mode_of_payment_po_id = $modeOfPaymentPo->id;
-            $creditCardDue->amount =$request->input('amount');
+            $creditCardDue->amount = $request->input('amount');
             $creditCardDue->due_date = $request->input('date');
             $creditCardDue->type = 'CHEQUE';
             $creditCardDue->save(); 
        }
 
-        $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
-        $orderSupplierTransaction->payment_status = 0;
-        $orderSupplierTransaction->save();
-    
-        $response = [
-            //   'date' => $request->input('date'),
-            //   'day' => $day,
-            //   'month' => $month,
-            //   'minus' => $minus,
-            //   'year' => $year,
-            //   'addMonth' => $addMonth,     
-            //   'newDate' => $newDate,   
-            //   'due_date' => $due_date, 
-            //   'creditCardDue' => $creditCardDue,
-              'message' => "Successfully Added"
+         $response = [
+              'message' => "Successfully Added",
+              'creditCardDue' => $creditCardDue
           ];
         return  response()->json($response);
+
     }
 
        public function fetchPaymentTypePoByShopTransactionId($id)

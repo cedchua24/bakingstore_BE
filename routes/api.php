@@ -319,6 +319,7 @@ Route::resource('/modeOfPaymentPo', 'App\Http\Controllers\ModeOfPaymentPoControl
 Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeOfPaymentPoController::class, 'fetchPaymentTypePoByShopTransactionId']);
 Route::get('/modeOfPaymentPo/fetchCreditCardPaymentDTO/{id}', [ModeOfPaymentPoController::class, 'fetchCreditCardPaymentDTO']);
 Route::put('/modeOfPaymentPo/setToCompleteCreditCard/{id}', [ModeOfPaymentPoController::class, 'setToCompleteCreditCard']);
+Route::post('/modeOfPaymentPo/updateOnlinePaymentPO', [ModeOfPaymentPoController::class, 'updateOnlinePaymentPO']);
 
 
 

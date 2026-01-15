@@ -38,8 +38,9 @@ class ShopOrderController extends Controller
             ->select('shop_order.id', 'shop_order.discount_amount', 'shop_order.discount', 'shop_order.discount_percentage', 
             'mup.new_price', 'mup.profit', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price',
-             'products.variation', 'products.product_name', 'products.id as product_id', 'products.stock', 'products.sale_price', 'products.stock_pc',
+             'products.product_name', 'products.id as product_id', 'products.stock', 'products.sale_price', 'products.stock_pc',
               'mup.business_type', 'mup.id as mark_up_product_id')    
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.variation ELSE products.packaging END) as variation")    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -52,8 +53,9 @@ class ShopOrderController extends Controller
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.shop_order_price',  'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'products.quantity',
-             'products.weight', 'products.packaging', 'products.variation', 'mup.id as mark_up_product_id', 'mup.business_type',
-             'shop_order.discount_percentage',  'shop_order.discount' , 'shop_order.discount_amount' , 'shop_order.fixed_price')    
+             'products.weight', 'products.packaging',  'mup.id as mark_up_product_id', 'mup.business_type',
+             'shop_order.discount_percentage',  'shop_order.discount' , 'shop_order.discount_amount' , 'shop_order.fixed_price')  
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.variation ELSE products.packaging END) as variation")    
             ->where('shop_order.shop_transaction_id', $id)
             ->get();
 

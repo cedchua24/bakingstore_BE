@@ -133,7 +133,7 @@ class PaymentTermController extends Controller
             return response()->json($response);   
     }
 
-           public function fetchCreditCardPaymentListV2($id)
+           public function fetchCreditCardPaymentListV2($id) //online
     {
 
         if ($id == 2) {
