@@ -40,7 +40,7 @@ class ShopOrderController extends Controller
              'shop_order.shop_order_total_price',
              'products.product_name', 'products.id as product_id', 'products.stock', 'products.sale_price', 'products.stock_pc',
               'mup.business_type', 'mup.id as mark_up_product_id')    
-            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.variation ELSE products.packaging END) as variation")    
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.packaging ELSE products.variation END) as variation")    
             ->where('shop_order.id', $id)
             ->first();
             return response()->json($data);   
@@ -55,7 +55,7 @@ class ShopOrderController extends Controller
              'shop_order.shop_order_total_price', 'products.product_name', 'products.id as product_id', 'products.quantity',
              'products.weight', 'products.packaging',  'mup.id as mark_up_product_id', 'mup.business_type',
              'shop_order.discount_percentage',  'shop_order.discount' , 'shop_order.discount_amount' , 'shop_order.fixed_price')  
-            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.variation ELSE products.packaging END) as variation")    
+            ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.packaging ELSE products.variation END) as variation")    
             ->where('shop_order.shop_transaction_id', $id)
             ->get();
 
