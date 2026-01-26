@@ -38,8 +38,9 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount','sot.id as transaction_id', 'sot.date', 'mup.business_type',
+            ->select('d.id', 'd.discount_amount', 'so.discount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount','so.shop_transaction_id as transaction_id', 'sot.date', 'mup.business_type',
              'p.product_name')    
+            ->orderBy('d.id', 'desc') 
             ->get();
 
             $sum = DB::table('discount as d')
@@ -56,9 +57,10 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.date','sot.id as transaction_id', 'mup.business_type',
+            ->select('d.id', 'd.discount_amount', 'so.discount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.date','so.shop_transaction_id as transaction_id', 'mup.business_type',
              'p.product_name')    
             ->where('sot.date',  $request->input('today'))
+             ->orderBy('d.id', 'desc') 
             ->get();
 
             $sum = DB::table('discount as d')
@@ -78,10 +80,11 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.date', 'mup.business_type',
-             'p.product_name')      
+            ->select('d.id', 'd.discount_amount', 'so.discount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.date','so.shop_transaction_id as transaction_id', 'mup.business_type',
+             'p.product_name')       
             ->where('sot.date', '>=', $request->input('dateFrom'))
             ->where('sot.date', '<=', $request->input('dateTo'))
+             ->orderBy('d.id', 'desc') 
             ->get();
 
              $sum = DB::table('discount as d')
@@ -116,9 +119,10 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.id as transaction_id', 'sot.date', 'mup.business_type',
+            ->select('d.id', 'd.discount_amount', 'so.discount',  'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.id as transaction_id', 'sot.date', 'mup.business_type',
              'p.product_name')    
              ->where('d.loss_amount', '<', 0)
+             ->orderBy('d.id', 'desc') 
             ->get();
 
             $sum = DB::table('discount as d')
@@ -136,10 +140,11 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.id as transaction_id', 'sot.date', 'mup.business_type',
+            ->select('d.id', 'd.discount_amount', 'so.discount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount', 'sot.id as transaction_id', 'sot.date', 'mup.business_type',
              'p.product_name')    
              ->where('d.loss_amount', '<', 0)
              ->where('sot.date', $request->input('today'))
+            ->orderBy('d.id', 'desc') 
             ->get();
 
             $sum = DB::table('discount as d')
@@ -160,11 +165,12 @@ class DiscountController extends Controller
             ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'mup.product_id')
-            ->select('d.id', 'd.discount_amount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount','sot.id as transaction_id', 'sot.date', 'mup.business_type',
+            ->select('d.id', 'd.discount_amount', 'so.discount', 'd.loss_amount', 'so.shop_order_quantity', 'so.discount_amount as so_discount_amount','sot.id as transaction_id', 'sot.date', 'mup.business_type',
              'p.product_name')      
             ->where('sot.date', '>=', $request->input('dateFrom'))
             ->where('sot.date', '<=', $request->input('dateTo'))
             ->where('d.loss_amount', '<', 0)
+            ->orderBy('d.id', 'desc') 
             ->get();
 
              $sum = DB::table('discount as d')
