@@ -463,7 +463,7 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note')
+               'products.disabled', 'products.note', 'products.stock_warning_type')
             ->where('products.stock_warning', '>', 'products.stock')
             ->where('products.stock_warning', '!=', 0)
             ->where('products.disabled', '==', 0)
@@ -477,7 +477,7 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note')
+               'products.disabled', 'products.note', 'products.stock_warning_type')
             ->where('products.stock_warning', '>', 'products.stock')
             ->where('products.stock_warning', '!=', 0)
             ->where('products.disabled', '==', 0)
@@ -744,6 +744,7 @@ class ProductController extends Controller
         $product->price = $request->input('price');
         $product->stock = $request->input('stock');
         $product->stock_warning = $request->input('stock_warning');
+        $product->stock_warning_type = $request->input('stock_warning_type');
         $product->weight = $request->input('weight');
         $product->packaging = $request->input('packaging');
         $product->quantity = $request->input('quantity');
@@ -824,6 +825,7 @@ class ProductController extends Controller
         $products->variation = $request->input('variation');
         $products->packaging = $request->input('packaging');
         $products->stock_warning = $request->input('stock_warning');
+        $products->stock_warning_type = $request->input('stock_warning_type');
         $products->updated_at = now('GMT+8');
         $products->disabled = $request->input('disabled');
         $products->note = $request->input('note');

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->integer('stock');
             $table->integer('stock_pc');
             $table->integer('stock_warning');
+            $table->string('stock_warning_type');
             $table->integer('weight');
             $table->string('note');
             $table->string('packaging');
