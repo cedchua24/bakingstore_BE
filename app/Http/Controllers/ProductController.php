@@ -409,7 +409,7 @@ class ProductController extends Controller
             ->join('products', 'products.id', '=', 'ps.product_id')
             ->join('category', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('s.supplier_name', 'products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
+            ->select('s.supplier_name', 'products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'products.stock_warning_type', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
                'products.disabled', 'products.note')

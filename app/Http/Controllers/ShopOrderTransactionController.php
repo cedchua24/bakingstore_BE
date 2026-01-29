@@ -206,7 +206,7 @@ class ShopOrderTransactionController extends Controller
                     DB::raw("
                         SUM(
                             CASE 
-                                WHEN sot.created_at != sot.date && sot.status !=1
+                                WHEN sot.created_at != sot.date && sot.is_pickup ==1
                                     THEN CASE
                                             WHEN mup.business_type = 'WHOLESALE' 
                                                 THEN so.shop_order_quantity * p.quantity
