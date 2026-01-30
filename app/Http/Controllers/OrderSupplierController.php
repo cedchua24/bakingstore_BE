@@ -7,6 +7,7 @@ use App\Models\OrderSupplierTransaction;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OrderSupplierController extends Controller
 {
@@ -107,15 +108,134 @@ class OrderSupplierController extends Controller
 
      public function fetchOrderByTransactionId($id)
     {
-        $data = DB::table('order_supplier')
-            ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
-            ->join('products', 'products.id', '=', 'order_supplier.product_id')
-            ->select('order_supplier.id', 'order_supplier.order_supplier_transaction_id', 'order_supplier.price',  'order_supplier.quantity', 'order_supplier.expiration', 'order_supplier.stock_remaining',
-             'order_supplier.total_price', 'products.product_name', 'products.variation', 'products.weight', 'products.quantity as pQuantity','products.id as product_id')    
-             ->selectRaw("(CASE WHEN (order_supplier.variation = 'WHOLESALE') THEN products.packaging ELSE products.variation END) as unit")
-            ->where('order_supplier_transaction.id', $id)
+        // $date = date('Y-m-d');  
+        // $data = DB::table('order_supplier as os')
+        //     ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
+        //     ->join('products as p', 'p.id', '=', 'os.product_id')
+        //     ->leftJoin('shop_order as so', 'so.product_id', '=', 'os.product_id')
+        //     ->select('os.id', 'os.order_supplier_transaction_id', 'os.price',  'os.quantity', 'os.expiration', 'os.stock_remaining',
+        //      'os.total_price', 'p.product_name', 'p.variation', 'p.weight', 'p.quantity as pQuantity','p.id as product_id',
+        //      'p.stock', 'p.stock_warning', 'p.stock_warning_type', 'so.shop_order_quantity')    
+        //     ->selectRaw("(CASE WHEN (os.variation = 'WHOLESALE') THEN p.packaging ELSE p.variation END) as unit")
+        //     ->where('ost.id', $id)
+        //     ->groupBy('os.product_id')
+        //     ->get();
+        //     return response()->json($data);   
+
+        $last30Days = Carbon::now()->subDays(30);
+        $last15Days = Carbon::now()->subDays(15);
+
+        $twoMonthsAgoStart = Carbon::now()->subMonths(2)->startOfMonth(); // Nov 1
+        $twoMonthsAgoEnd   = Carbon::now()->subMonths(2)->endOfMonth();   // Nov 30
+
+        $startLastYear = Carbon::now()
+        ->subYear()
+        ->startOfMonth();
+
+        $endLastYear = Carbon::now()
+        ->subYear();
+
+        $data = DB::table('order_supplier as os')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
+            ->join('products as p', 'p.id', '=', 'os.product_id')
+            ->leftJoin('shop_order as so', 'so.product_id', '=', 'os.product_id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->select(
+                'os.id',
+                'os.order_supplier_transaction_id',
+                'os.price',
+                'os.quantity',
+                'os.expiration',
+                'os.stock_remaining',
+                'os.total_price',
+                'p.product_name',
+                'p.variation',
+                'p.weight',
+                'p.quantity as pQuantity',
+                'p.id as product_id',
+                'p.stock',
+                'p.stock_warning',
+                'p.stock_warning_type'
+            )
+            ->selectRaw("
+                ROUND(COALESCE(SUM(
+                    CASE 
+                        WHEN so.created_at >= ? AND mup.business_type = 'WHOLESALE'
+                            THEN so.shop_order_quantity
+                        WHEN so.created_at >= ?
+                            THEN so.shop_order_quantity / p.quantity
+                        ELSE 0
+                    END
+                ), 0)) as last_30_days_sales
+            ", [$last30Days, $last30Days])
+            ->selectRaw("
+                ROUND(COALESCE(SUM(
+                    CASE 
+                        WHEN so.created_at >= ? AND mup.business_type = 'WHOLESALE'
+                            THEN so.shop_order_quantity
+                        WHEN so.created_at >= ?
+                            THEN so.shop_order_quantity / p.quantity
+                        ELSE 0
+                    END
+                ), 0)) as last_15_days_sales
+            ", [$last15Days, $last15Days])
+            ->selectRaw("
+                ROUND(COALESCE(SUM(
+                    CASE 
+                        WHEN so.created_at BETWEEN ? AND ?
+                            AND mup.business_type = 'WHOLESALE'
+                            THEN so.shop_order_quantity
+                        WHEN so.created_at BETWEEN ? AND ?
+                            THEN so.shop_order_quantity / p.quantity
+                        ELSE 0
+                    END
+                ), 0)) as last_year_same_month_30_days
+            ", [
+                $startLastYear,
+                $endLastYear,
+                $startLastYear,
+                $endLastYear
+            ])
+            ->selectRaw("
+                ROUND(COALESCE(SUM(
+                    CASE
+                        -- two months ago (WHOLESALE)
+                        WHEN so.created_at BETWEEN ? AND ? 
+                            AND mup.business_type = 'WHOLESALE'
+                            THEN so.shop_order_quantity
+                        -- two months ago (non-WHOLESALE)
+                        WHEN so.created_at BETWEEN ? AND ?
+                            THEN so.shop_order_quantity / p.quantity
+                        ELSE 0
+                    END
+                ), 0)) as last_2_months_sales
+            ", [
+
+                // two months ago
+                $twoMonthsAgoStart, $twoMonthsAgoEnd,
+                $twoMonthsAgoStart, $twoMonthsAgoEnd,
+            ])
+            // ->selectRaw("
+            //     COALESCE(SUM(
+            //         CASE 
+            //             WHEN so.created_at BETWEEN ? AND ?
+            //             THEN so.shop_order_quantity *
+            //                 IF(mup.business_type = 'WHOLESALE', 1, p.quantity)
+            //             ELSE 0
+            //         END
+            //     ), 0) as last_year_same_month_30_days
+            // ", [$startLastYear, $endLastYear])
+            ->selectRaw("
+                (CASE 
+                    WHEN os.variation = 'WHOLESALE' THEN p.packaging 
+                    ELSE p.variation 
+                END) as unit
+            ")
+            ->where('ost.id', $id)
+            ->groupBy('os.product_id')
             ->get();
-            return response()->json($data);   
+
+        return response()->json($data);
     }
 
       public function fetchOrderBySupplierId($id)
