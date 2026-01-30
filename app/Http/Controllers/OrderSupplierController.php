@@ -148,12 +148,15 @@ class OrderSupplierController extends Controller
                 'os.expiration',
                 'os.stock_remaining',
                 'os.total_price',
+                'os.variation as type',
                 'p.product_name',
                 'p.variation',
                 'p.weight',
                 'p.quantity as pQuantity',
                 'p.id as product_id',
                 'p.stock',
+                'p.stock_pc',
+                'p.packaging',
                 'p.stock_warning',
                 'p.stock_warning_type'
             )
