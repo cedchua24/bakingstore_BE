@@ -163,6 +163,7 @@ Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplier
 Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderSupplierTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
 Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
+Route::post('/orderSupplierTransaction/orderSupplierApproval', [OrderSupplierTransactionController::class, 'orderSupplierApproval']);
 Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompletePaymentTransaction']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDate/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDate']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDateV2/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDateV2']);

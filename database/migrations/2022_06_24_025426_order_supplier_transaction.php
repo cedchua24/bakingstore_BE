@@ -21,7 +21,10 @@ return new class extends Migration
             $table->double('total_transaction_price');
             $table->string('status');
             $table->integer('payment_status');
-            $table->string('payment_status');
+            $table->integer('requestor');
+            $table->integer('approval');
+            $table->string('approval_status');
+            $table->string('note');
             $table->integer('stock_status');
             $table->date('order_date');
             $table->date('due_date')->nullable();
