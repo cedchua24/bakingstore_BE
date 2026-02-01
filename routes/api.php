@@ -180,6 +180,7 @@ Route::get('/orderSuppliers/fetchOrderBySupplierId/{id}', [OrderSupplierControll
 Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierController::class, 'fetchOrderByProductId']);
 Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::class, 'setToActiveExpiration']);
 Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'saveAutoPo']);
+Route::get('/orderSuppliers/fetchApprovalPO/{id}', [OrderSupplierController::class, 'fetchApprovalPO']);
 
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
