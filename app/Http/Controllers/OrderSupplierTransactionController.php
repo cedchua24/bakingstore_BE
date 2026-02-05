@@ -153,6 +153,87 @@ class OrderSupplierTransactionController extends Controller
             return response()->json($response);   
     }
 
+            public function fetchPendingApproval(Request $request)
+    {
+        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
+            $data = DB::table('order_supplier_transaction')
+            ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
+            ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at',  'order_supplier_transaction.note',
+               'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+            ->orderBy('order_supplier_transaction.id', 'desc')
+            ->where('order_supplier_transaction.approval_status', 'PENDING')
+            ->get();
+
+             foreach ($data as $sotl) {  
+                
+                $mode_of_payment = DB::table('mode_of_payment_po as mop')
+                 ->select('mop.id', 'mop.payment_type_po_id',  'mop.amount', 'mop.order_supplier_transaction_id', 'b.bank_name',
+                  'pt.account_name', 'pt.account_number', 'pt.account_description')    
+                 ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mop.order_supplier_transaction_id')  
+                 ->join('payment_type_po as pt', 'pt.id', '=', 'mop.payment_type_po_id')  
+                 ->join('bank as b', 'b.id', '=', 'pt.bank_id')  
+                 ->where('pt.id', '!=', 1)
+                 ->where('mop.order_supplier_transaction_id', $sotl->id)
+                 ->get();
+                 
+                 $sotl->mode_of_payment = $mode_of_payment;
+             } 
+
+           $total_balance = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
+            ->where('ost.approval_status', 'PENDING')
+            ->first();
+
+        } else {
+
+         $data = DB::table('order_supplier_transaction')
+            ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
+            ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at',  'order_supplier_transaction.note',
+               'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+            ->orderBy('order_supplier_transaction.id', 'desc')
+            ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
+            ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
+            ->where('order_supplier_transaction.approval_status', 'PENDING')
+            ->get();
+
+             foreach ($data as $sotl) {  
+                
+                $mode_of_payment = DB::table('mode_of_payment_po as mop')
+                 ->select('mop.id', 'mop.payment_type_po_id',  'mop.amount', 'mop.order_supplier_transaction_id', 'b.bank_name',
+                  'pt.account_name', 'pt.account_number', 'pt.account_description')    
+                 ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mop.order_supplier_transaction_id')  
+                 ->join('payment_type_po as pt', 'pt.id', '=', 'mop.payment_type_po_id')  
+                 ->join('bank as b', 'b.id', '=', 'pt.bank_id')  
+                 ->where('pt.id', '!=', 1)
+                 ->where('mop.order_supplier_transaction_id', $sotl->id)
+                 ->get();
+                 
+                 $sotl->mode_of_payment = $mode_of_payment;
+             } 
+
+           $total_balance = DB::table('order_supplier_transaction as ost')
+            ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
+            ->where('ost.approval_status', 'PENDING')
+            ->where('ost.order_date', '>=', $request->input('dateFrom'))
+            ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->first();
+
+            
+        }
+
+          $response = [
+              'data' => $data,
+              'total_balance' => $total_balance,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+            return response()->json($response);   
+    }
+
         public function fetchPendingOrderSupplier(Request $request)
     {
         if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {

@@ -169,6 +169,7 @@ Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [Or
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDate/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDate']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDateV2/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDateV2']);
 Route::post('/orderSupplierTransaction/fetchPendingOrderSupplier', [OrderSupplierTransactionController::class, 'fetchPendingOrderSupplier']);
+Route::post('/orderSupplierTransaction/fetchPendingApproval', [OrderSupplierTransactionController::class, 'fetchPendingApproval']);
 Route::post('/orderSupplierTransaction/fetchAllOrderSupplier', [OrderSupplierTransactionController::class, 'fetchAllOrderSupplier']);
 
 
