@@ -440,7 +440,6 @@ class ProductController extends Controller
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
                'products.disabled', 'products.note')
-            ->where('products.disabled',  0)
             ->where('ps.supplier_id',  $supplier_id)
             ->orderBy('products.stock', 'DESC')
             ->get();
@@ -631,7 +630,7 @@ class ProductController extends Controller
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled','products.stock_warning',  'products.note')
+               'products.disabled','products.stock_warning', 'products.stock_warning_type',   'products.note')
             ->orderBy('products.id', 'DESC')
             ->get();
 
@@ -647,7 +646,7 @@ class ProductController extends Controller
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc','products.stock_warning_type', 'products.packaging',
                'products.disabled', 'products.stock_warning', 'products.note')
             ->where('category.id', $id)
             ->orderBy('products.id', 'DESC')
