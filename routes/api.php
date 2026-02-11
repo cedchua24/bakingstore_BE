@@ -148,7 +148,9 @@ Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetch
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
 Route::post('/customers/fetchCustomerAds', [CustomerController::class, 'fetchCustomerAds']);
+Route::get('/customers/fetchCustomerToDelete/{id}', [CustomerController::class, 'fetchCustomerToDelete']);
 Route::post('/customers/fetchCustomerTransactionListByDate', [CustomerController::class, 'fetchCustomerTransactionListByDate']);
+Route::post('/customers/updateAndDeleteCustomer', [CustomerController::class, 'updateAndDeleteCustomer']);
 
 
 Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
@@ -165,6 +167,7 @@ Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
 Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
 Route::post('/orderSupplierTransaction/orderSupplierApproval', [OrderSupplierTransactionController::class, 'orderSupplierApproval']);
+Route::post('/orderSupplierTransaction/updateDateOrderSupplier', [OrderSupplierTransactionController::class, 'updateDateOrderSupplier']);
 Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompletePaymentTransaction']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDate/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDate']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDateV2/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDateV2']);

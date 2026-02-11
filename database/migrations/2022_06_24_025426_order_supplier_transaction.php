@@ -28,7 +28,6 @@ return new class extends Migration
             $table->integer('stock_status');
             $table->date('order_date');
             $table->date('due_date')->nullable();
-            $table->timestamps();
         });
     }
 

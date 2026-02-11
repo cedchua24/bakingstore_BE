@@ -21,6 +21,8 @@ return new class extends Migration
             $table->integer('quantity');
             $table->double('total_price');
             $table->integer('stock_remaining');
+            $table->integer('stock_pc');
+            $table->integer('stock');
             $table->string('variation');
             $table->date('expiration');
             $table->integer('enable');

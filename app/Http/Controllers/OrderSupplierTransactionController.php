@@ -487,6 +487,14 @@ class OrderSupplierTransactionController extends Controller
         return response()->json($orderSupplierTransaction);
     }
 
+          public function updateDateOrderSupplier(Request $request)
+    {
+         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('id'));
+         $orderSupplierTransaction->created_at = $request->input('created_at');
+         $orderSupplierTransaction->save();
+         return response()->json($orderSupplierTransaction);
+    }
+
       public function orderSupplierApproval(Request $request)
     {
          $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('id'));
@@ -505,12 +513,13 @@ class OrderSupplierTransactionController extends Controller
             $total_transaction_price = DB::table('order_supplier')
             ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
             ->join('products', 'products.id', '=', 'order_supplier.product_id')
-            ->select('order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
+            ->select('order_supplier.order_supplier_transaction_id', 'order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
             ->where('order_supplier_transaction.id', $id)
             ->get();
 
             foreach ($total_transaction_price as $row) { 
                 $product = Product::find($row->product_id);
+
                 $initialStock = $product->stock;
                 if ($row->variation === 'WHOLESALE') {
                       $product->stock = ($initialStock + $row->quantity);
@@ -525,15 +534,18 @@ class OrderSupplierTransactionController extends Controller
                     $product->stock = floor($product->stock_pc / $product->quantity);
                 }
 
+                OrderSupplier::where('order_supplier_transaction_id', $row->order_supplier_transaction_id)
+                ->where('product_id', $row->product_id)
+                ->update(['enable' => 1, 'stock' => $product->stock, 'stock_pc' => $product->stock_pc]);
+
                 $product->save();
             }
 
         $orderSupplierTransaction->status = 'COMPLETED';
         $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
-        $orderSupplierTransaction->save();
-      
+        $orderSupplierTransaction->save();      
 
-        return response()->json($orderSupplierTransaction);
+        return response()->json($total_transaction_price);
     }
 
         public function setToCompletePaymentTransaction($id)
