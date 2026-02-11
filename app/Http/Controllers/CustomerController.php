@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\ShopOrderTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -29,18 +30,43 @@ class CustomerController extends Controller
         if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
             $data = DB::table('customer as c')
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
-                ->orderBy('c.id', 'desc') 
+                ->orderBy('c.first_name', 'desc') 
                 ->get();
         }  else {      
             $data = DB::table('customer as c')
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.store_name', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
-                ->orderBy('c.id', 'desc') 
+                ->orderBy('c.first_name', 'desc') 
                 ->where('c.created_at', '>=', $request->input('dateFrom'))
                 ->where('c.created_at', '<=', $request->input('dateTo'))
                 ->get();
         }
 
             return response()->json($data); 
+    }
+
+         public function fetchCustomerToDelete($id)
+    {
+        // return view('categories.index')->with('categories', $categories);
+         $data = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+            ->where('c.id', '!=', $id)
+            ->get();
+         return response()->json($data); 
+    }
+
+        public function updateAndDeleteCustomer(Request $request)
+    {
+       ShopOrderTransaction::where('requestor', $request->input('id'))
+          ->where('type', 0)
+          ->update(['requestor' => $request->input('customer_id')]);
+
+        $customer = Customer::find($request->input('id'));
+        $customer->delete();  
+
+        $response = [
+                'message' => "Success",
+            ];
+        return response()->json($response);
     }
 
     public function fetchCustomerAds(Request $request)

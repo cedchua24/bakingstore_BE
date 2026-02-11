@@ -139,6 +139,8 @@ class OrderSupplierController extends Controller
                 'os.stock_remaining',
                 'os.total_price',
                 'os.variation as type',
+                'os.stock as os_stock',
+                'os.stock_pc as os_stock_pc',
                 'p.product_name',
                 'p.variation',
                 'p.weight',
