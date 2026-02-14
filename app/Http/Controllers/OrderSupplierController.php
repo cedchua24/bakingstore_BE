@@ -122,13 +122,17 @@ class OrderSupplierController extends Controller
         ->startOfMonth()->format('Y-m-d');
 
         $endLastYear = $orderSupplierTransaction->created_at
-        ->subYear()->format('Y-m-d');
+        ->subYear()->endOfMonth()->format('Y-m-d');
 
         $data = DB::table('order_supplier as os')
             ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
             ->join('products as p', 'p.id', '=', 'os.product_id')
             ->leftJoin('shop_order as so', 'so.product_id', '=', 'os.product_id')
-            ->leftJoin('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->leftJoin('shop_order_transaction as sot', function ($join) {
+                $join->on('sot.id', '=', 'so.shop_transaction_id')
+                    ->where('sot.type', 0)
+                    ->where('sot.status', 1);
+            })
             ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->select(
                 'os.id',
