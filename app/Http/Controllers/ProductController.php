@@ -413,11 +413,24 @@ class ProductController extends Controller
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
                'products.disabled', 'products.note')
-            ->where('products.disabled',  0)
-            ->where('products.stock', '=<', 'products.stock_warning')
             ->where('ps.supplier_id',  $supplier_id)
+            ->where(function ($query) {
+                    $query->where(function ($q) {
+                        // WHOLESALE → use stock
+                        $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->whereColumn('products.stock', '<', 'products.stock_warning');
+                    })
+                    ->orWhere(function ($q) {
+                        // RETAIL / others → use stock_pc
+                        $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
+                    });
+                })
+            ->where('products.stock_warning', '!=', 0)
+            ->where('products.disabled', 0)
             ->orderBy('products.stock', 'ASC')
             ->get();
+            
             
         $response = [
               'data' => $data,
@@ -457,33 +470,85 @@ class ProductController extends Controller
     {
         if ($category_id == 0) {
             $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note', 'products.stock_warning_type')
-            ->where('products.stock_warning', '>', 'products.stock')
-            ->where('products.stock_warning', '!=', 0)
-            ->where('products.disabled', '==', 0)
-            ->where('products.stock_pc', '!=', 0)
-            ->orderBy('products.stock', 'ASC')
-            ->get();
+                ->join('products', 'category.id', '=', 'products.category_id')
+                ->join('brand', 'brand.id', '=', 'products.brand_id')
+                ->select(
+                    'products.category_id',
+                    'products.brand_id',
+                    'products.variation',
+                    'products.stock_warning',
+                    'category.category_name',
+                    'brand.brand_name',
+                    'products.id',
+                    'products.product_name',
+                    'products.price',
+                    'products.stock',
+                    'products.weight',
+                    'products.quantity',
+                    'products.stock_pc',
+                    'products.packaging',
+                    'products.disabled',
+                    'products.note',
+                    'products.stock_warning_type'
+                )
+                ->where(function ($query) {
+                    $query->where(function ($q) {
+                        // WHOLESALE → use stock
+                        $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->whereColumn('products.stock', '<', 'products.stock_warning');
+                    })
+                    ->orWhere(function ($q) {
+                        // RETAIL / others → use stock_pc
+                        $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
+                    });
+                })
+                ->where('products.stock_warning', '!=', 0)
+                ->where('products.disabled', 0)
+                ->orderBy('products.stock', 'ASC')
+                ->get();
         } else {
-            $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note', 'products.stock_warning_type')
-            ->where('products.stock_warning', '>', 'products.stock')
-            ->where('products.stock_warning', '!=', 0)
-            ->where('products.disabled', '==', 0)
-            ->where('products.stock_pc', '!=', 0)
-            ->where('category.id',  $category_id)
-            ->orderBy('products.stock', 'ASC')
-            ->get();
+
+              $data = DB::table('category')
+                ->join('products', 'category.id', '=', 'products.category_id')
+                ->join('brand', 'brand.id', '=', 'products.brand_id')
+                ->select(
+                    'products.category_id',
+                    'products.brand_id',
+                    'products.variation',
+                    'products.stock_warning',
+                    'category.category_name',
+                    'brand.brand_name',
+                    'products.id',
+                    'products.product_name',
+                    'products.price',
+                    'products.stock',
+                    'products.weight',
+                    'products.quantity',
+                    'products.stock_pc',
+                    'products.packaging',
+                    'products.disabled',
+                    'products.note',
+                    'products.stock_warning_type'
+                )
+                ->where(function ($query) {
+                    $query->where(function ($q) {
+                        // WHOLESALE → use stock
+                        $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->whereColumn('products.stock', '<', 'products.stock_warning');
+                    })
+                    ->orWhere(function ($q) {
+                        // RETAIL / others → use stock_pc
+                        $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
+                    });
+                })
+                ->where('products.stock_warning', '!=', 0)
+                ->where('products.disabled', 0)
+                ->where('products.stock_pc', '!=', 0)
+                ->where('category.id',  $category_id)
+                ->orderBy('products.stock', 'ASC')
+                ->get();
         }
 
         $response = [
