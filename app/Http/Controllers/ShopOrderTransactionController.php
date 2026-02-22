@@ -278,7 +278,13 @@ class ShopOrderTransactionController extends Controller
         }
 
            $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price'), DB::raw('SUM(sot.profit) as total_profit'))  
+            ->select('c.id',  DB::raw("
+                                        CONCAT(
+                                            c.first_name, ' ', c.last_name,
+                                            IFNULL(CONCAT(' (', NULLIF(c.store_name, ''), ')'), '')
+                                        ) AS first_name
+                                    "),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price'), DB::raw('SUM(sot.profit) as total_profit'))  
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->where('sot.date', date('Y-m-d'))
             ->where('sot.status', 1)
@@ -349,7 +355,13 @@ class ShopOrderTransactionController extends Controller
         }
         if ($id === 0) {
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
+            ->select('c.id', DB::raw("
+                                        CONCAT(
+                                            c.first_name, ' ', c.last_name,
+                                            IFNULL(CONCAT(' (', NULLIF(c.store_name, ''), ')'), '')
+                                        ) AS first_name
+                                    "),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->where('sot.status', 1)
             ->where('sot.type', 0)
@@ -360,7 +372,13 @@ class ShopOrderTransactionController extends Controller
 
         } else {
          $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
+            ->select('c.id', DB::raw("
+                                        CONCAT(
+                                            c.first_name, ' ', c.last_name,
+                                            IFNULL(CONCAT(' (', NULLIF(c.store_name, ''), ')'), '')
+                                        ) AS first_name
+                                    "),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_price') , DB::raw('SUM(sot.profit) as total_profit'))  
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->where('sot.status', 1)
             ->where('sot.date', '>=', $request->input('dateFrom'))
