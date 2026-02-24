@@ -176,6 +176,8 @@ Route::post('/orderSupplierTransaction/fetchAllOrderSupplier', [OrderSupplierTra
 
 
 Route::post('/orderSupplierTransaction/fetchOrderSupplierReport', [OrderSupplierTransactionController::class, 'fetchOrderSupplierReport']);
+Route::post('/orderSupplierTransaction/setSendtoSupplierStatus', [OrderSupplierTransactionController::class, 'setSendtoSupplierStatus']);
+
 
 Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController');
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);

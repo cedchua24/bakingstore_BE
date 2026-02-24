@@ -138,6 +138,7 @@ class ProductSupplierController extends Controller
             ->select('ps.id', 'p.quantity', 's.supplier_name','p.product_name', 'p.price',
               'ps.status', 'p.weight', 'ps.product_id', 'p.stock', 'p.stock_warning', 'c.category_name')
            ->where('ps.supplier_id',$id)
+           ->where('p.disabled', 0)
            ->orderBy('p.stock', 'asc')
             ->get();
 
