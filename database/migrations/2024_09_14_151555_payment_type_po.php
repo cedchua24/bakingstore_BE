@@ -25,6 +25,7 @@ return new class extends Migration
             $table->double('credit_limit');
             $table->integer('statement_date');
             $table->double('total_balance_due');
+            $table->double('balance');
             $table->integer('status');
             $table->timestamps();
         });

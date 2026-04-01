@@ -50,6 +50,14 @@ use App\Http\Controllers\SalesRepController;
 use App\Http\Controllers\DashBoardController;
 use App\Http\Controllers\DailySessionController;
 use App\Http\Controllers\ProductSoldDailyController;
+use App\Http\Controllers\ExpenseCategoryV2Controller;
+use App\Http\Controllers\ExpenseV2Controller;
+use App\Http\Controllers\ExpenseTransactionController;
+use App\Http\Controllers\BalanceTransactionController;
+
+
+
+
 
 
 
@@ -289,6 +297,24 @@ Route::get('/branchStockTransaction/fetchBranchStockWarehouseList/{id}', [Branch
 
 
 Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
+
+Route::resource('/expensesTypeV2', 'App\Http\Controllers\ExpenseTypeV2Controller');
+
+Route::resource('/expensesCategoryV2', 'App\Http\Controllers\ExpenseCategoryV2Controller');
+Route::get('/expensesCategoryV2/fetchExpenseCategoryById/{id}', [ExpenseCategoryV2Controller::class, 'fetchExpenseCategoryById']);
+
+Route::resource('/expensesV2', 'App\Http\Controllers\ExpenseV2Controller');
+Route::get('/expensesV2/fetchExpenseV2ById/{id}', [ExpenseV2Controller::class, 'fetchExpenseV2ById']);
+
+Route::resource('/expenseTransaction', 'App\Http\Controllers\ExpenseTransactionController');
+Route::get('/expenseTransaction/fetchExpenseTransactionList/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionList']);
+Route::get('/expenseTransaction/fetchExpenseTransactionById/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionById']);
+
+
+Route::resource('/balanceTransaction', 'App\Http\Controllers\BalanceTransactionController');
+// Route::get('/balanceTransaction/fetchBalanceTransactionById/{id}', [BalanceTransactionController::class, 'fetchBalanceTransactionById']);
+Route::post('/balanceTransaction/fetchBalanceTransactionById', [BalanceTransactionController::class, 'fetchBalanceTransactionById']);
+
 
 Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
 Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
