@@ -425,13 +425,14 @@ class ExpenseTransactionController extends Controller
         // ]);
         
         if ($request->input('payment_type_po_id') != 0 && $request->input('is_received') == 1 ) {
-          $request->merge([
+          $request->merge([ 
             'payment_type_po_id' => $expenseTransaction->payment_type_po_id,
             'shop_id'            => $request->input('shop_id'),
             'join_id'             => $expenseTransaction->id,
             'name'               => $request->input('name'),
             'balanceTransaction' => $request->input('balanceTransaction'),
             'balance_type_id'    => $request->input('balance_type_id'),
+            'transaction'        => $request->input('expense_name'),
             'total_balance'      => 0,
             'amount'             => $expenseTransaction->amount,
             'status'             => $expenseTransaction->status,
