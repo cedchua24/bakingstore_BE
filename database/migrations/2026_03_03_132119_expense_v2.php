@@ -17,7 +17,10 @@ return new class extends Migration
             $table->id();
             $table->integer('expense_category_id');
             $table->string('expense_name');
+            $table->string('expense_code');
             $table->string('details');
+            $table->string('account_nature'); //DEBIT / CREDIT
+            $table->integer('is_hidden');    
             $table->integer('status');
             $table->timestamps();
         });

@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ExpenseV2 extends Model
+class ChartOfAccounts extends Model
 {
-    protected $table ='expenses_v2'; //
+    protected $table ='chart_of_accounts';
     
     public $primaryKey ='id';
 

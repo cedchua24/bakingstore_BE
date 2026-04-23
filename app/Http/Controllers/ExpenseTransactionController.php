@@ -22,20 +22,241 @@ class ExpenseTransactionController extends Controller
 
         public function fetchExpenseTransactionList($id)
     {
-          $data = DB::table('expenses_transaction as et')
+        $data = DB::table('expenses_transaction as et')
             ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
             ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
             ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id') // added
             ->join('users as u', 'u.id', '=', 'et.user_id')
             ->join('users as us', 'us.id', '=', 'et.approver_id')
             ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
             ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
             ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
-            ->select('et.id', 'et.amount', 'et.details', 'et.shop_id', 'et.approval_status', 'et.status', 'et.is_received', 'et.payment_type_po_id', 'et.expense_date', 'e.expense_name', 'ec.expense_category_name', 'ett.expense_type',
-            'u.name', 'us.name as approver_name', 'pt.payment_term', 'b.bank_name', 'ptp.account_name', 'ptp.account_description', 'ptp.account_number')      
-            // ->where('ec.id', $id)   
+            ->select(
+                'et.id',
+                'et.amount',
+                'et.details',
+                'et.shop_id',
+                'et.approval_status',
+                'et.status',
+                'et.is_received',
+                'et.payment_type_po_id',
+                'et.expense_date',
+
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+
+                'ec.expense_category_name',
+                'ec.expense_category_code',
+
+                'ett.expense_type',
+                'ett.expense_type_code',
+
+                'coa.chart_of_account_name',
+                'coa.chart_of_account_code',
+
+                'u.name',
+                'us.name as approver_name',
+
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number'
+            )
             ->get();
-            return response()->json($data);
+
+        return response()->json($data);
+    }
+
+    public function searchAllExpenseTransactionList(Request $request)
+    {
+        $data = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
+            ->join('users as u', 'u.id', '=', 'et.user_id')
+            ->leftJoin('users as us', 'us.id', '=', 'et.approver_id')
+            ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
+            ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+
+            ->select(
+                'et.id',
+                'et.amount',
+                'et.details',
+                'et.shop_id',
+                'et.approval_status',
+                'et.status',
+                'et.is_received',
+                'et.payment_type_po_id',
+                'et.expense_date',
+                'et.date_received',
+
+                'e.id as expense_id',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+
+                'ec.id as expense_category_id',
+                'ec.expense_category_name',
+                'ec.expense_category_code',
+
+                'ett.id as expense_type_id',
+                'ett.expense_type',
+                'ett.expense_type_code',
+
+                'coa.id as chart_of_account_id',
+                'coa.chart_of_account_name',
+                'coa.chart_of_account_code',
+
+                'u.name',
+                'us.name as approver_name',
+
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number'
+            )
+
+            ->when($request->filled('is_received'), function ($q) use ($request) {
+                $q->where('et.is_received', $request->is_received);
+            })
+
+            ->when(
+                $request->filled('approval_status') && $request->approval_status !== 'ALL',
+                function ($q) use ($request) {
+                    $q->where('et.approval_status', $request->approval_status);
+                }
+            )
+
+            ->when($request->id != 0, fn($q) => $q->where('et.id', $request->id))
+
+            ->when($request->chart_of_account_id != 0, fn($q) => $q->where('coa.id', $request->chart_of_account_id))
+
+            ->when($request->expense_type_id != 0, fn($q) => $q->where('ett.id', $request->expense_type_id))
+
+            ->when($request->expense_category_id != 0, fn($q) => $q->where('ec.id', $request->expense_category_id))
+
+            ->when($request->expense_id != 0, fn($q) => $q->where('e.id', $request->expense_id))
+
+            ->when($request->dateFrom && $request->dateTo, fn($q) =>
+                $q->whereBetween('et.expense_date', [$request->dateFrom, $request->dateTo])
+            )
+
+            ->when($request->dateFrom && !$request->dateTo, fn($q) =>
+                $q->whereDate('et.expense_date', '>=', $request->dateFrom)
+            )
+
+            ->when(!$request->dateFrom && $request->dateTo, fn($q) =>
+                $q->whereDate('et.expense_date', '<=', $request->dateTo)
+            )
+
+            ->orderBy('et.id', 'desc')
+            ->get();
+
+        return response()->json($data);
+    }
+
+
+    public function searchExpenseTransactionList(Request $request)
+    {
+        $data = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
+            ->join('users as u', 'u.id', '=', 'et.user_id')
+            ->leftJoin('users as us', 'us.id', '=', 'et.approver_id')
+            ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
+            ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->where('et.is_received', 1)
+            ->select(
+                'et.id',
+                'et.amount',
+                'et.details',
+                'et.shop_id',
+                'et.approval_status',
+                'et.status',
+                'et.is_received',
+                'et.payment_type_po_id',
+                'et.expense_date',
+                'et.date_received',
+
+                'e.id as expense_id',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+
+                'ec.id as expense_category_id',
+                'ec.expense_category_name',
+                'ec.expense_category_code',
+
+                'ett.id as expense_type_id',
+                'ett.expense_type',
+                'ett.expense_type_code',
+
+                'coa.id as chart_of_account_id',
+                'coa.chart_of_account_name',
+                'coa.chart_of_account_code',
+
+                'u.name',
+                'us.name as approver_name',
+
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number'
+            )
+            ->when($request->approval_status != '', function ($q) use ($request) {
+                $q->where('et.approval_status', $request->approval_status);
+            })
+            ->when($request->id != 0, function ($q) use ($request) {
+                $q->where('et.id', $request->id);
+            })
+            ->when($request->chart_of_account_id != 0, function ($q) use ($request) {
+                $q->where('coa.id', $request->chart_of_account_id);
+            })
+            ->when($request->expense_type_id != 0, function ($q) use ($request) {
+                $q->where('ett.id', $request->expense_type_id);
+            })
+            ->when($request->expense_category_id != 0, function ($q) use ($request) {
+                $q->where('ec.id', $request->expense_category_id);
+            })
+            ->when($request->expense_id != 0, function ($q) use ($request) {
+                $q->where('e.id', $request->expense_id);
+            })
+            ->when($request->dateFrom && $request->dateTo, function ($q) use ($request) {
+                $q->whereBetween('et.expense_date', [$request->dateFrom, $request->dateTo]);
+            })
+            ->when($request->dateFrom && !$request->dateTo, function ($q) use ($request) {
+                $q->whereDate('et.expense_date', '>=', $request->dateFrom);
+            })
+            ->when(!$request->dateFrom && $request->dateTo, function ($q) use ($request) {
+                $q->whereDate('et.expense_date', '<=', $request->dateTo);
+            })
+            ->orderBy('et.id', 'desc')
+            ->get();
+
+        return response()->json($data);
+    }
+
+    public function getTotalExpense(Request $request)
+    {
+           $total_balance = DB::table('expenses_transaction as e')
+            ->select(DB::raw('SUM(e.amount) as total_expense')) 
+            ->when($request->filled('approval_status'), function ($q) use ($request) {
+            $q->where('e.approval_status', $request->approval_status);
+            })
+            ->where('e.date_received', '>=', $request->input('dateFrom'))
+            ->where('e.date_received', '<=', $request->input('dateTo'))
+            ->first();;
+         return response()->json($total_balance);
     }
 
     /**
@@ -130,7 +351,7 @@ class ExpenseTransactionController extends Controller
             ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
             ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
             ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
-            ->select('et.id', 'et.amount', 'et.details', 'et.shop_id', 'et.approval_status', 'et.approver_id', 'et.status', 'et.is_received', 'et.payment_type_po_id', 'et.expense_date', 'e.expense_name', 'ec.expense_category_name', 'ett.expense_type',
+            ->select('et.id', 'et.amount', 'et.details', 'et.shop_id', 'et.approval_status', 'et.approver_id', 'et.status', 'et.is_received', 'et.payment_type_po_id', 'et.expense_date', 'e.expense_name', 'e.is_hidden', 'ec.expense_category_name', 'ett.expense_type',
             'u.name as requestor_name', 'us.name as approver_name', 'pt.payment_term', 'b.bank_name', 'ptp.account_name', 'ptp.account_description', 'ptp.account_number')      
             ->where('et.id', $id)   
             ->first(); 

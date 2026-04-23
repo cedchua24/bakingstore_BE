@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('balance_type', function (Blueprint $table) {
-            $table->id();
+            $table->id(); //
             $table->string('balance_type_name');
             $table->string('type');
             $table->integer('status');

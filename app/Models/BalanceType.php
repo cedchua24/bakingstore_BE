@@ -7,5 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class BalanceType extends Model
 {
-    use HasFactory;
+        protected $table ='balance_type'; //
+    
+        public $primaryKey ='id';
+
+        public $timestamps = true;
 }

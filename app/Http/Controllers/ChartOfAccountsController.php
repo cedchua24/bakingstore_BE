@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BalanceType;
+use App\Models\ChartOfAccounts;
 use Illuminate\Http\Request;
 
-class BalanceTypeController extends Controller
+class ChartOfAccountsController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -14,8 +14,9 @@ class BalanceTypeController extends Controller
      */
     public function index()
     {
-        $balanceType = BalanceType::all();
-        return response()->json($balanceType);
+        $chartOfAccounts = ChartOfAccounts::all();
+        // return view('categories.index')->with('categories', $categories);
+        return response()->json($chartOfAccounts);
     }
 
     /**
@@ -42,10 +43,10 @@ class BalanceTypeController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\BalanceType  $balanceType
+     * @param  \App\Models\ChartOfAccounts  $chartOfAccounts
      * @return \Illuminate\Http\Response
      */
-    public function show(BalanceType $balanceType)
+    public function show(ChartOfAccounts $chartOfAccounts)
     {
         //
     }
@@ -53,10 +54,10 @@ class BalanceTypeController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\BalanceType  $balanceType
+     * @param  \App\Models\ChartOfAccounts  $chartOfAccounts
      * @return \Illuminate\Http\Response
      */
-    public function edit(BalanceType $balanceType)
+    public function edit(ChartOfAccounts $chartOfAccounts)
     {
         //
     }
@@ -65,10 +66,10 @@ class BalanceTypeController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\BalanceType  $balanceType
+     * @param  \App\Models\ChartOfAccounts  $chartOfAccounts
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, BalanceType $balanceType)
+    public function update(Request $request, ChartOfAccounts $chartOfAccounts)
     {
         //
     }
@@ -76,10 +77,10 @@ class BalanceTypeController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\BalanceType  $balanceType
+     * @param  \App\Models\ChartOfAccounts  $chartOfAccounts
      * @return \Illuminate\Http\Response
      */
-    public function destroy(BalanceType $balanceType)
+    public function destroy(ChartOfAccounts $chartOfAccounts)
     {
         //
     }

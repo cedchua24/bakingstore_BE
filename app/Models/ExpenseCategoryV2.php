@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExpenseCategoryV2 extends Model
 {
-    protected $table ='expenses_category_v2';
+    protected $table ='expenses_category_v2'; //
     
     public $primaryKey ='id';
 

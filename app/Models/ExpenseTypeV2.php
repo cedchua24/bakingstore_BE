@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExpenseTypeV2 extends Model
 {
-    protected $table ='expenses_type_v2';
+    protected $table ='expenses_type_v2'; //
     
     public $primaryKey ='id';
 

@@ -31,42 +31,51 @@ class BalanceTransactionController extends Controller
 
         public function fetchBalanceTransactionById(Request $request)
     {
-            $query = DB::table('balance_transaction as bt')
-                ->join('payment_type_po as ptp', 'ptp.id', '=', 'bt.payment_type_po_id')
-                ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
-                ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
-                ->join('shop as s', 's.id', '=', 'bt.shop_id')
-                ->select(
-                    'bt.id',
-                    'bt.name',
-                    'bt.transaction',
-                    'bt.amount',
-                    'bt.total_balance',
-                    'bt.payment_type_po_id',
-                    'bt.join_id',
-                    'bt.created_at',
-                    'pt.payment_term',
-                    'b.bank_name',
-                    'ptp.account_name',
-                    'ptp.account_description',
-                    'ptp.account_number',
-                    's.shop_name'
-                )
-                ->where('bt.payment_type_po_id', $request->input('id'));
+        $query = DB::table('balance_transaction as bt')
+            ->join('balance_type as bty', 'bty.id', '=', 'bt.balance_type_id')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'bt.payment_type_po_id')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->join('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->join('shop as s', 's.id', '=', 'bt.shop_id')
+            ->select(
+                'bt.id',
+                'bt.name',
+                'bty.balance_type_name',
+                'bt.transaction',
+                'bt.amount',
+                'bt.total_balance',
+                'bt.payment_type_po_id',
+                'bt.join_id',
+                'bt.created_at',
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number',
+                's.shop_name'
+            )
+            ->where('bt.payment_type_po_id', $request->input('id'))
 
-            // Apply date filters only if provided
-            if (!empty($request->input('dateFrom')) && !empty($request->input('dateTo'))) {
-                $query->whereBetween('bt.created_at', [
+            // ✅ Filters
+            ->when(
+                filled($request->input('balance_type_id')) && $request->input('balance_type_id') != 0,
+                fn ($q) => $q->where('bt.balance_type_id', $request->input('balance_type_id'))
+            )
+            ->when(
+                filled($request->input('dateFrom')) && filled($request->input('dateTo')),
+                fn ($q) => $q->whereBetween('bt.created_at', [
                     $request->input('dateFrom'),
                     $request->input('dateTo')
-                ]);
-            }
+                ])
+            )
 
-            $data = $query->orderBy('bt.id', 'desc')->get();
+            ->orderByDesc('bt.id');
 
-            return response()->json([
-                'data' => $data,
-            ]);
+        $data = $query->get();
+
+        return response()->json([
+            'data' => $data,
+        ]);
     }
 
     /**
@@ -106,9 +115,6 @@ class BalanceTransactionController extends Controller
           ];
 
         return response()->json($response);   
-
-
-        return  response()->json($balanceTransaction);
     }
 
     /**

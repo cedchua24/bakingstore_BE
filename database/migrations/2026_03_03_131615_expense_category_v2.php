@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->integer('expense_type_id');
             $table->string('expense_category_name');
+            $table->integer('expense_category_code');
             $table->string('status');
             $table->timestamps();
         });
