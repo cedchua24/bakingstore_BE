@@ -13,15 +13,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('expenses_v2', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->integer('role_as');
+            $table->integer('expense_category_id');
+            $table->string('expense_name');
+            $table->string('expense_code');
+            $table->string('details');
+            $table->string('account_nature'); //DEBIT / CREDIT
+            $table->integer('is_hidden');    
             $table->integer('status');
-            $table->rememberToken();
             $table->timestamps();
         });
     }
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users');
+         Schema::dropIfExists('expenses_v2');
     }
 };

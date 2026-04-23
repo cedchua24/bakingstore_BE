@@ -51,8 +51,8 @@ class AuthController extends Controller
 
    public function fetchUserList()
     {
-        $users = User::all();
-        // return view('categories.index')->with('categories', $categories);
+        $users = User::where('status', 0)->get();
+
         return response()->json($users);
     }
 

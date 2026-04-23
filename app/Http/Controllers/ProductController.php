@@ -418,11 +418,13 @@ class ProductController extends Controller
                     $query->where(function ($q) {
                         // WHOLESALE → use stock
                         $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->where('products.stock', '!=', 0)
                         ->whereColumn('products.stock', '<', 'products.stock_warning');
                     })
                     ->orWhere(function ($q) {
                         // RETAIL / others → use stock_pc
                         $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->where('products.stock_pc', '!=', 0)
                         ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
                     });
                 })
@@ -495,11 +497,13 @@ class ProductController extends Controller
                     $query->where(function ($q) {
                         // WHOLESALE → use stock
                         $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->where('products.stock', '!=', 0)
                         ->whereColumn('products.stock', '<', 'products.stock_warning');
                     })
                     ->orWhere(function ($q) {
                         // RETAIL / others → use stock_pc
                         $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->where('products.stock_pc', '!=', 0)
                         ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
                     });
                 })
@@ -535,11 +539,13 @@ class ProductController extends Controller
                     $query->where(function ($q) {
                         // WHOLESALE → use stock
                         $q->where('products.stock_warning_type', 'WHOLESALE')
+                        ->where('products.stock', '!=', 0)
                         ->whereColumn('products.stock', '<', 'products.stock_warning');
                     })
                     ->orWhere(function ($q) {
                         // RETAIL / others → use stock_pc
                         $q->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->where('products.stock_pc', '!=', 0)
                         ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
                     });
                 })
@@ -841,12 +847,102 @@ class ProductController extends Controller
         return  response()->json($response);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Product  $product
-     * @return \Illuminate\Http\Response
-     */
+        public function getUnsoldProducts(Request $request)
+        {
+            $dateFrom = $request->input('dateFrom');
+            $dateTo   = $request->input('dateTo');
+
+            $data = collect();
+
+            if (!empty($dateFrom) && !empty($dateTo)) {
+                $data = DB::table('products as p')
+                    ->whereNotExists(function ($query) use ($dateFrom, $dateTo) {
+                        $query->select(DB::raw(1))
+                            ->from('shop_order as so')
+                            ->whereColumn('so.product_id', 'p.id')
+                            ->whereBetween('so.created_at', [
+                                Carbon::parse($dateFrom)->startOfDay(),
+                                Carbon::parse($dateTo)->endOfDay()
+                            ]);
+                    })
+                    ->where('p.disabled', 0)
+                    ->where('p.stock', '!=', 0)
+                    ->select(
+                        'p.*',
+
+                        // ✅ total_value
+                        DB::raw("
+                            CASE 
+                                WHEN p.quantity > 1 
+                                THEN (p.price / p.quantity) * p.stock_pc
+                                ELSE p.price * p.stock
+                            END as total_value
+                        "),
+
+                        // ✅ last_sold_at
+                        DB::raw("
+                            (
+                                SELECT MAX(so2.created_at)
+                                FROM shop_order as so2
+                                WHERE so2.product_id = p.id
+                            ) as last_sold_at
+                        ")
+                    )
+                    ->orderBy('p.stock', 'desc')
+                    ->get();
+            }
+
+            return response()->json([
+                'data' => $data,
+                'code' => 200,
+                'message' => 'Success'
+            ]);
+        }
+
+    public function fetchPendingProduct(Request $request)
+    {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo   = $request->input('dateTo');
+        $status   = $request->input('status');
+
+        $data = DB::table('products as p')
+            ->join('shop_order as so', 'p.id', '=', 'so.product_id')
+            ->join('shop_order_transaction as sot', 'so.shop_transaction_id', '=', 'sot.id')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->where('sot.is_pickup', 0)
+            ->where('shop.shop_type_id', 3)
+
+            ->when($status !== null && $status !== '', function ($query) use ($status) {
+                $query->where('sot.status', $status);
+            })
+
+            ->when($dateFrom && $dateTo, function ($query) use ($dateFrom, $dateTo) {
+                $query->whereBetween('sot.date', [$dateFrom, $dateTo]);
+            })
+
+            ->select(
+                'p.*',
+                DB::raw("
+                    SUM(
+                        CASE 
+                            WHEN p.quantity = 1 THEN so.shop_order_quantity
+                            WHEN mup.business_type = 'WHOLESALE' THEN so.shop_order_quantity * p.quantity
+                            ELSE so.shop_order_quantity
+                        END
+                    ) as total_quantity
+                ")
+            )
+            ->groupBy('p.id')
+            ->get();
+
+        return response()->json([
+            'data' => $data,
+            'code' => 200,
+            'message' => 'Success'
+        ]);
+    }
+
     public function show(Product $product)
     {
         

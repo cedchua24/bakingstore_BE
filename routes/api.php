@@ -50,6 +50,21 @@ use App\Http\Controllers\SalesRepController;
 use App\Http\Controllers\DashBoardController;
 use App\Http\Controllers\DailySessionController;
 use App\Http\Controllers\ProductSoldDailyController;
+<<<<<<< Updated upstream
+=======
+use App\Http\Controllers\ExpenseCategoryV2Controller;
+use App\Http\Controllers\ExpenseV2Controller;
+use App\Http\Controllers\ExpenseTransactionController;
+use App\Http\Controllers\BalanceTransactionController;
+use App\Http\Controllers\BalanceTypeController;
+use App\Http\Controllers\ExpenseTypeV2Controller;
+use App\Http\Controllers\ChartOfAccountsController;
+
+
+
+
+
+>>>>>>> Stashed changes
 
 
 
@@ -97,6 +112,9 @@ Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::clas
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
 Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetchProductListV2']);
 Route::get('/products/fetchProductToNotify/{id}', [ProductController::class, 'fetchProductToNotify']);
+Route::post('/products/getUnsoldProducts', [ProductController::class, 'getUnsoldProducts']);
+Route::post('/products/fetchPendingProduct', [ProductController::class, 'fetchPendingProduct']);
+
 
 Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fetchProductListNote']);
 Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
@@ -250,6 +268,7 @@ Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
+Route::post('/shopOrderTransaction/fetctPendingProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctPendingProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
 Route::get('/shopOrderTransaction/fetchPendingPickUp/{id}', [ShopOrderTransactionController::class, 'fetchPendingPickUp']);
 Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchDeliveryTransaction']);
@@ -293,9 +312,48 @@ Route::get('/branchStockTransaction/fetchBranchStockWarehouseList/{id}', [Branch
 
 Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 
+<<<<<<< Updated upstream
+=======
+Route::resource('/expensesTypeV2', 'App\Http\Controllers\ExpenseTypeV2Controller');
+Route::get('/expensesTypeV2/fetchExpenseTypeById/{id}', [ExpenseTypeV2Controller::class, 'fetchExpenseTypeById']);
+Route::get('/expensesTypeV2/fetchExpenseTypeCategoryById/{id}/{id2}', [ExpenseTypeV2Controller::class, 'fetchExpenseTypeCategoryById']);
+Route::get('/expensesTypeV2/fetchTypeByChart/{id}', [ExpenseTypeV2Controller::class, 'fetchTypeByChart']);
+
+
+Route::resource('/expensesCategoryV2', 'App\Http\Controllers\ExpenseCategoryV2Controller');
+Route::get('/expensesCategoryV2/fetchExpenseCategoryById/{id}', [ExpenseCategoryV2Controller::class, 'fetchExpenseCategoryById']);
+
+Route::resource('/expensesV2', 'App\Http\Controllers\ExpenseV2Controller');
+Route::get('/expensesV2/fetchExpenseV2ById/{id}', [ExpenseV2Controller::class, 'fetchExpenseV2ById']);
+Route::post('/expensesV2/fetchExpenseByTypeaAndCategory', [ExpenseV2Controller::class, 'fetchExpenseByTypeaAndCategory']);
+
+
+Route::resource('/chartOfAccounts', 'App\Http\Controllers\ChartOfAccountsController');
+
+
+
+Route::resource('/expenseTransaction', 'App\Http\Controllers\ExpenseTransactionController');
+Route::get('/expenseTransaction/fetchExpenseTransactionList/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionList']);
+Route::get('/expenseTransaction/fetchExpenseTransactionById/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionById']);
+Route::post('/expenseTransaction/searchExpenseTransactionList', [ExpenseTransactionController::class, 'searchExpenseTransactionList']);
+Route::post('/expenseTransaction/searchAllExpenseTransactionList', [ExpenseTransactionController::class, 'searchAllExpenseTransactionList']);
+Route::post('/expenseTransaction/getTotalExpense', [ExpenseTransactionController::class, 'getTotalExpense']);
+
+
+
+Route::resource('/balanceTransaction', 'App\Http\Controllers\BalanceTransactionController');
+// Route::get('/balanceTransaction/fetchBalanceTransactionById/{id}', [BalanceTransactionController::class, 'fetchBalanceTransactionById']);
+Route::post('/balanceTransaction/fetchBalanceTransactionById', [BalanceTransactionController::class, 'fetchBalanceTransactionById']);
+
+Route::resource('/balanceType', 'App\Http\Controllers\BalanceTypeController');
+
+
+>>>>>>> Stashed changes
 Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
 Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
 Route::get('/expensesType/fetchExpenseTypeTransaction/{id}', [ExpensesTypeController::class, 'fetchExpenseTypeTransaction']);
+
+
 Route::resource('/expensesCategory', 'App\Http\Controllers\ExpensesCategoryController');
 Route::post('/expenses/fetchExpensesTransactionByDate', [ExpensesController::class, 'fetchExpensesTransactionByDate']);
 Route::get('/expenses/fetchExpensesTransaction/{id}', [ExpensesController::class, 'fetchExpensesTransaction']);

@@ -25,6 +25,10 @@ return new class extends Migration
             $table->double('credit_limit');
             $table->integer('statement_date');
             $table->double('total_balance_due');
+<<<<<<< Updated upstream
+=======
+            $table->double('balance'); //
+>>>>>>> Stashed changes
             $table->integer('status');
             $table->timestamps();
         });
