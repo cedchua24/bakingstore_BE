@@ -570,7 +570,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
              'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status')    
@@ -780,7 +780,7 @@ class ShopOrderTransactionController extends Controller
                     'shop.shop_name', 'sot.id', 'sot.shop_order_transaction_total_quantity',
                     'sot.shop_order_transaction_total_price', 'sot.created_at',
                     'sot.updated_at', 'sot.is_pickup', 'shop.shop_type_id',
-                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
                     'sot.status', 'sot.date', 'sot.profit', 'sot.total_cash',
                     'sot.total_online', 'ct.customer_type', 'sot.rider_name',
                     'so.shop_order_quantity', 'mup.business_type', 'p.quantity'
@@ -952,7 +952,7 @@ class ShopOrderTransactionController extends Controller
                     'shop.shop_name', 'sot.id', 'sot.shop_order_transaction_total_quantity',
                     'sot.shop_order_transaction_total_price', 'sot.created_at',
                     'sot.updated_at', 'sot.is_pickup', 'shop.shop_type_id',
-                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
                     'sot.status', 'sot.date', 'sot.profit', 'sot.total_cash',
                     'sot.total_online', 'ct.customer_type', 'sot.rider_name',
                     'so.shop_order_quantity', 'mup.business_type', 'p.quantity'
@@ -1065,176 +1065,294 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);
         }
 
-        public function fetchPendingPickUp($id)
-    {
-        $currentTime = Carbon::now('GMT+8');
-        $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
-            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
-            ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
-              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
-              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
-              , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
-             ->where('shop.shop_type_id', 3)
-             ->where('shop_order_transaction.is_pickup', $id)
-             ->orderBy('shop_order_transaction.id', 'DESC')
-             ->get();
-            
+     public function fetchPendingPickUp(Request $request)
+        {
+            $id = $request->input('is_pickup_status'); // or your pickup id source
+            $dateFrom = $request->input('dateFrom');
+            $dateTo = $request->input('dateTo');
+            $status = $request->input('status');
+
+            $applyFilters = function ($query) use ($dateFrom, $dateTo, $status) {
+                $query->when(
+                    !empty($dateFrom) && !empty($dateTo) && $dateFrom !== 'null' && $dateTo !== 'null',
+                    function ($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('shop_order_transaction.date', [
+                            $dateFrom,
+                            $dateTo
+                        ]);
+                    }
+                );
+
+                $query->when(
+                    $status !== null && $status !== '' && $status !== 'null',
+                    function ($q) use ($status) {
+                        $q->where('shop_order_transaction.status', $status);
+                    }
+                );
+            };
+
+            $shop_order_transaction_list = DB::table('shop_order_transaction')
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+                ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+                ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->select(
+                    'shop_order_transaction.id',
+                    'shop_order_transaction.shop_order_transaction_total_quantity',
+                    'shop_order_transaction.shop_order_transaction_total_price',
+                    'shop_order_transaction.created_at',
+                    'shop_order_transaction.updated_at',
+                    'shop_order_transaction.is_pickup',
+                    'shop.shop_name',
+                    'shop.shop_type_id',
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name',
+                    'shop_order_transaction.checker',
+                    'shop_order_transaction.requestor',
+                    'shop_order_transaction.status',
+                    'shop_order_transaction.date',
+                    'shop_order_transaction.profit',
+                    'shop_order_transaction.total_cash',
+                    'shop_order_transaction.total_online',
+                    'ct.customer_type',
+                    'shop_order_transaction.rider_name',
+                    'shop_order_transaction.delivery_customer_id',
+                    'ds.status as delivery_status'
+                )
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.is_pickup', $id)
+                ->when(true, $applyFilters)
+                ->orderBy('shop_order_transaction.id', 'DESC')
+                ->get();
+
             $data = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.is_pickup', $id)
-            ->first();
+                ->select(
+                    DB::raw('SUM(shop_order_transaction_total_price) as total_price'),
+                    DB::raw('SUM(profit) as total_profit')
+                )
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.is_pickup', $id)
+                ->when(true, $applyFilters)
+                ->first();
 
-
-           $cash = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(mop.amount) as total_cash'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.is_pickup', $id)
-            ->where('pt.type', 1)
-            ->first();
+            $cash = DB::table('shop_order_transaction')
+                ->select(DB::raw('SUM(mop.amount) as total_cash'))
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.is_pickup', $id)
+                ->where('pt.type', 1)
+                ->when(true, $applyFilters)
+                ->first();
 
             $online = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(mop.amount) as total_online'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.is_pickup', $id)
-            ->where('pt.type', 2)
-            ->first();
+                ->select(DB::raw('SUM(mop.amount) as total_online'))
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.is_pickup', $id)
+                ->where('pt.type', 2)
+                ->when(true, $applyFilters)
+                ->first();
 
-           $payment_type = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
-            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
-            ->where('sot.status', 2)
-            ->groupBy('pt.id')
-            ->get();
-
-            foreach ($shop_order_transaction_list as $sotl) { 
-                
-               $mode_of_payment = DB::table('mode_of_payment as mop')
-                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
-                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
-                ->where('pt.id', '!=', 1)
-                ->where('mop.shop_order_transaction_id', $sotl->id)
+            $payment_type = DB::table('shop_order_transaction as sot')
+                ->select(
+                    DB::raw('SUM(mop.amount) as total_amount'),
+                    'pt.payment_type',
+                    'pt.payment_type_description',
+                    'pt.id'
+                )
+                ->join('shop', 'shop.id', '=', 'sot.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+                ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+                ->where('shop.shop_type_id', 3)
+                ->where('sot.is_pickup', $id)
+                ->when(
+                    !empty($dateFrom) && !empty($dateTo) && $dateFrom !== 'null' && $dateTo !== 'null',
+                    function ($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('sot.date', [
+                            Carbon::parse($dateFrom)->format('Y-m-d'),
+                            Carbon::parse($dateTo)->format('Y-m-d')
+                        ]);
+                    }
+                )
+                ->when(
+                    $status !== null && $status !== '' && $status !== 'null',
+                    function ($q) use ($status) {
+                        $q->where('sot.status', $status);
+                    }
+                )
+                ->groupBy('pt.id', 'pt.payment_type', 'pt.payment_type_description')
                 ->get();
-                
-                $sotl->mode_of_payment = $mode_of_payment;
-            }           
+
+            foreach ($shop_order_transaction_list as $sotl) {
+                $sotl->mode_of_payment = DB::table('mode_of_payment as mop')
+                    ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')
+                    ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                    ->where('pt.id', '!=', 1)
+                    ->where('mop.shop_order_transaction_id', $sotl->id)
+                    ->get();
+            }
+
+            return response()->json([
+                'total_price' => $data->total_price ?? 0,
+                'total_profit' => $data->total_profit ?? 0,
+                'total_cash' => $cash->total_cash ?? 0,
+                'total_online' => $online->total_online ?? 0,
+                'data' => $shop_order_transaction_list,
+                'payment' => $payment_type,
+                'code' => 200,
+                'date' => date('Y-m-d'),
+                'message' => "Successfully Added"
+            ]);
+        }
 
 
-           $response = [
-              'total_price' =>$data->total_price,
-              'total_profit' =>$data->total_profit,
-              'total_cash' =>$cash->total_cash,
-              'total_online' =>$online->total_online,
-              'data' => $shop_order_transaction_list,
-              'payment' => $payment_type,
-              'code' => 200,
-              'date' => date('Y-m-d'),
-              'message' => "Successfully Added"
-          ];
+     public function fetchPendingTransactionList(Request $request)
+        {
+            $id = $request->input('status'); // or your pickup id source
+            $dateFrom = $request->input('dateFrom');
+            $dateTo = $request->input('dateTo');
+            $status = $request->input('is_pickup_status');
 
+            $applyFilters = function ($query) use ($dateFrom, $dateTo, $status) {
+                $query->when(
+                    !empty($dateFrom) && !empty($dateTo) && $dateFrom !== 'null' && $dateTo !== 'null',
+                    function ($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('shop_order_transaction.date', [
+                            $dateFrom,
+                            $dateTo
+                        ]);
+                    }
+                );
 
-            return response()->json($response);   
-    }       
+                $query->when(
+                    $status !== null && $status !== '' && $status !== 'null',
+                    function ($q) use ($status) {
+                        $q->where('shop_order_transaction.is_pickup', $status);
+                    }
+                );
+            };
 
+            $shop_order_transaction_list = DB::table('shop_order_transaction')
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+                ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+                ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->select(
+                    'shop_order_transaction.id',
+                    'shop_order_transaction.shop_order_transaction_total_quantity',
+                    'shop_order_transaction.shop_order_transaction_total_price',
+                    'shop_order_transaction.created_at',
+                    'shop_order_transaction.updated_at',
+                    'shop_order_transaction.is_pickup',
+                    'shop.shop_name',
+                    'shop.shop_type_id',
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name',
+                    'shop_order_transaction.checker',
+                    'shop_order_transaction.requestor',
+                    'shop_order_transaction.status',
+                    'shop_order_transaction.date',
+                    'shop_order_transaction.profit',
+                    'shop_order_transaction.total_cash',
+                    'shop_order_transaction.total_online',
+                    'ct.customer_type',
+                    'shop_order_transaction.rider_name',
+                    'shop_order_transaction.delivery_customer_id',
+                    'ds.status as delivery_status'
+                )
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.status', $id)
+                ->when(true, $applyFilters)
+                ->orderBy('shop_order_transaction.id', 'DESC')
+                ->get();
 
-       public function fetchPendingTransactionList(Request $request)
-    {
-        $currentTime = Carbon::now('GMT+8');
-        $shop_order_transaction_list = DB::table('shop_order_transaction')
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
-            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
-            ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
-              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
-              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
-              , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
-             ->where('shop.shop_type_id', 3)
-             ->where('shop_order_transaction.status', $request->input('status'))
-             ->orderBy('shop_order_transaction.id', 'DESC')
-             ->get();
-            
             $data = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.status', $request->input('status'))
-            ->first();
+                ->select(
+                    DB::raw('SUM(shop_order_transaction_total_price) as total_price'),
+                    DB::raw('SUM(profit) as total_profit')
+                )
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.status', $id)
+                ->when(true, $applyFilters)
+                ->first();
 
-
-           $cash = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(mop.amount) as total_cash'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.status', $request->input('status'))
-            ->where('pt.type', 1)
-            ->first();
+            $cash = DB::table('shop_order_transaction')
+                ->select(DB::raw('SUM(mop.amount) as total_cash'))
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.status', $id)
+                ->where('pt.type', 1)
+                ->when(true, $applyFilters)
+                ->first();
 
             $online = DB::table('shop_order_transaction')
-            ->select(DB::raw('SUM(mop.amount) as total_online'))  
-            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
-            ->where('shop.shop_type_id', 3)
-            ->where('shop_order_transaction.status', $request->input('status'))
-            ->where('pt.type', 2)
-            ->first();
+                ->select(DB::raw('SUM(mop.amount) as total_online'))
+                ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                ->where('shop.shop_type_id', 3)
+                ->where('shop_order_transaction.status', $id)
+                ->where('pt.type', 2)
+                ->when(true, $applyFilters)
+                ->first();
 
-           $payment_type = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(mop.amount) as total_amount'), 'pt.payment_type',  'pt.payment_type_description', 'pt.id')  
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
-            ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
-            ->where('sot.status', 2)
-            ->groupBy('pt.id')
-            ->get();
-
-            foreach ($shop_order_transaction_list as $sotl) { 
-                
-               $mode_of_payment = DB::table('mode_of_payment as mop')
-                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
-                ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
-                ->where('pt.id', '!=', 1)
-                ->where('mop.shop_order_transaction_id', $sotl->id)
+            $payment_type = DB::table('shop_order_transaction as sot')
+                ->select(
+                    DB::raw('SUM(mop.amount) as total_amount'),
+                    'pt.payment_type',
+                    'pt.payment_type_description',
+                    'pt.id'
+                )
+                ->join('shop', 'shop.id', '=', 'sot.shop_id')
+                ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+                ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
+                ->where('shop.shop_type_id', 3)
+                ->where('sot.status', $id)
+                ->when(
+                    !empty($dateFrom) && !empty($dateTo) && $dateFrom !== 'null' && $dateTo !== 'null',
+                    function ($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('sot.date', [
+                            Carbon::parse($dateFrom)->format('Y-m-d'),
+                            Carbon::parse($dateTo)->format('Y-m-d')
+                        ]);
+                    }
+                )
+                ->when(
+                    $status !== null && $status !== '' && $status !== 'null',
+                    function ($q) use ($status) {
+                        $q->where('sot.status', $status);
+                    }
+                )
+                ->groupBy('pt.id', 'pt.payment_type', 'pt.payment_type_description')
                 ->get();
-                
-                $sotl->mode_of_payment = $mode_of_payment;
-            }           
 
+            foreach ($shop_order_transaction_list as $sotl) {
+                $sotl->mode_of_payment = DB::table('mode_of_payment as mop')
+                    ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')
+                    ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
+                    ->where('pt.id', '!=', 1)
+                    ->where('mop.shop_order_transaction_id', $sotl->id)
+                    ->get();
+            }
 
-           $response = [
-              'total_price' =>$data->total_price,
-              'total_profit' =>$data->total_profit,
-              'total_cash' =>$cash->total_cash,
-              'total_online' =>$online->total_online,
-              'data' => $shop_order_transaction_list,
-              'payment' => $payment_type,
-              'code' => 200,
-              'date' => date('Y-m-d'),
-              'message' => "Successfully Added"
-          ];
-
-
-            return response()->json($response);   
-    }
+            return response()->json([
+                'total_price' => $data->total_price ?? 0,
+                'total_profit' => $data->total_profit ?? 0,
+                'total_cash' => $cash->total_cash ?? 0,
+                'total_online' => $online->total_online ?? 0,
+                'data' => $shop_order_transaction_list,
+                'payment' => $payment_type,
+                'code' => 200,
+                'date' => date('Y-m-d'),
+                'message' => "Successfully Added"
+            ]);
+        }
 
 
       public function fetchDeliveryTransaction(Request $request)
@@ -1249,7 +1367,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1321,7 +1439,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1418,7 +1536,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1489,7 +1607,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name'
               , 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status')    
@@ -1609,7 +1727,7 @@ class ShopOrderTransactionController extends Controller
                 'sot.shop_order_transaction_total_quantity',
                 'sot.shop_order_transaction_total_price',
                 'sot.created_at', 'sot.is_pickup', 'shop.shop_name',
-                'shop.shop_type_id', DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                'shop.shop_type_id', DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name',
                 'sot.checker', 'sot.requestor', 'sot.status', 'sot.updated_at',
                 'sot.date', 'sot.profit', 'mop.is_paid', 'sot.total_cash',
                 'sot.total_online', 'ct.customer_type', 'sot.rider_name',
@@ -1680,7 +1798,7 @@ class ShopOrderTransactionController extends Controller
             ->select('mop.id', 'sot.id as transaction_id', 'mop.amount','sot.id as shop_order_transaction_id','sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'sot.checker', 'sot.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit', 'mop.is_paid',
               'sot.total_cash', 'sot.total_online', 'ct.customer_type', 'sot.rider_name')    
              ->where('shop.shop_type_id', 3)
@@ -1914,7 +2032,7 @@ class ShopOrderTransactionController extends Controller
             // ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
             //  'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
             //  'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-            //  DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+            //  DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
             //  'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
             //  'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status' ) 
                 
@@ -2053,7 +2171,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
              'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
              'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
              'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status' ) 
                 
@@ -2161,7 +2279,7 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.is_pickup',
                     'shop.shop_name',
                     'shop.shop_type_id',
-                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                    DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name',
                     'shop_order_transaction.checker',
                     'shop_order_transaction.requestor',
                     'shop_order_transaction.status',
