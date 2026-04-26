@@ -33,6 +33,23 @@ class ProductController extends Controller
         return response()->json($data);  
     }
 
+        public function fetchProductEnabled()
+    {
+
+          $data = DB::table('category')
+          ->join('products', 'category.id', '=', 'products.category_id')
+          ->join('brand', 'brand.id', '=', 'products.brand_id')
+          ->select('products.category_id', 'products.brand_id', 'products.variation', 'category.category_name',
+           'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
+            'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
+             'products.disabled', 'products.note')
+          ->orderBy('products.id', 'DESC')
+          ->where('products.disabled', 0)
+          ->get();
+
+        return response()->json($data);  
+    }
+
      public function fetchProductListV2($id)
     {
 

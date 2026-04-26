@@ -107,6 +107,8 @@ Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class,
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
 Route::get('/products/fetchProductListV2/{id}', [ProductController::class, 'fetchProductListV2']);
+Route::get('/products/fetchProductEnabled/{id}', [ProductController::class, 'fetchProductEnabled']);
+
 Route::get('/products/fetchProductToNotify/{id}', [ProductController::class, 'fetchProductToNotify']);
 Route::post('/products/getUnsoldProducts', [ProductController::class, 'getUnsoldProducts']);
 Route::post('/products/fetchPendingProduct', [ProductController::class, 'fetchPendingProduct']);
@@ -266,7 +268,7 @@ Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOr
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetctPendingProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctPendingProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
-Route::get('/shopOrderTransaction/fetchPendingPickUp/{id}', [ShopOrderTransactionController::class, 'fetchPendingPickUp']);
+Route::post('/shopOrderTransaction/fetchPendingPickUp', [ShopOrderTransactionController::class, 'fetchPendingPickUp']);
 Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchDeliveryTransaction']);
 Route::post('/shopOrderTransaction/fetchPendingDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransaction']);
 
