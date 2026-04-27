@@ -50,8 +50,6 @@ use App\Http\Controllers\SalesRepController;
 use App\Http\Controllers\DashBoardController;
 use App\Http\Controllers\DailySessionController;
 use App\Http\Controllers\ProductSoldDailyController;
-<<<<<<< Updated upstream
-=======
 use App\Http\Controllers\ExpenseCategoryV2Controller;
 use App\Http\Controllers\ExpenseV2Controller;
 use App\Http\Controllers\ExpenseTransactionController;
@@ -64,7 +62,6 @@ use App\Http\Controllers\ChartOfAccountsController;
 
 
 
->>>>>>> Stashed changes
 
 
 
@@ -81,6 +78,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+
 // Route::middleware('auth:sanctum')->group(function () {
 //    Route::post('logout', [AuthController::class, 'logout']);
 // });
@@ -94,7 +93,6 @@ Route::middleware('auth:sanctum', 'isAPIAdmin')->group(function () {
 Route::get('/register', [AuthController::class, 'fetchUserList']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
 Route::delete('/register/{user}', [AuthController::class, 'destroy']);
 
 
@@ -277,9 +275,7 @@ Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransact
 Route::post('/shopOrderTransaction/fetchPendingDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransaction']);
 
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
-Route::get('/shopOrderTransaction/fetchExpensesList/{id}/{date}', [ShopOrderTransactionController::class, 'fetchExpensesList']);
 Route::get('/shopOrderTransaction/fetchPrev/{id}/{today}/{type}', [ShopOrderTransactionController::class, 'fetchPrev']);
-
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatus/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatus']);
 Route::get('/shopOrderTransaction/fetchSortedProduct/{id}', [ShopOrderTransactionController::class, 'fetchSortedProduct']);
@@ -314,8 +310,6 @@ Route::get('/branchStockTransaction/fetchBranchStockWarehouseList/{id}', [Branch
 
 Route::resource('/shopType', 'App\Http\Controllers\ShopTypeController');
 
-<<<<<<< Updated upstream
-=======
 Route::resource('/expensesTypeV2', 'App\Http\Controllers\ExpenseTypeV2Controller');
 Route::get('/expensesTypeV2/fetchExpenseTypeById/{id}', [ExpenseTypeV2Controller::class, 'fetchExpenseTypeById']);
 Route::get('/expensesTypeV2/fetchExpenseTypeCategoryById/{id}/{id2}', [ExpenseTypeV2Controller::class, 'fetchExpenseTypeCategoryById']);
@@ -350,7 +344,6 @@ Route::post('/balanceTransaction/fetchBalanceTransactionById', [BalanceTransacti
 Route::resource('/balanceType', 'App\Http\Controllers\BalanceTypeController');
 
 
->>>>>>> Stashed changes
 Route::resource('/expenses', 'App\Http\Controllers\ExpensesController');
 Route::resource('/expensesType', 'App\Http\Controllers\ExpensesTypeController');
 Route::get('/expensesType/fetchExpenseTypeTransaction/{id}', [ExpensesTypeController::class, 'fetchExpenseTypeTransaction']);
