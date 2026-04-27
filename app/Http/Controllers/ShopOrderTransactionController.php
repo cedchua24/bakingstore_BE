@@ -1902,7 +1902,7 @@ class ShopOrderTransactionController extends Controller
       
             $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(profit) as total_profit') ,
-             DB::raw('shop_order_transaction.date'),
+             DB::raw('shop_order_transaction.date'),  DB::raw('COUNT(shop_order_transaction.id) as total_count'),
              DB::raw('SUM(total_cash) as total_cash'), DB::raw('SUM(total_online) as total_online'), 'shop_order_transaction.date')  
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
             ->where('shop.shop_type_id', 3)
@@ -1931,11 +1931,13 @@ class ShopOrderTransactionController extends Controller
             $total_profit = 0;
             $total_cash = 0;
             $total_online = 0;
+            $total_count = 0;
             foreach ($shop_order_transaction_list as $datavals) {  
                 $total_sales += $datavals->total_sales;
                 $total_profit += $datavals->total_profit;
                 $total_cash += $datavals->total_cash;
                 $total_online += $datavals->total_online;
+                $total_count += $datavals->total_count;
             }
 
 
@@ -1947,6 +1949,7 @@ class ShopOrderTransactionController extends Controller
               'total_cash' => $total_cash,
               'total_online' => $total_online,
               'total_cash' =>$total_cash,
+              'total_count' =>$total_count,
               'expenses_mandatory' => $expenses_mandatory->total_expenses,
               'expenses_non_mandatory' =>$expenses_non_mandatory->total_expenses,
               'total_expenses' =>$expenses_non_mandatory->total_expenses + $expenses_mandatory->total_expenses,
@@ -2010,7 +2013,7 @@ class ShopOrderTransactionController extends Controller
     {
       
             $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
-            ->select(DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(sot.profit) as total_profit') ,
+            ->select(DB::raw('COUNT(sot.id) as total_count'), DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'), DB::raw('SUM(sot.profit) as total_profit') ,
              DB::raw('sot.date'), DB::raw('SUM(sot.total_cash) as total_cash'), DB::raw('SUM(sot.total_online) as total_online'))  
             ->join('shop', 'shop.id', '=', 'sot.shop_id')  
             // ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
@@ -2087,11 +2090,13 @@ class ShopOrderTransactionController extends Controller
             $total_profit = 0;
             $total_cash = 0;
             $total_online = 0;
+            $total_count = 0;
             foreach ($shop_order_transaction_list as $datavals) {  
                 $total_sales += $datavals->total_sales;
                 $total_profit += $datavals->total_profit;
                 $total_cash += $datavals->total_cash;
                 $total_online += $datavals->total_online;
+                $total_count += $datavals->total_count;
             }
 
 
@@ -2103,6 +2108,7 @@ class ShopOrderTransactionController extends Controller
               'total_cash' => $total_cash,
               'total_online' => $total_online,
               'total_cash' =>$total_cash,
+              'total_count' =>$total_count,
               'expenses_mandatory' => $expenses_mandatory->total_expenses,
               'expenses_non_mandatory' =>$expenses_non_mandatory->total_expenses,
               'total_expenses' =>$expenses_non_mandatory->total_expenses + $expenses_mandatory->total_expenses,
