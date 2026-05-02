@@ -719,6 +719,7 @@ class ProductController extends Controller
              'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
                'products.disabled','products.stock_warning', 'products.stock_warning_type',   'products.note')
+            ->where('products.disabled', 0)
             ->orderBy('products.id', 'DESC')
             ->get();
 
@@ -726,6 +727,7 @@ class ProductController extends Controller
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+            ->where('products.disabled', 0)
             ->first();
 
         } else {
@@ -737,6 +739,7 @@ class ProductController extends Controller
               'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc','products.stock_warning_type', 'products.packaging',
                'products.disabled', 'products.stock_warning', 'products.note')
             ->where('category.id', $id)
+            ->where('products.disabled', 0)
             ->orderBy('products.id', 'DESC')
             ->get();
 
@@ -744,7 +747,8 @@ class ProductController extends Controller
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
-             ->where('category.id', $id)
+            ->where('products.disabled', 0)
+            ->where('category.id', $id)
             ->first();
 
         }

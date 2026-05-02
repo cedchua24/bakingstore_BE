@@ -65,6 +65,8 @@ class ExpenseTransactionController extends Controller
                 'ptp.account_description',
                 'ptp.account_number'
             )
+            ->orderBy('et.id', 'desc')
+            ->limit(100)
             ->get();
 
         return response()->json($data);
@@ -253,8 +255,10 @@ class ExpenseTransactionController extends Controller
             ->when($request->filled('approval_status'), function ($q) use ($request) {
             $q->where('e.approval_status', $request->approval_status);
             })
-            ->where('e.date_received', '>=', $request->input('dateFrom'))
-            ->where('e.date_received', '<=', $request->input('dateTo'))
+            ->where('e.expense_date', '>=', $request->input('dateFrom'))
+            ->where('e.expense_date', '<=', $request->input('dateTo'))
+            ->where('e.is_received', 1)
+            
             ->first();;
          return response()->json($total_balance);
     }
