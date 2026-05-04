@@ -183,6 +183,8 @@ Route::resource('/branchStock', 'App\Http\Controllers\BranchStockController');
 Route::resource('/orderSupplierTransaction', 'App\Http\Controllers\OrderSupplierTransactionController');
 Route::get('/orderSupplierTransaction/fetchByOrderSupplierTransactionId/{id}', [OrderSupplierTransactionController::class, 'fetchByOrderSupplierTransactionId']);
 Route::put('/orderSupplierTransaction/setToCompleteTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompleteTransaction']);
+Route::put('/orderSupplierTransaction/updateReceivedOrder/{id}', [OrderSupplierTransactionController::class, 'updateReceivedOrder']);
+
 Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCancelTransaction']);
 Route::post('/orderSupplierTransaction/orderSupplierApproval', [OrderSupplierTransactionController::class, 'orderSupplierApproval']);
 Route::post('/orderSupplierTransaction/updateDateOrderSupplier', [OrderSupplierTransactionController::class, 'updateDateOrderSupplier']);
