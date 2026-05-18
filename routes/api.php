@@ -57,7 +57,7 @@ use App\Http\Controllers\BalanceTransactionController;
 use App\Http\Controllers\BalanceTypeController;
 use App\Http\Controllers\ExpenseTypeV2Controller;
 use App\Http\Controllers\ChartOfAccountsController;
-
+use App\Http\Controllers\OutOfStockHistoryController;
 
 
 
@@ -247,8 +247,18 @@ Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransact
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
 Route::post('/shopOrderTransaction/fetchSalesList', [ShopOrderTransactionController::class, 'fetchSalesList']);
+Route::post('/shopOrderTransaction/fetchEmployeePrepare', [ShopOrderTransactionController::class, 'fetchEmployeePrepare']);
+Route::post('/shopOrderTransaction/fetchEmployeeDispatcher', [ShopOrderTransactionController::class, 'fetchEmployeeDispatcher']);
+Route::post('/shopOrderTransaction/fetchEmployeeChecker', [ShopOrderTransactionController::class, 'fetchEmployeeChecker']);
+Route::post('/shopOrderTransaction/fetchEmployeeSales', [ShopOrderTransactionController::class, 'fetchEmployeeSales']);
+
+
 
 Route::post('/shopOrderTransaction/fetchSortedCustomerReport', [ShopOrderTransactionController::class, 'fetchSortedCustomerReport']);
+
+Route::resource('/outOfStockHistory', 'App\Http\Controllers\OutOfStockHistoryController');
+Route::get('/outOfStockHistory/fetchOOSbyProductId/{id}', [OutOfStockHistoryController::class, 'fetchOOSbyProductId']);
+
 
 //Route::get('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
 Route::post('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);

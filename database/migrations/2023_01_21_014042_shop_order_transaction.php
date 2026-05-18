@@ -30,6 +30,9 @@ return new class extends Migration
             $table->integer('customer_type_id');
             $table->string('rider_name');
             $table->integer('is_pickup');
+            $table->integer('preparer_id');
+            $table->integer('checker_id');
+            $table->integer('dispatcher_id');
             $table->date('date');
             $table->timestamps();
         });
