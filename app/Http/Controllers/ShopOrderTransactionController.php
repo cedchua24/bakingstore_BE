@@ -309,13 +309,13 @@ class ShopOrderTransactionController extends Controller
 
            $data = DB::table('customer as c')
             ->select('c.id as customer_id', 'sot.id', 'c.first_name', 'c.last_name', 
-            'sot.is_pickup', 'sot.date',
+            'sot.is_pickup', 'sot.date', 'sot.preparer_id', 'sot.checker_id', 'sot.dispatcher_id',
               DB::raw("IFNULL(c.address, '') as address"), 
               DB::raw("IFNULL(c.contact_number, '') as contact_number"), 
               DB::raw("IFNULL(c.store_name, '') as store_name"), 
               )  
              
-            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
+            ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')   
             ->where('sot.id', $id)
             ->first();
 
@@ -1960,6 +1960,167 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+       public function fetchEmployeePrepare(Request $request)
+    {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo = $request->input('dateTo');
+        $data = DB::table('shop_order_transaction as sot')
+
+            ->leftJoin('users as preparer', 'preparer.id', '=', 'sot.preparer_id')
+
+            ->select(
+                'preparer.id',
+                'sot.preparer_id',
+                'preparer.name as preparer_name',
+                DB::raw('COUNT(sot.id) as total_transaction_count'),
+                DB::raw('SUM(sot.shop_order_transaction_total_quantity) as total_quantity'),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_amount')
+            )
+
+            ->when(
+                !empty($dateFrom) &&
+                !empty($dateTo) &&
+                $dateFrom !== 'null' &&
+                $dateTo !== 'null',
+                function ($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('sot.date', [$dateFrom, $dateTo]);
+                }
+            )
+            ->whereNotNull('sot.preparer_id')
+            ->groupBy(
+                'sot.preparer_id',
+                'preparer.name'
+            )
+
+            ->orderByDesc('total_amount')
+
+            ->get();
+
+
+            return response()->json($data);
+    }    
+
+        public function fetchEmployeeChecker(Request $request)
+    {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo = $request->input('dateTo');
+        $data = DB::table('shop_order_transaction as sot')
+
+            ->leftJoin('users as preparer', 'preparer.id', '=', 'sot.checker_id')
+
+            ->select(
+                'preparer.id',
+                'sot.checker_id',
+                'preparer.name as preparer_name',
+                DB::raw('COUNT(sot.id) as total_transaction_count'),
+                DB::raw('SUM(sot.shop_order_transaction_total_quantity) as total_quantity'),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_amount')
+            )
+
+            ->when(
+                !empty($dateFrom) &&
+                !empty($dateTo) &&
+                $dateFrom !== 'null' &&
+                $dateTo !== 'null',
+                function ($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('sot.date', [$dateFrom, $dateTo]);
+                }
+            )
+            ->whereNotNull('sot.checker_id')
+            ->groupBy(
+                'sot.checker_id',
+                'preparer.name'
+            )
+
+            ->orderByDesc('total_amount')
+
+            ->get();
+
+
+            return response()->json($data);
+    }   
+    
+      public function fetchEmployeeDispatcher(Request $request)
+    {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo = $request->input('dateTo');
+        $data = DB::table('shop_order_transaction as sot')
+
+            ->leftJoin('users as preparer', 'preparer.id', '=', 'sot.dispatcher_id')
+
+            ->select(
+                'preparer.id',
+                'sot.dispatcher_id',
+                'preparer.name as preparer_name',
+                DB::raw('COUNT(sot.id) as total_transaction_count'),
+                DB::raw('SUM(sot.shop_order_transaction_total_quantity) as total_quantity'),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_amount')
+            )
+
+            ->when(
+                !empty($dateFrom) &&
+                !empty($dateTo) &&
+                $dateFrom !== 'null' &&
+                $dateTo !== 'null',
+                function ($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('sot.date', [$dateFrom, $dateTo]);
+                }
+            )
+            ->whereNotNull('sot.dispatcher_id')
+            ->groupBy(
+                'sot.dispatcher_id',
+                'preparer.name'
+            )
+
+            ->orderByDesc('total_amount')
+
+            ->get();
+
+
+            return response()->json($data);
+    }   
+
+       public function fetchEmployeeSales(Request $request)
+    {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo = $request->input('dateTo');
+        $data = DB::table('shop_order_transaction as sot')
+
+            ->leftJoin('sales_rep as preparer', 'preparer.id', '=', 'sot.sales_rep_id')
+
+            ->select(
+                'preparer.id',
+                'sot.sales_rep_id',
+                'preparer.first_name as preparer_name',
+                DB::raw('COUNT(sot.id) as total_transaction_count'),
+                DB::raw('SUM(sot.shop_order_transaction_total_quantity) as total_quantity'),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_amount')
+            )
+
+            ->when(
+                !empty($dateFrom) &&
+                !empty($dateTo) &&
+                $dateFrom !== 'null' &&
+                $dateTo !== 'null',
+                function ($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('sot.date', [$dateFrom, $dateTo]);
+                }
+            )
+            ->whereNotNull('sot.sales_rep_id')
+            ->where('sot.sales_rep_id', '!=', 0)
+            ->groupBy(
+                'sot.sales_rep_id',
+                'preparer.first_name'
+            )
+
+            ->orderByDesc('total_amount')
+
+            ->get();
+
+
+            return response()->json($data);
+    }    
+
       public function fetchSalesList(Request $request)
     {
 
@@ -2580,6 +2741,9 @@ class ShopOrderTransactionController extends Controller
     {
         $shopOrderTransaction = ShopOrderTransaction::find($request->input('id'));
         $shopOrderTransaction->is_pickup = $request->input('is_pickup');
+        $shopOrderTransaction->preparer_id = $request->input('preparer_id');
+        $shopOrderTransaction->checker_id = $request->input('checker_id');
+        $shopOrderTransaction->dispatcher_id = $request->input('dispatcher_id');
         $shopOrderTransaction->save();
 
         $customer = Customer::find($request->input('customer_id'));

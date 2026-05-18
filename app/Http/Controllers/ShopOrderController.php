@@ -9,6 +9,7 @@ use App\Models\BranchStockTransaction;
 use App\Models\Product;
 use App\Models\ModeOfPayment;
 use App\Models\Discount;
+use App\Models\OutOfStockHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Mail;
@@ -85,126 +86,255 @@ class ShopOrderController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'shop_transaction_id' => 'required'
-        ]);
+        try {
 
-        // $item = UserProfile::create($data);
-
-        // Create Post
-        $shopOrder = new ShopOrder; 
-        $shopOrder->shop_transaction_id	= $request->input('shop_transaction_id');
-        $shopOrder->branch_stock_transaction_id	= $request->input('branch_stock_transaction_id');
-        $shopOrder->mark_up_product_id = $request->input('mark_up_product_id');
-        $shopOrder->product_id = $request->input('product_id');
-        $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
-        $shopOrder->shop_order_price = $request->input('shop_order_price');
-        $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
-       if ($request->input('shop_order_profit') > 0) {
-           $shopOrder->shop_order_profit = $request->input('shop_order_profit');
-          } else { // no profit
-           $shopOrder->shop_order_profit = 0;
-       }
-        $shopOrder->discount_percentage = $request->input('discount_percentage');
-        $shopOrder->discount = $request->input('discount');
-        $shopOrder->discount_amount = $request->input('discount_amount');
-        $shopOrder->fixed_price = $request->input('fixed_price');;
-
-        $shopOrder->save();
-        
-        if ($request->input('shop_order_price') <  $request->input('fixed_price')) { 
-           $discount = new Discount;
-           $discount->shop_order_id = $shopOrder->id;
-           $discount->discount_amount = $request->input('discount_amount') *  $request->input('shop_order_quantity');
-           if ($request->input('shop_order_profit') < 1) {
-             $discount->loss_amount = $request->input('shop_order_profit');
-           }
-           $discount->status = 0;
-           $discount->save();
-       }
-
-        $data = DB::table('shop_order')
-          ->select(DB::raw('SUM(shop_order_profit) as shop_order_total_profit'),DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'), DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price'))    
-          ->where('shop_order.shop_transaction_id', $request->input('shop_transaction_id'))
-          ->first();
-    
-
-        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_transaction_id'));
-        $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
-        $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
-        $shopOrderTransaction->profit = $data->shop_order_total_profit;
-        $shopOrderTransaction->status = 2;
-        $shopOrderTransaction->save();
-
-        $reducedStock = new ReducedStock;
-        $reducedStock->shop_order_id = $shopOrder->id;
-        $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
-        $reducedStock->reduced_stock = $request->input('shop_order_quantity');
-        $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
-        $reducedStock->save();
-
-        // $branchStockTransaction = BranchStockTransaction::find($request->input('branch_stock_transaction_id'));
-        // $branchStockTransaction->branch_stock_transaction = ($branchStockTransaction->branch_stock_transaction - $request->input('shop_order_quantity'));
-        // $branchStockTransaction->save();
-
-        $product = Product::find($request->input('product_id'));
-        if ($request->input('business_type') === 'WHOLESALE') {
-          $product->stock = ($product->stock - $request->input('shop_order_quantity'));
-          if ($product->quantity > 1) {
-            $wsMultiplier = $request->input('shop_order_quantity') * $product->quantity;
-            $product->stock_pc =  $product->stock_pc - $wsMultiplier;
-          }
-          $product->save();
-        } else {
-          $newStock = $product->stock_pc - $request->input('shop_order_quantity');
-          $product->stock_pc = $newStock;
-          $product->stock = floor((int)($product->stock_pc / $product->quantity));
-          $product->save();
-        }
-        // email no stock
-        $shouldSendEmail = false;
-
-        if ($product->quantity == 1 && $product->stock == 0) {
-            $shouldSendEmail = true;
-        } elseif ($product->quantity > 1 && $product->stock_pc == 0) {
-            $shouldSendEmail = true;
-        }
-
-        if ($shouldSendEmail) {
-            // Get all active emails
-            $emails = DB::table('email')
-                ->where('status', 1)
-                ->pluck('email')
-                ->toArray();
-
-            // Merge product info into request
-            $request->mergeIfMissing([
-                'product_name' => $product->product_name,
-                'price' => $product->price,
-                'weight' => $product->weight,
-                'quantity' => $product->quantity,
-                'variation' => $product->variation,
-                'email_date' => Carbon::now('GMT+8'),
-                'emails' => $emails
+            $this->validate($request, [
+                'shop_transaction_id' => 'required'
             ]);
 
-            // Send email
-            Mail::send('no_stock', ['params' => $request], function ($m) use ($emails) {
-                $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
-                $m->to($emails) // pass array directly
-                  ->subject('Out of Stock');
-            });
+            $shopOrder = new ShopOrder;
+            $shopOrder->shop_transaction_id = $request->input('shop_transaction_id');
+            $shopOrder->branch_stock_transaction_id = $request->input('branch_stock_transaction_id');
+            $shopOrder->mark_up_product_id = $request->input('mark_up_product_id');
+            $shopOrder->product_id = $request->input('product_id');
+            $shopOrder->shop_order_quantity = $request->input('shop_order_quantity');
+            $shopOrder->shop_order_price = $request->input('shop_order_price');
+            $shopOrder->shop_order_total_price = $request->input('shop_order_total_price');
+
+            if ($request->input('shop_order_profit') > 0) {
+                $shopOrder->shop_order_profit = $request->input('shop_order_profit');
+            } else {
+                $shopOrder->shop_order_profit = 0;
+            }
+
+            $shopOrder->discount_percentage = $request->input('discount_percentage');
+            $shopOrder->discount = $request->input('discount');
+            $shopOrder->discount_amount = $request->input('discount_amount');
+            $shopOrder->fixed_price = $request->input('fixed_price');
+
+            $shopOrder->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | DISCOUNT
+            |--------------------------------------------------------------------------
+            */
+            if ($request->input('shop_order_price') < $request->input('fixed_price')) {
+
+                $discount = new Discount;
+                $discount->shop_order_id = $shopOrder->id;
+                $discount->discount_amount =
+                    $request->input('discount_amount') *
+                    $request->input('shop_order_quantity');
+
+                if ($request->input('shop_order_profit') < 1) {
+                    $discount->loss_amount = $request->input('shop_order_profit');
+                }
+
+                $discount->status = 0;
+                $discount->save();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | COMPUTE TOTALS
+            |--------------------------------------------------------------------------
+            */
+            $data = DB::table('shop_order')
+                ->select(
+                    DB::raw('SUM(shop_order_profit) as shop_order_total_profit'),
+                    DB::raw('SUM(shop_order_quantity) as shop_order_transaction_total_quantity'),
+                    DB::raw('SUM(shop_order_total_price) as shop_order_transaction_total_price')
+                )
+                ->where('shop_order.shop_transaction_id', $request->input('shop_transaction_id'))
+                ->first();
+
+            $shopOrderTransaction = ShopOrderTransaction::find(
+                $request->input('shop_transaction_id')
+            );
+
+            if (!$shopOrderTransaction) {
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Shop Order Transaction not found'
+                ], 400);
+            }
+
+            $shopOrderTransaction->shop_order_transaction_total_quantity =
+                $data->shop_order_transaction_total_quantity;
+
+            $shopOrderTransaction->shop_order_transaction_total_price =
+                $data->shop_order_transaction_total_price;
+
+            $shopOrderTransaction->profit =
+                $data->shop_order_total_profit;
+
+            $shopOrderTransaction->status = 2;
+            $shopOrderTransaction->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | REDUCED STOCK
+            |--------------------------------------------------------------------------
+            */
+            $reducedStock = new ReducedStock;
+            $reducedStock->shop_order_id = $shopOrder->id;
+            $reducedStock->mark_up_product_id = $request->input('mark_up_product_id');
+            $reducedStock->reduced_stock = $request->input('shop_order_quantity');
+            $reducedStock->reduced_stock_by_shop_id = $shopOrderTransaction->shop_id;
+            $reducedStock->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | PRODUCT STOCK
+            |--------------------------------------------------------------------------
+            */
+            $product = Product::find($request->input('product_id'));
+
+            if (!$product) {
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Product not found'
+                ], 400);
+            }
+
+            if ($request->input('business_type') === 'WHOLESALE') {
+
+                $product->stock =
+                    ($product->stock - $request->input('shop_order_quantity'));
+
+                if ($product->quantity > 1) {
+
+                    $wsMultiplier =
+                        $request->input('shop_order_quantity') *
+                        $product->quantity;
+
+                    $product->stock_pc =
+                        $product->stock_pc - $wsMultiplier;
+                }
+
+                $product->save();
+
+            } else {
+
+                $newStock =
+                    $product->stock_pc - $request->input('shop_order_quantity');
+
+                $product->stock_pc = $newStock;
+
+                $product->stock = floor(
+                    (int)($product->stock_pc / $product->quantity)
+                );
+
+                $product->save();
+            }
+
+            $shouldSendEmail = false;
+            $subject = '';
+            $html = '';
+
+            /*
+            |--------------------------------------------------------------------------
+            | CHECK OUT OF STOCK FIRST
+            |--------------------------------------------------------------------------
+            */
+
+            if ($product->quantity == 1 && $product->stock == 0) {
+
+                $shouldSendEmail = true;
+                $subject = 'Out of Stock';
+                $html = 'no_stock';
+
+            } elseif ($product->quantity > 1 && $product->stock_pc == 0) {
+
+                $shouldSendEmail = true;
+                $subject = 'Out of Stock';
+                $html = 'no_stock';
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | CHECK STOCK WARNING ONLY IF NOT OUT OF STOCK
+                |--------------------------------------------------------------------------
+                */
+                if ($product->stock_warning_type === 'WHOLESALE') {
+
+                    if ($product->stock < $product->stock_warning) {
+                        $shouldSendEmail = true;
+                        $subject = 'Stock Warning';
+                        $html = 'stock_warning';
+                    }
+
+                } elseif ($product->stock_warning_type === 'RETAIL') {
+
+                    if ($product->stock_pc < $product->stock_warning) {
+                        $shouldSendEmail = true;
+                        $subject = 'Stock Warning';
+                        $html = 'stock_warning';
+                    }
+                }
+            }
+
+            if ($shouldSendEmail) {
+
+                $emails = DB::table('email')
+                    ->where('status', 1)
+                    ->pluck('email')
+                    ->toArray();
+
+                $request->mergeIfMissing([
+                    'product_name' => $product->product_name,
+                    'price' => $product->price,
+                    'weight' => $product->weight,
+                    'quantity' => $product->quantity,
+                    'variation' => $product->variation,
+                    'stock_warning' => $product->stock_warning,
+                    'stock_warning_type' => $product->stock_warning_type,
+                    'stock_v2' => $product->stock,
+                    'stock_pc_v2' => $product->stock_pc,
+                    'email_date' => Carbon::now('GMT+8'),
+                    'emails' => $emails
+                ]);
+
+                Mail::send($html, ['params' => $request], function ($m) use ($emails, $subject) {
+                    $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
+                    $m->to($emails)->subject($subject);
+                });
+
+                if ($html === 'no_stock') {
+                    $outOfStockHistory = new OutOfStockHistory;
+                    $outOfStockHistory->product_id = $request->input('product_id');
+                    $outOfStockHistory->save();
+                }
+            }
+            /*
+            |--------------------------------------------------------------------------
+            | SUCCESS RESPONSE
+            |--------------------------------------------------------------------------
+            */
+            return response()->json([
+                'code' => 200,
+                'message' => 'Successfully Added',
+                'shouldSendEmail' => $shouldSendEmail
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validation Error',
+                'errors' => $e->errors()
+            ], 400);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'code' => 500,
+                'message' => 'Server Error',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-
-      //  DB::table('mode_of_payment')->where('shop_order_transaction_id', $shopOrderTransaction->id)->delete();
-
-        $response = [
-              'message' => "Successfully Added",
-              'shouldSendEmail' => $shouldSendEmail,
-              'request' => $request
-          ];
-        return  response()->json($response);
     }
 
     /**
