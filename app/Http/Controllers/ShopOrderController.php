@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ModeOfPayment;
 use App\Models\Discount;
 use App\Models\OutOfStockHistory;
+use App\Models\MarkUpProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Mail;
@@ -91,6 +92,48 @@ class ShopOrderController extends Controller
             $this->validate($request, [
                 'shop_transaction_id' => 'required'
             ]);
+            $markUp = MarkUpProduct::find($request->input('mark_up_product_id'));
+            $productInventory = Product::find($request->input('product_id'));
+
+            $markUpInventory = MarkUpProduct::join('products as p', 'mark_up_product.product_id', '=', 'p.id')
+            ->select('mark_up_product.*', 'p.product_name', 'p.stock', 'p.stock_pc')
+            ->where('mark_up_product.id', $request->input('mark_up_product_id'))
+            ->first();
+
+            $shopData = ShopOrder::where('mark_up_product_id', $request->input('mark_up_product_id'))
+                ->where('shop_transaction_id', $request->input('shop_transaction_id'))
+                ->first();
+
+            // validation
+            if ($shopData) {
+                return response()->json([
+                    'code' => 409,
+                    'message' => 'Product already added to Cart'
+                ], 409);
+            }
+
+            if ($markUpInventory->business_type === 'WHOLESALE') {
+                $stockInventory = $markUpInventory->stock;
+            } else {
+                $stockInventory = $markUpInventory->stock_pc;
+            }
+
+            if ($stockInventory < $request->input('shop_order_quantity')) {
+                return response()->json([
+                    'code' => 409,
+                    'message' => 'Insufficient stock available. Current stock: '
+                        . $stockInventory
+                        . ' (' . $markUpInventory->business_type . ')',
+                ], 409);
+            }
+
+            if ($markUpInventory->price != 0 &&  $request->input('shop_order_price') < $markUpInventory->price) {
+                return response()->json([
+                    'code' => 409,
+                    'message' => 'Price cannot be lower than capital.'
+                ], 409);
+            }
+
 
             $shopOrder = new ShopOrder;
             $shopOrder->shop_transaction_id = $request->input('shop_transaction_id');
@@ -315,7 +358,7 @@ class ShopOrderController extends Controller
             */
             return response()->json([
                 'code' => 200,
-                'message' => 'Successfully Added',
+                'message' => 'Successfully Added to Cart',
                 'shouldSendEmail' => $shouldSendEmail
             ], 200);
 
