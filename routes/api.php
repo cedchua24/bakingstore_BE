@@ -213,6 +213,8 @@ Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
 Route::get('/markUpPrice/fetchMarkUpBySupplierId/{id}', [MarkUpProductController::class, 'fetchMarkUpBySupplierId']);
 Route::get('/markUpPrice/fetchMarkUpShoporder/{id}', [MarkUpProductController::class, 'fetchMarkUpShoporder']);
+Route::get('/markUpPrice/fetchMarkupByProductId/{id}', [MarkUpProductController::class, 'fetchMarkupByProductId']);
+
 
 
 
