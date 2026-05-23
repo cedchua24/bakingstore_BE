@@ -146,6 +146,19 @@ class MarkUpProductController extends Controller
         return response()->json($data);
     }
 
+        public function fetchMarkupByProductId($id)
+    {
+        $data = DB::table('mark_up_product as mup')
+          ->join('products as p', 'mup.product_id', '=', 'p.id')
+          ->select('mup.id','p.product_name', 'p.quantity',
+              'p.weight', 'p.category_id', 'p.variation', 'p.packaging',  'mup.id', 'mup.price', 'mup.mark_up_price', 'mup.mark_up_option',
+           'mup.new_price', 'mup.profit', 'mup.status', 'mup.business_type', 'mup.created_at')    
+          ->where('p.id', $id)
+          ->orderBy('mup.id', 'DESC')
+          ->get();
+        return response()->json($data);
+    }
+
     /**
      * Show the form for editing the specified resource.
      *
