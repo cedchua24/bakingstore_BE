@@ -58,6 +58,8 @@ use App\Http\Controllers\BalanceTypeController;
 use App\Http\Controllers\ExpenseTypeV2Controller;
 use App\Http\Controllers\ChartOfAccountsController;
 use App\Http\Controllers\OutOfStockHistoryController;
+use App\Http\Controllers\CheckListController;
+use App\Http\Controllers\CheckListTransactionController;
 
 
 
@@ -161,7 +163,12 @@ Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'cu
 Route::post('/customers/customerReorder/{id}', [CustomerController::class, 'customerReorder']);
 
 
+Route::resource('/checkList', 'App\Http\Controllers\CheckListController');
 Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetchCustomerByDate']);
+
+Route::resource('/checkListTransaction', 'App\Http\Controllers\CheckListTransactionController');
+Route::post('/checkListTransaction/fetchCheckListByDate', [CheckListTransactionController::class, 'fetchCheckListByDate']);
+
 
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
 Route::get('/customers/fetchCustomerTransactionList/{id}', [CustomerController::class, 'fetchCustomerTransactionList']);
@@ -264,6 +271,7 @@ Route::get('/outOfStockHistory/fetchOOSbyProductId/{id}', [OutOfStockHistoryCont
 
 //Route::get('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
 Route::post('/dashboard/submitStartOfDay/{id}', [DashBoardController::class, 'submitStartOfDay']);
+Route::post('/dashboard/submitExportPriceList/{id}', [DashBoardController::class, 'submitExportPriceList']);
 Route::resource('/dashboard', 'App\Http\Controllers\DashBoardController');
 Route::resource('/dailySession', 'App\Http\Controllers\DailySessionController');
 Route::get('/dailySession/fetchDailySessionByDate/{id}', [DailySessionController::class, 'fetchDailySessionByDate']);

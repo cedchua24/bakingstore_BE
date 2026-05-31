@@ -96,7 +96,7 @@ class ShopOrderController extends Controller
             $productInventory = Product::find($request->input('product_id'));
 
             $markUpInventory = MarkUpProduct::join('products as p', 'mark_up_product.product_id', '=', 'p.id')
-            ->select('mark_up_product.*', 'p.product_name', 'p.stock', 'p.stock_pc')
+            ->select('mark_up_product.*', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.sale_price')
             ->where('mark_up_product.id', $request->input('mark_up_product_id'))
             ->first();
 
@@ -127,7 +127,7 @@ class ShopOrderController extends Controller
                 ], 409);
             }
 
-            if ($markUpInventory->price != 0 &&  $request->input('shop_order_price') < $markUpInventory->price) {
+            if ($markUpInventory->price != 0 && $request->input('shop_order_price') < $markUpInventory->price && $markUpInventory->sale_price < 1) {
                 return response()->json([
                     'code' => 409,
                     'message' => 'Price cannot be lower than capital.'
