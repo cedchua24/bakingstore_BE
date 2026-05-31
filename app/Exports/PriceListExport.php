@@ -2,22 +2,27 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\ProductExcel;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Illuminate\Support\Facades\DB;
+
+
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithDrawings;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Illuminate\Support\Collection;
 
-class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, WithEvents, ShouldAutoSize, WithCustomStartCell, WithDrawings
+
+class PriceListExport implements FromCollection, WithHeadings, WithStyles, WithEvents, ShouldAutoSize, WithCustomStartCell, WithDrawings
 {
     private $categoryRows = [];
     private $headingRow = 10;
@@ -25,28 +30,33 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
 
     public function collection()
     {
-        $data = DB::table('category as c')
-            ->join('products as p', 'c.id', '=', 'p.category_id')
-            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+        $data = DB::table('mark_up_product as mup')
+            ->join('products as p', 'mup.product_id', '=', 'p.id')
+            ->join('category as c', 'p.category_id', '=', 'c.id')
+            ->leftJoin('brand as br', 'p.brand_id', '=', 'br.id')
             ->select(
-                'p.id',
                 'c.category_name',
-                'b.brand_name',
+                'br.brand_name',
                 'p.product_name',
-                'p.price',
+                'mup.new_price',
                 'p.quantity',
-                'p.weight',
+                'p.packaging',
                 'p.variation',
-                DB::raw("CASE WHEN p.stock <= 0 THEN 'OUT OF STOCK' ELSE p.stock END as stock"),
-                DB::raw("CASE WHEN p.stock_pc <= 0 THEN 'OUT OF STOCK' ELSE p.stock_pc END as stock_pc"),
-                'p.stock_warning',
-                DB::raw("'' as input_stock_warning"),
-                DB::raw("'' as approval")
+                'p.weight',
+                'mup.business_type'
             )
+            ->selectRaw("
+                CASE 
+                    WHEN mup.business_type = 'WHOLESALE' 
+                    THEN p.stock 
+                    ELSE p.stock_pc 
+                END as stock
+            ")
+            ->where('mup.status', 1)
             ->where('p.disabled', 0)
             ->orderByRaw('c.ordering IS NULL, c.ordering = 0, c.ordering ASC')
             ->orderBy('c.category_name', 'asc')
-            ->orderBy('b.brand_name', 'asc')
+            ->orderBy('br.brand_name', 'asc')
             ->orderBy('p.product_name', 'asc')
             ->get()
             ->groupBy('category_name');
@@ -61,37 +71,26 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                 '',
                 '',
                 '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
             ]);
 
             $this->categoryRows[] = $rowNumber;
             $rowNumber++;
 
             foreach ($items as $item) {
-                $unitWeight = $item->quantity > 0
-                    ? $item->weight / $item->quantity
-                    : $item->weight;
-
-                $quantity = $item->quantity > 1
-                    ? $item->quantity . ' x ' . $unitWeight . $item->variation
-                    : $unitWeight . $item->variation;
-
                 $rows->push([
-                    $item->id,
-                    $item->brand_name,
-                    $item->product_name,
-                    $item->price,
-                    $quantity,
-                    $item->stock,
-                    $item->stock_pc,
-                    $item->stock_warning,
-                    $item->input_stock_warning,
-                    $item->approval,
+                    $item->business_type == 'WHOLESALE'
+                        ? $item->product_name . ' ' . $item->packaging
+                        : $item->product_name,
+
+                    $item->brand_name ?? '',
+
+                    number_format($item->new_price, 2),
+
+                    $item->business_type == 'WHOLESALE'
+                        ? $item->quantity . ' x ' . ($item->weight / $item->quantity) . $item->variation
+                        : ($item->weight / $item->quantity) . $item->variation,
+
+                    $item->stock == 0 ? 'OUT OF STOCK' : $item->stock,
                 ]);
 
                 $rowNumber++;
@@ -104,17 +103,11 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
     public function headings(): array
     {
         return [
-            'ID',
-            'Brand Name',
             'Product Name',
+            'Brand Name',
             'Price',
             'Quantity',
             'Stock',
-            'Stock (PC)',
-            'Stock Warning',
-            'Input Actual Stock',
-            'Input Actual Stock_PC',
-            'Approval',
         ];
     }
 
@@ -128,10 +121,10 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
         $drawing = new Drawing();
         $drawing->setName('MDR Logo');
         $drawing->setDescription('MDR Logo');
-        $drawing->setPath($this->logoPath());
+        $drawing->setPath(public_path('img/MDR_LOGO.jpg'));
         $drawing->setHeight(150);
-        $drawing->setCoordinates('E1');
-        $drawing->setOffsetX(20);
+        $drawing->setCoordinates('B1');
+        $drawing->setOffsetX(30);
         $drawing->setOffsetY(5);
 
         return $drawing;
@@ -163,11 +156,11 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                 $sheet = $event->sheet->getDelegate();
                 $shop = $this->getActiveShop();
 
-                $sheet->mergeCells('A1:K4');
-                $sheet->mergeCells('A5:K5');
-                $sheet->mergeCells('A6:K6');
-                $sheet->mergeCells('A7:K7');
-                $sheet->mergeCells('A8:K8');
+                $sheet->mergeCells('A1:E4');
+                $sheet->mergeCells('A5:E5');
+                $sheet->mergeCells('A6:E6');
+                $sheet->mergeCells('A7:E7');
+                $sheet->mergeCells('A8:E8');
 
                 $sheet->getRowDimension(1)->setRowHeight(35);
                 $sheet->getRowDimension(2)->setRowHeight(35);
@@ -178,21 +171,20 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                 $sheet->getRowDimension(7)->setRowHeight(30);
                 $sheet->getRowDimension(8)->setRowHeight(22);
                 $sheet->getRowDimension(9)->setRowHeight(8);
-                $sheet->getRowDimension($this->headingRow)->setRowHeight(22);
 
                 $sheet->setCellValue('A5', $shop ? $shop->shop_name : '');
                 $sheet->setCellValue('A6', 'Contact Number: ' . ($shop ? $shop->contact_number : ''));
                 $sheet->setCellValue('A7', 'Address: ' . ($shop ? $shop->address : ''));
-                $sheet->setCellValue('A8', 'Updated Product Report as of ' . now()->format('F d, Y'));
+                $sheet->setCellValue('A8', 'Updated Price List as of ' . now()->format('F d, Y'));
 
-                $sheet->getStyle('A1:K9')->applyFromArray([
+                $sheet->getStyle('A1:E9')->applyFromArray([
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => 'FFFFFF'],
                     ],
                 ]);
 
-                $sheet->getStyle('A5:K5')->applyFromArray([
+                $sheet->getStyle('A5:E5')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'size' => 18,
@@ -203,7 +195,7 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                     ],
                 ]);
 
-                $sheet->getStyle('A6:K7')->applyFromArray([
+                $sheet->getStyle('A6:E7')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'size' => 11,
@@ -215,7 +207,7 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                     ],
                 ]);
 
-                $sheet->getStyle('A8:K8')->applyFromArray([
+                $sheet->getStyle('A8:E8')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'italic' => true,
@@ -231,12 +223,20 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                     ],
                 ]);
 
-                $sheet->getStyle('A1:K9')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A1:E9')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getRowDimension($this->headingRow)->setRowHeight(22);
+
                 $sheet->freezePane('A' . ($this->headingRow + 1));
+
+                $sheet->getStyle('A:E')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('C:C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('E:E')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("A{$this->headingRow}:E{$this->headingRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 $highestRow = $sheet->getHighestRow();
 
-                $sheet->getStyle("A{$this->headingRow}:K{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A{$this->headingRow}:E{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -245,16 +245,10 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                     ],
                 ]);
 
-                $sheet->getStyle('A:K')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("A{$this->headingRow}:K{$this->headingRow}")->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('E:E')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle('G:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
                 foreach ($this->categoryRows as $row) {
-                    $sheet->mergeCells("A{$row}:K{$row}");
+                    $sheet->mergeCells("A{$row}:E{$row}");
 
-                    $sheet->getStyle("A{$row}:K{$row}")->applyFromArray([
+                    $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
                         'font' => [
                             'bold' => true,
                             'color' => ['rgb' => 'FFFFFF'],
@@ -262,7 +256,7 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                         ],
                         'fill' => [
                             'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => '6B7280'],
+                            'startColor' => ['rgb' => '800000'],
                         ],
                         'alignment' => [
                             'horizontal' => Alignment::HORIZONTAL_LEFT,
@@ -271,15 +265,15 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
                 }
 
                 for ($row = $this->headingRow + 1; $row <= $highestRow; $row++) {
-                    foreach (['G', 'H'] as $column) {
-                        if (trim((string) $sheet->getCell("{$column}{$row}")->getValue()) === 'OUT OF STOCK') {
-                            $sheet->getStyle("{$column}{$row}")->applyFromArray([
-                                'font' => [
-                                    'bold' => true,
-                                    'color' => ['rgb' => 'DC2626'],
-                                ],
-                            ]);
-                        }
+                    $stock = $sheet->getCell("E{$row}")->getValue();
+
+                    if ($stock === 'OUT OF STOCK') {
+                        $sheet->getStyle("E{$row}")->applyFromArray([
+                            'font' => [
+                                'bold' => true,
+                                'color' => ['rgb' => 'DC2626'],
+                            ],
+                        ]);
                     }
                 }
             },
@@ -296,14 +290,5 @@ class ProductExcelExport implements FromCollection, WithHeadings, WithStyles, Wi
         }
 
         return $this->shop;
-    }
-
-    private function logoPath()
-    {
-        $croppedLogo = public_path('img/MDR_LOGO_CROPPED.jpg');
-
-        return file_exists($croppedLogo)
-            ? $croppedLogo
-            : public_path('img/MDR_LOGO.jpg');
     }
 }
