@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('assignee');
             $table->integer('checker');
             $table->string('comment');
+            $table->integer('grade');
             $table->string('status');
             $table->timestamps();
         });

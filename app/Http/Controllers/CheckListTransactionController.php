@@ -48,6 +48,7 @@ class CheckListTransactionController extends Controller
         $checkListTransaction->assignee = $request->input('assignee');
         $checkListTransaction->checker = $request->input('checker');
         $checkListTransaction->comment = $request->input('comment');
+        $checkListTransaction->grade = 0;
         $checkListTransaction->date = $request->input('date');
         $checkListTransaction->status = $request->input('status');
         $checkListTransaction->save(); 
@@ -77,7 +78,7 @@ class CheckListTransactionController extends Controller
                 'cl.check_list_name',
                 'cl.time_of_day',
                 'cl.frequency',
-
+                'cht.grade',
                 'cht.id as check_list_transaction_id',
                 'cht.assignee',
                 'cht.checker',
@@ -149,6 +150,7 @@ class CheckListTransactionController extends Controller
                 'chl.date',
                 'chl.check_list_id',
                 'chl.comment',
+                'chl.grade',
                 'chl.status',
                 'chl.assignee',
                 'chl.checker',
@@ -173,6 +175,7 @@ class CheckListTransactionController extends Controller
                 'chl.check_list_id',
                 'chl.comment',
                 'chl.status',
+                'chl.grade',
                 'chl.assignee',
                 'chl.checker',
                 'cl.time_of_day',
@@ -197,7 +200,9 @@ class CheckListTransactionController extends Controller
         $checkListTransaction->check_list_id = $request->input('check_list_id');
         $checkListTransaction->assignee = $request->input('assignee');
         $checkListTransaction->checker = $request->input('checker');
+        $checkListTransaction->comment = $request->input('comment');
         $checkListTransaction->date = $request->input('date');
+        $checkListTransaction->grade = $request->input('grade');
         $checkListTransaction->status = $request->input('status');
         $checkListTransaction->save(); 
         return  response()->json($checkListTransaction);

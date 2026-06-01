@@ -57,6 +57,7 @@ class CheckListTransactionService
             $checkListTransaction->check_list_id = $checkList->id;
             $checkListTransaction->assignee = $checkList->assignee;
             $checkListTransaction->checker = $checkList->checker;
+            $checkListTransaction->grade = 0;
             $checkListTransaction->status = 'PENDING';
             $checkListTransaction->date = $date;
             $checkListTransaction->save();

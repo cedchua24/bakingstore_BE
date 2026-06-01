@@ -15,15 +15,19 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::all();
-        // return view('categories.index')->with('categories', $categories);
+        $categories = Category::orderBy('ordering', 'asc')->get();
+
         return response()->json($categories);
     }
 
     public function getId($category_name)
     {
-          $category = DB::table('category')->where('category_name', $category_name)->get();
-          return response()->json($category);
+        $category = DB::table('category')
+            ->where('category_name', $category_name)
+            ->orderBy('ordering', 'asc')
+            ->get();
+
+        return response()->json($category);
     }
 
     /**
@@ -53,7 +57,9 @@ class CategoryController extends Controller
         // Create Post
         $categories = new Category;
         $categories->category_name = $request->input('category_name');
-        $categories->save();
+        $categories->ordering = $request->input('ordering');
+        $categories->status = 0;
+        $categories->save(); 
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($categories);
     }
@@ -95,6 +101,8 @@ class CategoryController extends Controller
         $categories = Category::find($category->id);
         
         $categories->category_name = $request->input('category_name');
+        $categories->ordering = $request->input('ordering');
+        $categories->status = $request->input('status');
         $categories->save();
       
 
