@@ -13,6 +13,8 @@ use App\Models\OutOfStockHistory;
 use App\Models\MarkUpProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Mail;
 use Carbon\Carbon;
 
@@ -39,7 +41,7 @@ class ShopOrderController extends Controller
             ->join('products', 'products.id', '=', 'mup.product_id')
             ->select('shop_order.id', 'shop_order.discount_amount', 'shop_order.discount', 'shop_order.discount_percentage', 
             'mup.new_price', 'mup.profit', 'shop_order.branch_stock_transaction_id', 'shop_order.shop_order_price', 'shop_order.shop_order_profit', 'shop_order.shop_order_quantity', 'shop_order.shop_transaction_id',
-             'shop_order.shop_order_total_price',
+             'shop_order.shop_order_total_price', 'mup.id as mark_up_product_id',
              'products.product_name', 'products.variation', 'products.id as product_id', 'products.stock', 'products.sale_price', 'products.stock_pc',
               'mup.business_type', 'mup.id as mark_up_product_id')    
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN products.packaging ELSE products.variation END) as unit")    
@@ -100,12 +102,32 @@ class ShopOrderController extends Controller
             ->where('mark_up_product.id', $request->input('mark_up_product_id'))
             ->first();
 
+            if (!$markUpInventory) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Mark up product not found');
+
+                return response()->json([
+                    'code' => 400,
+                    'message' => 'Mark up product not found'
+                ], 400);
+            }
+
+            if (!$productInventory) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Product not found');
+
+                return response()->json([
+                    'code' => 400,
+                    'message' => 'Product not found'
+                ], 400);
+            }
+
             $shopData = ShopOrder::where('mark_up_product_id', $request->input('mark_up_product_id'))
                 ->where('shop_transaction_id', $request->input('shop_transaction_id'))
                 ->first();
 
             // validation
             if ($shopData) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Product already added to Cart');
+
                 return response()->json([
                     'code' => 409,
                     'message' => 'Product already added to Cart'
@@ -119,6 +141,10 @@ class ShopOrderController extends Controller
             }
 
             if ($stockInventory < $request->input('shop_order_quantity')) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Insufficient stock available. Current stock: '
+                    . $stockInventory
+                    . ' (' . $markUpInventory->business_type . ')');
+
                 return response()->json([
                     'code' => 409,
                     'message' => 'Insufficient stock available. Current stock: '
@@ -128,6 +154,8 @@ class ShopOrderController extends Controller
             }
 
             if ($markUpInventory->price != 0 && $request->input('shop_order_price') < $markUpInventory->price && $markUpInventory->sale_price < 1) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Price cannot be lower than capital.');
+
                 return response()->json([
                     'code' => 409,
                     'message' => 'Price cannot be lower than capital.'
@@ -166,12 +194,21 @@ class ShopOrderController extends Controller
 
                 $discount = new Discount;
                 $discount->shop_order_id = $shopOrder->id;
-                $discount->discount_amount =
-                    $request->input('discount_amount') *
-                    $request->input('shop_order_quantity');
+
+                if (Schema::hasColumn('discount', 'discount_amount')) {
+                    $discount->discount_amount =
+                        $request->input('discount_amount') *
+                        $request->input('shop_order_quantity');
+                }
 
                 if ($request->input('shop_order_profit') < 1) {
                     $discount->loss_amount = $request->input('shop_order_profit');
+                } elseif (Schema::hasColumn('discount', 'loss_amount')) {
+                    $discount->loss_amount = 0;
+                }
+
+                if (Schema::hasColumn('discount', 'date')) {
+                    $discount->date = Carbon::now('GMT+8')->format('Y-m-d');
                 }
 
                 $discount->status = 0;
@@ -197,6 +234,8 @@ class ShopOrderController extends Controller
             );
 
             if (!$shopOrderTransaction) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Shop Order Transaction not found');
+
                 return response()->json([
                     'status' => 400,
                     'message' => 'Shop Order Transaction not found'
@@ -235,13 +274,15 @@ class ShopOrderController extends Controller
             $product = Product::find($request->input('product_id'));
 
             if (!$product) {
+                $this->storeAuditTrailMessage($request, 'Shop Order Store API', 'validation_error', 'Product not found');
+
                 return response()->json([
                     'status' => 400,
                     'message' => 'Product not found'
                 ], 400);
             }
 
-            if ($request->input('business_type') === 'WHOLESALE') {
+            if ($markUpInventory->business_type === 'WHOLESALE') {
 
                 $product->stock =
                     ($product->stock - $request->input('shop_order_quantity'));
@@ -364,6 +405,8 @@ class ShopOrderController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
 
+            $this->storeAuditTrail($request, $e, 'Shop Order Store API', 'validation_exception');
+
             return response()->json([
                 'code' => 400,
                 'message' => 'Validation Error',
@@ -372,11 +415,69 @@ class ShopOrderController extends Controller
 
         } catch (\Exception $e) {
 
+            $this->storeAuditTrail($request, $e, 'Shop Order Store API', 'exception');
+
             return response()->json([
                 'code' => 500,
-                'message' => 'Server Error',
+                'message' => $e->getMessage(),
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function storeAuditTrail(Request $request, \Throwable $exception, $action, $eventType)
+    {
+        try {
+            DB::table('audit_trail')->insert([
+                'module' => 'Shop Order',
+                'action' => $action,
+                'event_type' => $eventType,
+                'request_method' => $request->method(),
+                'endpoint' => $request->fullUrl(),
+                'user_id' => optional($request->user())->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'request_payload' => json_encode($request->all()),
+                'request_headers' => json_encode($request->headers->all()),
+                'exception_class' => get_class($exception),
+                'exception_message' => $exception->getMessage(),
+                'exception_file' => $exception->getFile(),
+                'exception_line' => $exception->getLine(),
+                'stack_trace' => $exception->getTraceAsString(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $auditException) {
+            Log::error('Failed to store shop order audit trail', [
+                'error' => $auditException->getMessage(),
+                'original_error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function storeAuditTrailMessage(Request $request, $action, $eventType, $message)
+    {
+        try {
+            DB::table('audit_trail')->insert([
+                'module' => 'Shop Order',
+                'action' => $action,
+                'event_type' => $eventType,
+                'request_method' => $request->method(),
+                'endpoint' => $request->fullUrl(),
+                'user_id' => optional($request->user())->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'request_payload' => json_encode($request->all()),
+                'request_headers' => json_encode($request->headers->all()),
+                'exception_message' => $message,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $auditException) {
+            Log::error('Failed to store shop order validation audit trail', [
+                'error' => $auditException->getMessage(),
+                'message' => $message,
+            ]);
         }
     }
 
@@ -413,15 +514,92 @@ class ShopOrderController extends Controller
      */
     public function update(Request $request, ShopOrder $shopOrder)
     {
+        try {
+        $this->validate($request, [
+            'shop_transaction_id' => 'required',
+            'mark_up_product_id' => 'required',
+            'product_id' => 'required',
+            'shop_order_quantity' => 'required',
+            'shop_order_price' => 'required',
+            'shop_order_total_price' => 'required',
+            'fixed_price' => 'required',
+        ]);
+
         $shopOrder = ShopOrder::find($shopOrder->id);
+        if (!$shopOrder) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Shop order not found');
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Shop order not found'
+            ], 400);
+        }
+
         $product = Product::find($request->input('product_id'));
+
+        if (!$product) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Product not found');
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Product not found'
+            ], 400);
+        }
+
+        $markUpInventory = MarkUpProduct::join('products as p', 'mark_up_product.product_id', '=', 'p.id')
+            ->select('mark_up_product.*', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.sale_price')
+            ->where('mark_up_product.id', $request->input('mark_up_product_id'))
+            ->first();
+
+        if (!$markUpInventory) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Mark up product not found');
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Mark up product not found'
+            ], 400);
+        }
+
+        $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_transaction_id'));
+
+        if (!$shopOrderTransaction) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Shop Order Transaction not found');
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Shop Order Transaction not found'
+            ], 400);
+        }
+
+        $duplicateShopOrder = ShopOrder::where('mark_up_product_id', $request->input('mark_up_product_id'))
+            ->where('shop_transaction_id', $request->input('shop_transaction_id'))
+            ->where('id', '!=', $shopOrder->id)
+            ->first();
+
+        if ($duplicateShopOrder) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Product already added to Cart');
+
+            return response()->json([
+                'code' => 409,
+                'message' => 'Product already added to Cart'
+            ], 409);
+        }
+
+        if ($markUpInventory->price != 0 && $request->input('shop_order_price') < $markUpInventory->price && $markUpInventory->sale_price < 1) {
+            $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Price cannot be lower than capital.');
+
+            return response()->json([
+                'code' => 409,
+                'message' => 'Price cannot be lower than capital.'
+            ], 409);
+        }
         
         $newStocks = ($shopOrder->shop_order_quantity - $request->input('shop_order_quantity'));
         $newStocks_pc = 0;
         $currentStock = 0;
          
 
-        if ($request->input('business_type') === 'WHOLESALE') {
+        if ($markUpInventory->business_type === 'WHOLESALE') {
            $currentStock = $product->stock;
            $newStocks_pc = ($shopOrder->shop_order_quantity * $product->weight) - ($request->input('shop_order_quantity') * $product->weight);
         } else {
@@ -430,6 +608,8 @@ class ShopOrderController extends Controller
         }
        
         if ($request->input('shop_order_quantity') > $currentStock) {
+          $this->storeAuditTrailMessage($request, 'Shop Order Update API', 'validation_error', 'Product is greater than Stock');
+
           $response = [
             'id' => $request->input('product_id'),
             'stock' => $product->stock,
@@ -468,9 +648,16 @@ class ShopOrderController extends Controller
 
            $discount = new Discount;
            $discount->shop_order_id = $shopOrder->id;
-           $discount->discount_amount = $request->input('discount_amount') * $request->input('shop_order_quantity');
+           if (Schema::hasColumn('discount', 'discount_amount')) {
+             $discount->discount_amount = $request->input('discount_amount') * $request->input('shop_order_quantity');
+           }
            if ($request->input('shop_order_profit') < 1) {
              $discount->loss_amount = $request->input('shop_order_profit') * $request->input('shop_order_quantity');
+           } elseif (Schema::hasColumn('discount', 'loss_amount')) {
+             $discount->loss_amount = 0;
+           }
+           if (Schema::hasColumn('discount', 'date')) {
+             $discount->date = Carbon::now('GMT+8')->format('Y-m-d');
            }
            $discount->status = 0;
            $discount->save();
@@ -487,7 +674,6 @@ class ShopOrderController extends Controller
           
           
 
-          $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_transaction_id'));
           $shopOrderTransaction->shop_order_transaction_total_quantity = $data->shop_order_transaction_total_quantity;
           $shopOrderTransaction->shop_order_transaction_total_price = $data->shop_order_transaction_total_price;
           $shopOrderTransaction->profit = $data->shop_order_total_profit;
@@ -506,7 +692,7 @@ class ShopOrderController extends Controller
           // $branchStockTransaction->save();
 
         
-        if ($request->input('business_type') === 'WHOLESALE') {
+        if ($markUpInventory->business_type === 'WHOLESALE') {
            $product->stock = ($product->stock + $newStocks);
            if ($product->quantity > 1) {
               $product->stock_pc =  $product->stock_pc + ($product->quantity * $newStocks);
@@ -531,14 +717,32 @@ class ShopOrderController extends Controller
 
             $response = [
               'id' => $request->input('product_id'),
-              'id' => $request->input('product_id'),
-              'id' => $request->input('product_id'),
               'stock' => $shopOrder,
               'code' => 200,
               'message' => "Successfully Added"
           ];
       }
       return  response()->json($response);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+
+            $this->storeAuditTrail($request, $e, 'Shop Order Update API', 'validation_exception');
+
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validation Error',
+                'errors' => $e->errors()
+            ], 400);
+
+        } catch (\Exception $e) {
+
+            $this->storeAuditTrail($request, $e, 'Shop Order Update API', 'exception');
+
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -549,6 +753,7 @@ class ShopOrderController extends Controller
      */
     public function destroy(Request $request, ShopOrder $shopOrder)
     {
+        try {
   
         DB::table('discount')->where('shop_order_id', $shopOrder->id)->delete();
 
@@ -621,6 +826,16 @@ class ShopOrderController extends Controller
           ];
         return  response()->json($response);
         // return response()->json($reduced_stock_id);
+        } catch (\Exception $e) {
+
+            $this->storeAuditTrail($request, $e, 'Order Customer Delete API', 'exception');
+
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     
