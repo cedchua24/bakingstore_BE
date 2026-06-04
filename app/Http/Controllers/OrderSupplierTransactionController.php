@@ -7,6 +7,7 @@ use App\Models\OrderSupplier;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class OrderSupplierTransactionController extends Controller
@@ -587,6 +588,7 @@ class OrderSupplierTransactionController extends Controller
 
         public function updateReceivedOrder($id, Request $request)
     {
+        try {
         $orderSupplierTransaction = OrderSupplierTransaction::find($id);
 
             $total_transaction_price = DB::table('order_supplier')
@@ -626,7 +628,51 @@ class OrderSupplierTransactionController extends Controller
         $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
         $orderSupplierTransaction->save();      
 
-        return response()->json($total_transaction_price);
+        return response()->json([
+            'code' => 200,
+            'message' => 'Successfully Updated Received Order',
+            'data' => $total_transaction_price
+        ], 200);
+        } catch (\Exception $e) {
+
+            $this->storeAuditTrail($request, $e, 'Update Received Order API', 'exception');
+
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function storeAuditTrail(Request $request, \Throwable $exception, $action, $eventType)
+    {
+        try {
+            DB::table('audit_trail')->insert([
+                'module' => 'Order Supplier Transaction',
+                'action' => $action,
+                'event_type' => $eventType,
+                'request_method' => $request->method(),
+                'endpoint' => $request->fullUrl(),
+                'user_id' => optional($request->user())->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'request_payload' => json_encode($request->all()),
+                'request_headers' => json_encode($request->headers->all()),
+                'exception_class' => get_class($exception),
+                'exception_message' => $exception->getMessage(),
+                'exception_file' => $exception->getFile(),
+                'exception_line' => $exception->getLine(),
+                'stack_trace' => $exception->getTraceAsString(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $auditException) {
+            Log::error('Failed to store order supplier transaction audit trail', [
+                'error' => $auditException->getMessage(),
+                'original_error' => $exception->getMessage(),
+            ]);
+        }
     }
       
 
