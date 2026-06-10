@@ -342,22 +342,24 @@ class ShopOrderController extends Controller
                 | CHECK STOCK WARNING ONLY IF NOT OUT OF STOCK
                 |--------------------------------------------------------------------------
                 */
-                if ($product->stock_warning_type === 'WHOLESALE') {
 
-                    if ($product->stock < $product->stock_warning) {
-                        $shouldSendEmail = true;
-                        $subject = 'Stock Warning';
-                        $html = 'stock_warning';
-                    }
+                // COMMENT OUT STOCK WARNING
+                // if ($product->stock_warning_type === 'WHOLESALE') {
 
-                } elseif ($product->stock_warning_type === 'RETAIL') {
+                //     if ($product->stock < $product->stock_warning) {
+                //         $shouldSendEmail = true;
+                //         $subject = 'Stock Warning';
+                //         $html = 'stock_warning';
+                //     }
 
-                    if ($product->stock_pc < $product->stock_warning) {
-                        $shouldSendEmail = true;
-                        $subject = 'Stock Warning';
-                        $html = 'stock_warning';
-                    }
-                }
+                // } elseif ($product->stock_warning_type === 'RETAIL') {
+
+                //     if ($product->stock_pc < $product->stock_warning) {
+                //         $shouldSendEmail = true;
+                //         $subject = 'Stock Warning';
+                //         $html = 'stock_warning';
+                //     }
+                // }
             }
 
             if ($shouldSendEmail) {

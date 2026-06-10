@@ -34,6 +34,14 @@ class CheckListController extends Controller
             ->where('asg.status', 0)
             ->where('ch.status', 0)
             ->orderByRaw("
+                CASE cl.frequency
+                    WHEN 'DAILY' THEN 1
+                    WHEN 'WEEKLY' THEN 2
+                    WHEN 'MONTHLY' THEN 3
+                    ELSE 4
+                END
+            ")
+            ->orderByRaw("
                 CASE cl.time_of_day
                     WHEN 'MORNING' THEN 1
                     WHEN 'AFTERNOON' THEN 2
