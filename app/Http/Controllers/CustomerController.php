@@ -107,6 +107,75 @@ class CustomerController extends Controller
             return response()->json($data);  
     }
 
+    public function searchVipCustomerList(Request $request)
+    {
+        $search = $request->input('search');
+        $limit = $request->input('limit') ? $request->input('limit') : 50;
+
+        $query = DB::table('customer as c')
+            ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'c.id')
+            ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->select(
+                'c.id',
+                'c.first_name',
+                'c.last_name',
+                'c.store_name',
+                'c.contact_number',
+                'c.email',
+                'c.disabled',
+                DB::raw("TRIM(CONCAT(c.first_name, ' ', COALESCE(c.last_name, ''))) as customer_name"),
+                DB::raw("GROUP_CONCAT(CONCAT(COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+            )
+            ->where('c.disabled', 0);
+
+        if ($search != '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('c.first_name', 'like', '%' . $search . '%')
+                    ->orWhere('c.last_name', 'like', '%' . $search . '%')
+                    ->orWhere('c.store_name', 'like', '%' . $search . '%')
+                    ->orWhere('c.contact_number', 'like', '%' . $search . '%')
+                    ->orWhere('c.email', 'like', '%' . $search . '%')
+                    ->orWhere(DB::raw("TRIM(CONCAT(c.first_name, ' ', COALESCE(c.last_name, '')))"), 'like', '%' . $search . '%');
+            });
+        }
+
+        $data = $query
+            ->groupBy(
+                'c.id',
+                'c.first_name',
+                'c.last_name',
+                'c.store_name',
+                'c.contact_number',
+                'c.email',
+                'c.disabled'
+            )
+            ->orderBy('c.first_name', 'asc')
+            ->limit($limit)
+            ->get();
+
+        foreach ($data as $item) {
+            $vipCustomers = [];
+
+            if ($item->vip_customer_list != '') {
+                foreach (explode('||', $item->vip_customer_list) as $vipCustomer) {
+                    $vipCustomerDetails = explode('::', $vipCustomer);
+
+                    if ($vipCustomerDetails[0] != '') {
+                        $vipCustomers[] = [
+                            'vip_name' => $vipCustomerDetails[0],
+                            'vip_color' => isset($vipCustomerDetails[1]) ? $vipCustomerDetails[1] : '',
+                        ];
+                    }
+                }
+            }
+
+            $item->vip_customers = $vipCustomers;
+            unset($item->vip_customer_list);
+        }
+
+        return response()->json($data);
+    }
+
      public function fetchCustomerTransactionList($id)
     {
         // return view('categories.index')->with('categories', $categories);
