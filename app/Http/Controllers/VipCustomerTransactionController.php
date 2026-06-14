@@ -129,16 +129,18 @@ class VipCustomerTransactionController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $draftOrders = DB::table('shop_order_transaction')
+        $draftOrders = DB::table('shop_order_transaction as sot_draft')
+            ->join('vip_customer_transaction as vct_draft', 'vct_draft.customer_id', '=', 'sot_draft.requestor')
             ->select(
-                'requestor',
-                DB::raw('MAX(date) as draft_order_date'),
-                DB::raw('GROUP_CONCAT(date ORDER BY date ASC) as draft_order_dates'),
-                DB::raw('SUM(shop_order_transaction_total_price) as draft_order_total_price')
+                'vct_draft.customer_id',
+                DB::raw('MAX(sot_draft.date) as draft_order_date'),
+                DB::raw('GROUP_CONCAT(sot_draft.date ORDER BY sot_draft.date ASC) as draft_order_dates'),
+                DB::raw('SUM(sot_draft.shop_order_transaction_total_price) as draft_order_total_price')
             )
-            ->where('customer_type_id', 1)
-            ->where('status', 2)
-            ->groupBy('requestor');
+            ->where('sot_draft.type', 0)
+            ->where('sot_draft.status', 2)
+            ->where('vct_draft.vip_customer_id', $id)
+            ->groupBy('vct_draft.customer_id');
 
         $totalOrders = DB::table('shop_order_transaction as sot_total')
             ->join('vip_customer_transaction as vct_total', 'vct_total.customer_id', '=', 'sot_total.requestor')
@@ -146,7 +148,7 @@ class VipCustomerTransactionController extends Controller
                 'vct_total.customer_id',
                 DB::raw('SUM(sot_total.shop_order_transaction_total_price) as total_order_price')
             )
-            ->where('sot_total.customer_type_id', 1)
+            ->where('sot_total.type', 0)
             ->where('sot_total.status', 1)
             ->where('vct_total.vip_customer_id', $id);
 
@@ -165,7 +167,7 @@ class VipCustomerTransactionController extends Controller
             ->join('vip_customer_transaction as vct', 'vct.customer_id', '=', 'c.id')
             ->join('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
             ->leftJoinSub($draftOrders, 'draft_orders', function ($join) {
-                $join->on('draft_orders.requestor', '=', 'c.id');
+                $join->on('draft_orders.customer_id', '=', 'c.id');
             })
             ->leftJoinSub($totalOrders, 'total_orders', function ($join) {
                 $join->on('total_orders.customer_id', '=', 'c.id');
@@ -192,7 +194,7 @@ class VipCustomerTransactionController extends Controller
                 DB::raw("COALESCE(draft_orders.draft_order_date, MAX(sot.date)) as latest_order_date"),
                 DB::raw('COALESCE(total_orders.total_order_price, 0) as total_order_price')
             )
-            ->where('sot.customer_type_id', 1)
+            ->where('sot.type', 0)
             ->where('sot.status', 1)
             ->where('vc.id', $id)
             ->groupBy(
