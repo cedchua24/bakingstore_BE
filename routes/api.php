@@ -60,6 +60,10 @@ use App\Http\Controllers\ChartOfAccountsController;
 use App\Http\Controllers\OutOfStockHistoryController;
 use App\Http\Controllers\CheckListController;
 use App\Http\Controllers\CheckListTransactionController;
+use App\Http\Controllers\CheckListHistoryController;
+use App\Http\Controllers\VipCustomerController;
+use App\Http\Controllers\VipCustomerTransactionController;
+use App\Http\Controllers\VipCustomerNoteController;
 
 
 
@@ -161,6 +165,7 @@ Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class,
 Route::post('/customers/customerBacklogList/{id}', [CustomerController::class, 'customerBacklogList']);
 Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'customerConvoList']);
 Route::post('/customers/customerReorder/{id}', [CustomerController::class, 'customerReorder']);
+Route::post('/customers/searchVipCustomerList', [CustomerController::class, 'searchVipCustomerList']);
 
 
 Route::resource('/checkList', 'App\Http\Controllers\CheckListController');
@@ -168,6 +173,15 @@ Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetch
 
 Route::resource('/checkListTransaction', 'App\Http\Controllers\CheckListTransactionController');
 Route::post('/checkListTransaction/fetchCheckListByDate', [CheckListTransactionController::class, 'fetchCheckListByDate']);
+Route::resource('/checkListHistory', 'App\Http\Controllers\CheckListHistoryController');
+Route::get('/checkListHistory/fetchByCheckListTransactionId/{id}', [CheckListHistoryController::class, 'fetchByCheckListTransactionId']);
+
+Route::resource('/vipCustomer', 'App\Http\Controllers\VipCustomerController');
+Route::resource('/vipCustomerTransaction', 'App\Http\Controllers\VipCustomerTransactionController');
+Route::get('/vipCustomerTransaction/fetchVipTransactionByVipId/{id}', [VipCustomerTransactionController::class, 'fetchVipTransactionByVipId']);
+Route::get('/vipCustomerTransaction/fetchVipCustomerLastOrder/{id}', [VipCustomerTransactionController::class, 'fetchVipCustomerLastOrder']);
+Route::get('/vipCustomerNote/getAll', [VipCustomerNoteController::class, 'getAll']);
+Route::resource('/vipCustomerNote', 'App\Http\Controllers\VipCustomerNoteController');
 
 
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
@@ -216,6 +230,7 @@ Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::c
 Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'saveAutoPo']);
 Route::get('/orderSuppliers/fetchApprovalPO/{id}', [OrderSupplierController::class, 'fetchApprovalPO']);
 
+Route::get('/markUpPrice/indexLimit100', [MarkUpProductController::class, 'indexLimit100']);
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
 Route::get('/markUpPrice/fetchMarkUpBySupplierId/{id}', [MarkUpProductController::class, 'fetchMarkUpBySupplierId']);

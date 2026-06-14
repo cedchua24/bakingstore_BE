@@ -567,13 +567,17 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as c', 'c.id', '=', 'sot.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
             ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'sot.id')
+            ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
-             'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status')    
+             'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status',
+             'vct.id as vip_customer_transaction_id', 'vct.vip_customer_id',
+             'vc.vip_name', 'vc.vip_color')    
              ->where('shop.shop_type_id', 3)
              ->where('sot.date', $request->input('date'))
              ->orderBy('sot.id', 'DESC')
@@ -1096,6 +1100,8 @@ class ShopOrderTransactionController extends Controller
                 ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
                 ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
                 ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'shop_order_transaction.requestor')
+                ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
                 ->select(
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
@@ -1116,7 +1122,11 @@ class ShopOrderTransactionController extends Controller
                     'ct.customer_type',
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
-                    'ds.status as delivery_status'
+                    'ds.status as delivery_status',
+                    'vct.id as vip_customer_transaction_id',
+                    'vct.vip_customer_id',
+                    'vc.vip_name',
+                    'vc.vip_color'
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.is_pickup', $id)
@@ -1241,6 +1251,8 @@ class ShopOrderTransactionController extends Controller
                 ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
                 ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
                 ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+                ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'shop_order_transaction.requestor')
+                ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
                 ->select(
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
@@ -1261,7 +1273,11 @@ class ShopOrderTransactionController extends Controller
                     'ct.customer_type',
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
-                    'ds.status as delivery_status'
+                    'ds.status as delivery_status',
+                    'vct.id as vip_customer_transaction_id',
+                    'vct.vip_customer_id',
+                    'vc.vip_name',
+                    'vc.vip_color'
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.status', $id)
