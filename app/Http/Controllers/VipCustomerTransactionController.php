@@ -87,6 +87,9 @@ class VipCustomerTransactionController extends Controller
                 'vc.details',
                 'vc.vip_color',
                 'vc.status',
+                'c.address',
+                'c.contact_number',
+                'c.email',
                 DB::raw("TRIM(CONCAT(c.first_name, ' ', COALESCE(c.last_name, ''))) as customer_name")
             )
             ->where('vct.id', $vipCustomerTransaction->id)
@@ -197,28 +200,10 @@ class VipCustomerTransactionController extends Controller
             ->where('sot.type', 0)
             ->where('sot.status', 1)
             ->where('vc.id', $id)
-            ->groupBy(
-                'vct.id',
-                'vct.vip_customer_id',
-                'vct.customer_id',
-                'vc.vip_name',
-                'vc.details',
-                'vc.vip_color',
-                'vc.status',
-                'c.first_name',
-                'c.last_name',
-                'c.store_name',
-                'c.contact_number',
-                'c.email',
-                'c.disabled',
-                'draft_orders.draft_order_date',
-                'draft_orders.draft_order_dates',
-                'draft_orders.draft_order_total_price',
-                'total_orders.total_order_price'
-            )
+            ->groupBy('c.id')
             ->orderBy('total_order_price', 'desc')
             ->orderBy('latest_order_date', 'desc')
-            ->orderBy('last_order_date', 'desc')
+            ->orderBy('last_order_date', 'desc') 
             ->get();
 
         foreach ($data as $item) {

@@ -851,8 +851,22 @@ public function customerLastOrderList($idParam, Request $request) {
 
     }
 
-        public function fetchCustomerProduct($id)
+        public function fetchCustomerProduct(Request $request)
     {
+        $request->merge([
+            'dateFrom' => in_array($request->input('dateFrom'), ['', 'null'], true) ? null : $request->input('dateFrom'),
+            'dateTo' => in_array($request->input('dateTo'), ['', 'null'], true) ? null : $request->input('dateTo'),
+        ]);
+
+        $validated = $request->validate([
+            'id' => 'required',
+            'dateFrom' => 'nullable|date',
+            'dateTo' => 'nullable|date',
+        ]);
+
+        $id = $validated['id'];
+        $dateFrom = $validated['dateFrom'] ?? null;
+        $dateTo = $validated['dateTo'] ?? null;
 
            $data = DB::table('customer as c')
             ->select('p.product_name', 'mup.business_type', 'mup.new_price', DB::raw('SUM(so.shop_order_quantity) as total_quantity'), DB::raw('SUM(so.shop_order_total_price) as total_price'), DB::raw('SUM(so.shop_order_profit) as total_profit'))  
@@ -861,6 +875,12 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->where('c.id', $id) 
+            ->when($dateFrom, function ($query) use ($dateFrom) {
+                $query->whereDate('sot.date', '>=', $dateFrom);
+            })
+            ->when($dateTo, function ($query) use ($dateTo) {
+                $query->whereDate('sot.date', '<=', $dateTo);
+            })
             ->groupBy('mup.id') 
             ->orderBy('total_quantity', 'desc')
             ->get();
@@ -884,8 +904,34 @@ public function customerLastOrderList($idParam, Request $request) {
     }
 
 
-       public function fetchCustomerTransaction($id)
+       public function fetchCustomerTransaction(Request $request)
     {
+        $request->merge([
+            'dateFrom' => in_array($request->input('dateFrom'), ['', 'null'], true) ? null : $request->input('dateFrom'),
+            'dateTo' => in_array($request->input('dateTo'), ['', 'null'], true) ? null : $request->input('dateTo'),
+        ]);
+
+        $validated = $request->validate([
+            'id' => 'required',
+            'dateFrom' => 'nullable|date',
+            'dateTo' => 'nullable|date',
+        ]);
+
+        $id = $validated['id'];
+        $dateFrom = $validated['dateFrom'] ?? null;
+        $dateTo = $validated['dateTo'] ?? null;
+        $applyDateFilter = function ($query, $column) use ($dateFrom, $dateTo) {
+            if ($dateFrom) {
+                $query->whereDate($column, '>=', $dateFrom);
+            }
+
+            if ($dateTo) {
+                $query->whereDate($column, '<=', $dateTo);
+            }
+
+            return $query;
+        };
+
         $shop_order_transaction_list = DB::table('shop_order_transaction')
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
             ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
@@ -896,14 +942,20 @@ public function customerLastOrderList($idParam, Request $request) {
              'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
               'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type',
-               'shop_order_transaction.rider_name', 'c.ads', 'c.created_at')    
+              'shop_order_transaction.rider_name', 'c.ads', 'c.created_at')    
              ->where('shop_order_transaction.requestor', $id)
+             ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+             })
              ->orderBy('shop_order_transaction.id', 'DESC')
              ->get();
             
             $data = DB::table('shop_order_transaction')
             ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'),  DB::raw('COUNT(shop_id) as total_count'),)  
             ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
             ->first();
 
 
@@ -913,6 +965,9 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
             ->first();
 
             $online = DB::table('shop_order_transaction')
@@ -921,12 +976,18 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
             ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
             ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
             ->first();
 
            $total = DB::table('shop_order_transaction')
             ->select(DB::raw('COUNT(shop_id) as total_count'),)  
             ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')  
             ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
             ->first();
 
             $payment_type = DB::table('shop_order_transaction as sot')
@@ -934,6 +995,9 @@ public function customerLastOrderList($idParam, Request $request) {
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')  
             ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
             ->where('sot.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'sot.date');
+            })
             ->groupBy('pt.id')
             ->get();
 
