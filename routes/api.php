@@ -193,8 +193,8 @@ Route::post('/customers/updateAndDeleteCustomer', [CustomerController::class, 'u
 
 
 Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
-Route::get('/customers/fetchCustomerTransaction/{id}', [CustomerController::class, 'fetchCustomerTransaction']);
-Route::get('/customers/fetchCustomerProduct/{id}', [CustomerController::class, 'fetchCustomerProduct']);
+Route::post('/customers/fetchCustomerTransaction', [CustomerController::class, 'fetchCustomerTransaction']);
+Route::post('/customers/fetchCustomerProduct', [CustomerController::class, 'fetchCustomerProduct']);
 
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
 Route::get('/suppliers/fetchSupplierProduct/{id}', [SupplierController::class, 'fetchSupplierProduct']);

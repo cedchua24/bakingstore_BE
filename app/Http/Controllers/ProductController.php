@@ -872,11 +872,13 @@ class ProductController extends Controller
         {
             $dateFrom = $request->input('dateFrom');
             $dateTo   = $request->input('dateTo');
+            $supplier_id = $request->input('supplier_id');
+            $category_id = $request->input('category_id', $request->input('categoryId'));
 
             $data = collect();
 
             if (!empty($dateFrom) && !empty($dateTo)) {
-                $data = DB::table('products as p')
+                $query = DB::table('products as p')
                     ->whereNotExists(function ($query) use ($dateFrom, $dateTo) {
                         $query->select(DB::raw(1))
                             ->from('shop_order as so')
@@ -909,8 +911,19 @@ class ProductController extends Controller
                             ) as last_sold_at
                         ")
                     )
-                    ->orderBy('p.stock', 'desc')
-                    ->get();
+                    ->orderBy('p.stock', 'desc');
+
+                if ($supplier_id) {
+                    $query->leftJoin('product_supplier as ps', 'ps.product_id', '=', 'p.id')
+                        ->leftJoin('supplier as s', 's.id', '=', 'ps.supplier_id')
+                        ->where('ps.supplier_id', $supplier_id);
+                }
+
+                if ($category_id) {
+                    $query->where('p.category_id', $category_id);
+                }
+
+                $data = $query->get();
             }
 
             return response()->json([

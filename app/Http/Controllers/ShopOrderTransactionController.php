@@ -487,6 +487,7 @@ class ShopOrderTransactionController extends Controller
                 $currentTime = Carbon::now('GMT+8');
                 $id = $request->input('status');
                 $type = $request->input('type');
+                $supplier_id = $request->input('supplier_id');
                 $limit = $request->input('limit', 5000); // default 1000 if not set
 
                 // Determine sorting parameters
@@ -536,6 +537,12 @@ class ShopOrderTransactionController extends Controller
                     ->groupBy('p.id')
                     ->orderBy($param1, $param2);
 
+                if ($supplier_id) {
+                    $query->leftJoin('product_supplier as ps', 'ps.product_id', '=', 'p.id')
+                        ->leftJoin('supplier as s', 's.id', '=', 'ps.supplier_id')
+                        ->where('ps.supplier_id', $supplier_id);
+                }
+
                 // Apply conditional filters
                 if ($id === 0) {
                     // No date filter for id = 0
@@ -576,12 +583,34 @@ class ShopOrderTransactionController extends Controller
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
              'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status',
-             'vct.id as vip_customer_transaction_id', 'vct.vip_customer_id',
-             'vc.vip_name', 'vc.vip_color')    
+             DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list"))    
              ->where('shop.shop_type_id', 3)
              ->where('sot.date', $request->input('date'))
+             ->groupBy('sot.id')
              ->orderBy('sot.id', 'DESC')
              ->get();
+
+            foreach ($shop_order_transaction_list as $sotl) {
+                $vipCustomers = [];
+
+                if ($sotl->vip_customer_list != '') {
+                    foreach (explode('||', $sotl->vip_customer_list) as $vipCustomer) {
+                        $vipCustomerDetails = explode('::', $vipCustomer);
+
+                        if (isset($vipCustomerDetails[0]) && $vipCustomerDetails[0] != '') {
+                            $vipCustomers[] = [
+                                'vip_customer_transaction_id' => $vipCustomerDetails[0],
+                                'vip_customer_id' => isset($vipCustomerDetails[1]) ? $vipCustomerDetails[1] : '',
+                                'vip_name' => isset($vipCustomerDetails[2]) ? $vipCustomerDetails[2] : '',
+                                'vip_color' => isset($vipCustomerDetails[3]) ? $vipCustomerDetails[3] : '',
+                            ];
+                        }
+                    }
+                }
+
+                $sotl->vip_customers = $vipCustomers;
+                unset($sotl->vip_customer_list);
+            }
             
             $total_profit = DB::table('shop_order_transaction as sot')
             ->select(DB::raw('SUM(so.shop_order_profit) as total_profit'))  
@@ -1123,16 +1152,36 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
                     'ds.status as delivery_status',
-                    'vct.id as vip_customer_transaction_id',
-                    'vct.vip_customer_id',
-                    'vc.vip_name',
-                    'vc.vip_color'
+                    DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.is_pickup', $id)
                 ->when(true, $applyFilters)
+                ->groupBy('shop_order_transaction.id')
                 ->orderBy('shop_order_transaction.id', 'DESC')
                 ->get();
+
+            foreach ($shop_order_transaction_list as $sotl) {
+                $vipCustomers = [];
+
+                if ($sotl->vip_customer_list != '') {
+                    foreach (explode('||', $sotl->vip_customer_list) as $vipCustomer) {
+                        $vipCustomerDetails = explode('::', $vipCustomer);
+
+                        if (isset($vipCustomerDetails[0]) && $vipCustomerDetails[0] != '') {
+                            $vipCustomers[] = [
+                                'vip_customer_transaction_id' => $vipCustomerDetails[0],
+                                'vip_customer_id' => isset($vipCustomerDetails[1]) ? $vipCustomerDetails[1] : '',
+                                'vip_name' => isset($vipCustomerDetails[2]) ? $vipCustomerDetails[2] : '',
+                                'vip_color' => isset($vipCustomerDetails[3]) ? $vipCustomerDetails[3] : '',
+                            ];
+                        }
+                    }
+                }
+
+                $sotl->vip_customers = $vipCustomers;
+                unset($sotl->vip_customer_list);
+            }
 
             $data = DB::table('shop_order_transaction')
                 ->select(
@@ -1274,16 +1323,36 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
                     'ds.status as delivery_status',
-                    'vct.id as vip_customer_transaction_id',
-                    'vct.vip_customer_id',
-                    'vc.vip_name',
-                    'vc.vip_color'
+                    DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.status', $id)
                 ->when(true, $applyFilters)
+                ->groupBy('shop_order_transaction.id')
                 ->orderBy('shop_order_transaction.id', 'DESC')
                 ->get();
+
+            foreach ($shop_order_transaction_list as $sotl) {
+                $vipCustomers = [];
+
+                if ($sotl->vip_customer_list != '') {
+                    foreach (explode('||', $sotl->vip_customer_list) as $vipCustomer) {
+                        $vipCustomerDetails = explode('::', $vipCustomer);
+
+                        if (isset($vipCustomerDetails[0]) && $vipCustomerDetails[0] != '') {
+                            $vipCustomers[] = [
+                                'vip_customer_transaction_id' => $vipCustomerDetails[0],
+                                'vip_customer_id' => isset($vipCustomerDetails[1]) ? $vipCustomerDetails[1] : '',
+                                'vip_name' => isset($vipCustomerDetails[2]) ? $vipCustomerDetails[2] : '',
+                                'vip_color' => isset($vipCustomerDetails[3]) ? $vipCustomerDetails[3] : '',
+                            ];
+                        }
+                    }
+                }
+
+                $sotl->vip_customers = $vipCustomers;
+                unset($sotl->vip_customer_list);
+            }
 
             $data = DB::table('shop_order_transaction')
                 ->select(
@@ -2642,6 +2711,20 @@ class ShopOrderTransactionController extends Controller
         default:
             echo "Error";
         }
+
+        if ($data) {
+            $data->vip_customers = DB::table('vip_customer_transaction as vct')
+                ->join('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+                ->select(
+                    'vct.id as vip_customer_transaction_id',
+                    'vct.vip_customer_id',
+                    'vc.vip_name',
+                    'vc.vip_color'
+                )
+                ->where('vct.customer_id', $data->requestor)
+                ->get();
+        }
+
             return response()->json($data);   
     }
 
