@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('disabled');
             $table->integer('backlog');
             $table->integer('ads');
+            $table->integer('user_id');
             $table->timestamps();
         });
     }

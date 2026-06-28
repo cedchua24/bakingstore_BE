@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,10 @@ class APIAdminMiddleware
     {
         if (Auth::check())
         {
-            if (auth()->user()->tokenCan('server:admin'))
+            if (
+                auth()->user()->role_as === User::ROLE_ADMIN
+                && auth()->user()->tokenCan('server:admin')
+            )
             {
                 return $next($request);
             }
