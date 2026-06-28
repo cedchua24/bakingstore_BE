@@ -1080,6 +1080,7 @@ public function customerLastOrderList($idParam, Request $request) {
         $customer->address = $request->input('address');
         $customer->ads = $request->input('ads');
         $customer->backlog = 0;
+        $customer->user_id = $request->input('user_id');
         $customer->save();
 
         return response()->json([

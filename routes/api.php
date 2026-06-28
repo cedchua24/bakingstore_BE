@@ -85,6 +85,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+Route::middleware('auth:sanctum')->put('/change-password', [AuthController::class, 'changePassword']);
 
 // Route::middleware('auth:sanctum')->group(function () {
 //    Route::post('logout', [AuthController::class, 'logout']);
@@ -96,10 +97,15 @@ Route::middleware('auth:sanctum', 'isAPIAdmin')->group(function () {
    });
 });
 
-Route::get('/register', [AuthController::class, 'fetchUserList']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::delete('/register/{user}', [AuthController::class, 'destroy']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+
+Route::middleware(['auth:sanctum', 'isAPIAdmin'])->group(function () {
+    Route::get('/register', [AuthController::class, 'fetchUserList']);
+    Route::delete('/register/{user}', [AuthController::class, 'destroy']);
+});
 
 
 Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');

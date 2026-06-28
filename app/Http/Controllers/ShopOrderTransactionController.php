@@ -579,7 +579,7 @@ class ShopOrderTransactionController extends Controller
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
+             DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'c.created_at as customer_created_date', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
              'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status',
@@ -2217,7 +2217,8 @@ class ShopOrderTransactionController extends Controller
                 DB::raw('DATE(mop.created_at) as date'),
                 DB::raw('SUM(mop.amount) as total_sales'),
                 DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as total_cash'),
-                DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online')
+                DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online'),
+                DB::raw('COUNT(sot.id) as total_count'),
             )
             ->where('shop.shop_type_id', 3)
             ->whereBetween('mop.created_at', [
