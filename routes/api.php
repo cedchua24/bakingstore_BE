@@ -106,7 +106,7 @@ Route::middleware(['auth:sanctum', 'isAPIAdmin'])->group(function () {
     Route::get('/register', [AuthController::class, 'fetchUserList']);
     Route::delete('/register/{user}', [AuthController::class, 'destroy']);
 });
-
+Route::get('/register/fetchUserList', [AuthController::class, 'fetchUserList']);
 
 Route::resource('/userProfiles', 'App\Http\Controllers\UserProfileController');
 Route::resource('/categories', 'App\Http\Controllers\CategoryController');
