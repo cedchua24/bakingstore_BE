@@ -186,6 +186,7 @@ Route::resource('/vipCustomer', 'App\Http\Controllers\VipCustomerController');
 Route::resource('/vipCustomerTransaction', 'App\Http\Controllers\VipCustomerTransactionController');
 Route::get('/vipCustomerTransaction/fetchVipTransactionByVipId/{id}', [VipCustomerTransactionController::class, 'fetchVipTransactionByVipId']);
 Route::get('/vipCustomerTransaction/fetchVipCustomerLastOrder/{id}', [VipCustomerTransactionController::class, 'fetchVipCustomerLastOrder']);
+Route::get('/vipCustomerTransaction/fetchVIPCustomerDebt/{id}', [VipCustomerTransactionController::class, 'fetchVIPCustomerDebt']);
 Route::get('/vipCustomerNote/getAll', [VipCustomerNoteController::class, 'getAll']);
 Route::resource('/vipCustomerNote', 'App\Http\Controllers\VipCustomerNoteController');
 

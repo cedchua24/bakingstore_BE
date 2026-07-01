@@ -50,25 +50,28 @@ class OutOfStockHistoryController extends Controller
         //
     }
 
-         public function fetchOOSbyProductId($id)
+    public function fetchOOSbyProductId($id)
     {
-
-
-         $data = DB::table('out_of_stock_history as oos')
+        $data = DB::table('out_of_stock_history as oos')
             ->join('products as p', 'p.id', '=', 'oos.product_id')
-            ->select('oos.id', 'p.product_name', 'oos.comment', 'oos.created_at', 'oos.updated_at')    
+            ->select(
+                'oos.id',
+                'p.product_name',
+                'oos.comment',
+                'oos.created_at',
+                'oos.updated_at'
+            )
             ->where('p.id', $id)
             ->get();
 
+        $response = [
+            'data' => $data,
+            'product_name' => optional($data->first())->product_name ?? '',
+            'code' => 200,
+            'message' => 'Successfully Retrieved'
+        ];
 
-       $response = [
-             'data' => $data,
-             'product_name' => $data[0]->product_name ? $data[0]->product_name : '',
-             'code' => 200,
-             'message' => "Successfully Added"
-          ];
-
-            return response()->json($response);   
+        return response()->json($response);
     }
 
     /**
