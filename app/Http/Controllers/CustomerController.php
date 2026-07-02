@@ -191,11 +191,32 @@ class CustomerController extends Controller
 
         public function fetchCustomerTransactionListByDate(Request $request) {
 
+            $type = strtoupper((string) $request->input('type', 'ALL'));
+
             if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->select(
+                    'c.id',
+                    'c.first_name',
+                    'c.last_name',
+                    'c.contact_number',
+                    'c.email',
+                    'c.address',
+                    'c.disabled',
+                    'c.ads',
+                    'c.created_at',
+                    DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+                )
                 ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
                 ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+                ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'c.id')
+                ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+                ->when($type === 'VIP', function ($query) {
+                    $query->whereNotNull('vct.id');
+                })
+                ->when($type === 'NON_VIP', function ($query) {
+                    $query->whereNull('vct.id');
+                })
                 ->orderBy('c.created_at', 'desc') 
                 ->groupBy('c.id')
                 ->get();
@@ -211,11 +232,30 @@ class CustomerController extends Controller
 
             }  else {      
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled', 'c.ads', 'c.created_at')   
+                ->select(
+                    'c.id',
+                    'c.first_name',
+                    'c.last_name',
+                    'c.contact_number',
+                    'c.email',
+                    'c.address',
+                    'c.disabled',
+                    'c.ads',
+                    'c.created_at',
+                    DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+                )
                 ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
                 ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+                ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'c.id')
+                ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
                 ->where('c.created_at', '>=', $request->input('dateFrom'))
                 ->where('c.created_at', '<=', $request->input('dateTo'))
+                ->when($type === 'VIP', function ($query) {
+                    $query->whereNotNull('vct.id');
+                })
+                ->when($type === 'NON_VIP', function ($query) {
+                    $query->whereNull('vct.id');
+                })
                 ->orderBy('c.created_at', 'desc') 
                 ->groupBy('c.id')
                 ->get();
@@ -230,6 +270,28 @@ class CustomerController extends Controller
                     $data[$i]->total_balance = $total_balance->total_balance;
                     $data[$i]->total_profit = $total_balance->total_profit;
                 }  
+            }
+
+            foreach ($data as $customer) {
+                $vipCustomers = [];
+
+                if ($customer->vip_customer_list != '') {
+                    foreach (explode('||', $customer->vip_customer_list) as $vipCustomer) {
+                        $vipCustomerDetails = explode('::', $vipCustomer);
+
+                        if (isset($vipCustomerDetails[0]) && $vipCustomerDetails[0] != '') {
+                            $vipCustomers[] = [
+                                'vip_customer_transaction_id' => $vipCustomerDetails[0],
+                                'vip_customer_id' => isset($vipCustomerDetails[1]) ? $vipCustomerDetails[1] : '',
+                                'vip_name' => isset($vipCustomerDetails[2]) ? $vipCustomerDetails[2] : '',
+                                'vip_color' => isset($vipCustomerDetails[3]) ? $vipCustomerDetails[3] : '',
+                            ];
+                        }
+                    }
+                }
+
+                $customer->vip_customers = $vipCustomers;
+                unset($customer->vip_customer_list);
             }
             
             $response = [
