@@ -64,6 +64,9 @@ use App\Http\Controllers\CheckListHistoryController;
 use App\Http\Controllers\VipCustomerController;
 use App\Http\Controllers\VipCustomerTransactionController;
 use App\Http\Controllers\VipCustomerNoteController;
+use App\Http\Controllers\VipProductController;
+use App\Http\Controllers\VipProductTransactionController;
+use App\Http\Controllers\VipProductNoteController;
 
 
 
@@ -117,6 +120,7 @@ Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController');
 
 
 Route::resource('/products', 'App\Http\Controllers\ProductController');
+Route::post('/products/searchProductByName', [ProductController::class, 'searchProductByName']);
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
 Route::get('/products/fetchProductByCategoryIdV2/{id}', [ProductController::class, 'fetchProductByCategoryIdV2']);
 Route::get('/products/fetchProductValue/{id}', [ProductController::class, 'fetchProductValue']);
@@ -189,6 +193,13 @@ Route::get('/vipCustomerTransaction/fetchVipCustomerLastOrder/{id}', [VipCustome
 Route::get('/vipCustomerTransaction/fetchVIPCustomerDebt/{id}', [VipCustomerTransactionController::class, 'fetchVIPCustomerDebt']);
 Route::get('/vipCustomerNote/getAll', [VipCustomerNoteController::class, 'getAll']);
 Route::resource('/vipCustomerNote', 'App\Http\Controllers\VipCustomerNoteController');
+
+Route::resource('/vipProduct', 'App\Http\Controllers\VipProductController');
+Route::resource('/vipProductTransaction', 'App\Http\Controllers\VipProductTransactionController');
+Route::get('/vipProductTransaction/fetchVipTransactionByVipId/{id}', [VipProductTransactionController::class, 'fetchVipTransactionByVipId']);
+Route::get('/vipProductTransaction/fetchVipProductLastOrder/{id}', [VipProductTransactionController::class, 'fetchVipProductLastOrder']);
+Route::get('/vipProductNote/getAll', [VipProductNoteController::class, 'getAll']);
+Route::resource('/vipProductNote', 'App\Http\Controllers\VipProductNoteController');
 
 
 Route::get('/customers/fetchCustomerEnabled/{date}', [CustomerController::class, 'fetchCustomerEnabled']);
