@@ -33,6 +33,69 @@ class ProductController extends Controller
         return response()->json($data);  
     }
 
+    public function searchProductByName(Request $request)
+    {
+        $search = $request->input('search');
+        $limit = $request->input('limit') ? $request->input('limit') : 50;
+
+        $query = DB::table('products as p')
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            ->leftJoin('vip_product_transaction as vpt', 'vpt.product_id', '=', 'p.id')
+            ->leftJoin('vip_product as vp', 'vp.id', '=', 'vpt.vip_product_id')
+            ->select(
+                'p.id',
+                'p.product_name',
+                'p.category_id',
+                'p.brand_id',
+                'p.disabled',
+                'c.category_name',
+                'b.brand_name',
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(COALESCE(vp.vip_product_name, ''), '::', COALESCE(vp.vip_color, '')) SEPARATOR '||') as vip_product_list")
+            )
+            ->where('p.disabled', 0);
+
+        if ($search != '') {
+            $query->where('p.product_name', 'like', '%' . $search . '%');
+        }
+
+        $data = $query
+            ->groupBy(
+                'p.id',
+                'p.product_name',
+                'p.category_id',
+                'p.brand_id',
+                'p.disabled',
+                'c.category_name',
+                'b.brand_name'
+            )
+            ->orderBy('p.product_name', 'asc')
+            ->limit($limit)
+            ->get();
+
+        foreach ($data as $item) {
+            $vipProducts = [];
+
+            if ($item->vip_product_list != '') {
+                foreach (explode('||', $item->vip_product_list) as $vipProduct) {
+                    $vipProductDetails = explode('::', $vipProduct);
+
+                    if ($vipProductDetails[0] != '') {
+                        $vipProducts[] = [
+                            'vip_product_name' => $vipProductDetails[0],
+                            'vip_color' => isset($vipProductDetails[1]) ? $vipProductDetails[1] : '',
+                        ];
+                    }
+                }
+            }
+
+            $item->vip_products = $vipProducts;
+            unset($item->vip_product_list);
+        }
+
+        return response()->json($data);
+    }
+
         public function fetchProductEnabled()
     {
 
@@ -406,8 +469,10 @@ class ProductController extends Controller
             ->where('products.stock_pc', 0)
             ->where('category.id',  $category_id)
             ->orderBy('products.stock', 'ASC')
-            ->get();
+                ->get();
         }
+
+        $this->attachPendingSupplierOrders($data);
 
         $response = [
               'data' => $data,
@@ -450,7 +515,8 @@ class ProductController extends Controller
             ->orderBy('products.stock', 'ASC')
             ->get();
             
-            
+        $this->attachPendingSupplierOrders($data);
+
         $response = [
               'data' => $data,
               'id' => $supplier_id,
@@ -574,6 +640,8 @@ class ProductController extends Controller
                 ->get();
         }
 
+        $this->attachPendingSupplierOrders($data);
+
         $response = [
               'data' => $data,
               'id' => $category_id,
@@ -581,6 +649,60 @@ class ProductController extends Controller
               'message' => "Successfully Added"
           ];
             return response()->json($response);    
+    }
+
+    private function attachPendingSupplierOrders($data)
+    {
+        $productIds = $data->pluck('id')->unique()->values();
+        $pendingOrdersByProduct = collect();
+
+        if ($productIds->isNotEmpty()) {
+            $pendingOrdersByProduct = DB::table('order_supplier as os')
+                ->join(
+                    'order_supplier_transaction as ost',
+                    'ost.id',
+                    '=',
+                    'os.order_supplier_transaction_id'
+                )
+                ->join('supplier as s', 's.id', '=', 'ost.supplier_id')
+                ->join('products as p', 'p.id', '=', 'os.product_id')
+                ->select(
+                    'os.product_id',
+                    'os.order_supplier_transaction_id',
+                    'ost.order_date as date',
+                    's.supplier_name as supplier'
+                )
+                ->selectRaw("
+                    CONCAT(
+                        os.quantity,
+                        ' ',
+                        CASE
+                            WHEN os.variation = 'WHOLESALE' THEN p.packaging
+                            ELSE p.variation
+                        END
+                    ) as quantity
+                ")
+                ->whereIn('os.product_id', $productIds)
+                ->where('ost.status', 'PENDING')
+                ->orderBy('ost.order_date', 'desc')
+                ->orderBy('ost.id', 'desc')
+                ->get()
+                ->groupBy('product_id');
+        }
+
+        foreach ($data as $product) {
+            $product->pending_orders = $pendingOrdersByProduct
+                ->get($product->id, collect())
+                ->map(function ($pendingOrder) {
+                    return [
+                        'order_supplier_transaction_id' => $pendingOrder->order_supplier_transaction_id,
+                        'date' => $pendingOrder->date,
+                        'supplier' => $pendingOrder->supplier,
+                        'quantity' => $pendingOrder->quantity,
+                    ];
+                })
+                ->values();
+        }
     }
 
           public function fetchNoStockWarning($category_id)
