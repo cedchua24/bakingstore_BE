@@ -222,7 +222,7 @@ class ProductController extends Controller
             ->where('products.disabled', 1)
             ->where('category.id',$id)
             ->first();
-                           
+
         }
 
            $response = [
@@ -541,7 +541,9 @@ class ProductController extends Controller
             ->where('ps.supplier_id',  $supplier_id)
             ->orderBy('products.stock', 'DESC')
             ->get();
-            
+
+        $this->attachPendingSupplierOrders($data);
+
         $response = [
               'data' => $data,
               'id' => $supplier_id,
@@ -670,6 +672,7 @@ class ProductController extends Controller
                     'os.product_id',
                     'os.order_supplier_transaction_id',
                     'ost.order_date as date',
+                    'ost.status',
                     's.supplier_name as supplier'
                 )
                 ->selectRaw("
@@ -683,7 +686,7 @@ class ProductController extends Controller
                     ) as quantity
                 ")
                 ->whereIn('os.product_id', $productIds)
-                ->where('ost.status', 'PENDING')
+                ->whereIn('ost.status', ['PENDING', 'SEND_TO_SUPPLIER'])
                 ->orderBy('ost.order_date', 'desc')
                 ->orderBy('ost.id', 'desc')
                 ->get()
@@ -699,6 +702,7 @@ class ProductController extends Controller
                         'date' => $pendingOrder->date,
                         'supplier' => $pendingOrder->supplier,
                         'quantity' => $pendingOrder->quantity,
+                        'status' => $pendingOrder->status,
                     ];
                 })
                 ->values();
@@ -874,6 +878,8 @@ class ProductController extends Controller
             ->first();
 
         }
+
+        $this->attachPendingSupplierOrders($data);
 
            $response = [
               'total_value' =>$total_value,
