@@ -71,7 +71,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
@@ -104,7 +104,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
@@ -160,7 +160,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.status', 'SEND_TO_SUPPLIER')
@@ -191,7 +191,7 @@ class OrderSupplierTransactionController extends Controller
          $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
@@ -241,7 +241,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.approval_status', 'PENDING')
@@ -272,7 +272,7 @@ class OrderSupplierTransactionController extends Controller
          $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
@@ -322,7 +322,7 @@ class OrderSupplierTransactionController extends Controller
             $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.payment_status', 0)
@@ -353,7 +353,7 @@ class OrderSupplierTransactionController extends Controller
          $data = DB::table('order_supplier_transaction')
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
-             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
+             'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
@@ -408,7 +408,7 @@ class OrderSupplierTransactionController extends Controller
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'order_supplier_transaction.created_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name',
-                'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+                'order_supplier_transaction.status', 'order_supplier_transaction.stock_status', 'order_supplier_transaction.updated_at')    
             ->where('order_supplier_transaction.order_date', $date)
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
