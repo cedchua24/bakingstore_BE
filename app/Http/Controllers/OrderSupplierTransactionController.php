@@ -533,7 +533,7 @@ class OrderSupplierTransactionController extends Controller
             ->join('supplier', 'supplier.id', '=', 'order_supplier_transaction.supplier_id')
             ->select('order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date', 'order_supplier_transaction.created_at',  'order_supplier_transaction.send_date', 'supplier.supplier_name', 'order_supplier_transaction.status',
-             'order_supplier_transaction.approval', 'order_supplier_transaction.checker', 'order_supplier_transaction.receiver', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.note',)    
+             'order_supplier_transaction.approval', 'order_supplier_transaction.payment_status', 'order_supplier_transaction.checker', 'order_supplier_transaction.receiver', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.note',)    
             ->where('order_supplier_transaction.id', $id)
             ->first();
             return response()->json($data);   
