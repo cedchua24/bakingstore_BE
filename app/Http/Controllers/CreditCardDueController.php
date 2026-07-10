@@ -301,8 +301,16 @@ class CreditCardDueController extends Controller
 
             $creditCardDue->amount_paid =  $creditCardDue->amount_paid +  $request->input('amount_paid'); 
 
-            if ($paymentTypePo->payment_term_id == 3) {
+            if ($request->input('payment_term_id') == 3) {
                 $creditCardPay->amount = $request->input('constant_amount');  
+
+                $chequeDue = new CreditCardDue;
+                $chequeDue->payment_type_po_id = $request->input('payment_type_po_id');
+                $chequeDue->amount = $request->input('amount_paid');
+                $chequeDue->due_date = $request->input('due_date_cheque');
+                $chequeDue->type = 'CHEQUE';
+                $chequeDue->status = 0;
+                $chequeDue->save();
             }
            
             $creditCardPay->save();

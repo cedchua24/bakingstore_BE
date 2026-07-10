@@ -37,7 +37,7 @@ class PaymentTermController extends Controller
     {
          $data = DB::table('payment_term as pt')
             ->select('pt.id', 'pt.payment_term', 'pt.status')
-            ->whereIn('pt.id', [1,2])   
+            ->whereIn('pt.id', [1,2,3])   
             ->where('pt.status', '=', 1) 
             ->get();
 
