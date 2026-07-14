@@ -181,6 +181,7 @@ Route::post('/customers/searchVipCustomerList', [CustomerController::class, 'sea
 Route::resource('/checkList', 'App\Http\Controllers\CheckListController');
 Route::post('/customers/fetchCustomerByDate', [CustomerController::class, 'fetchCustomerByDate']);
 
+Route::patch('/checkListTransaction/rejectPending', [CheckListTransactionController::class, 'rejectPending']);
 Route::resource('/checkListTransaction', 'App\Http\Controllers\CheckListTransactionController');
 Route::post('/checkListTransaction/fetchCheckListByDate', [CheckListTransactionController::class, 'fetchCheckListByDate']);
 Route::resource('/checkListHistory', 'App\Http\Controllers\CheckListHistoryController');
