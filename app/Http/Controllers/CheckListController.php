@@ -145,6 +145,8 @@ class CheckListController extends Controller
 
                 'chl.id as check_list_transaction_id',
                 'chl.comment',
+                'chl.grade',
+                'chl.grade_checker',
                 'chl.status as transaction_status',
 
                 DB::raw("asg.name as assignee_name"),

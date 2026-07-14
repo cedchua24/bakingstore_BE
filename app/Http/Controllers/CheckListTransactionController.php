@@ -49,6 +49,7 @@ class CheckListTransactionController extends Controller
         $checkListTransaction->checker = $request->input('checker');
         $checkListTransaction->comment = $request->input('comment');
         $checkListTransaction->grade = 0;
+        $checkListTransaction->grade_checker = 0;
         $checkListTransaction->date = $request->input('date');
         $checkListTransaction->status = $request->input('status');
         $checkListTransaction->save(); 
@@ -79,6 +80,7 @@ class CheckListTransactionController extends Controller
                 'cl.time_of_day',
                 'cl.frequency',
                 'cht.grade',
+                'cht.grade_checker',
                 'cht.id as check_list_transaction_id',
                 'cht.assignee',
                 'cht.checker',
@@ -151,6 +153,7 @@ class CheckListTransactionController extends Controller
                 'chl.check_list_id',
                 'chl.comment',
                 'chl.grade',
+                'chl.grade_checker',
                 'chl.status',
                 'chl.assignee',
                 'chl.checker',
@@ -176,6 +179,7 @@ class CheckListTransactionController extends Controller
                 'chl.comment',
                 'chl.status',
                 'chl.grade',
+                'chl.grade_checker',
                 'chl.assignee',
                 'chl.checker',
                 'cl.time_of_day',
@@ -203,9 +207,31 @@ class CheckListTransactionController extends Controller
         $checkListTransaction->comment = $request->input('comment');
         $checkListTransaction->date = $request->input('date');
         $checkListTransaction->grade = $request->input('grade');
+        if ($request->has('grade_checker')) {
+            $checkListTransaction->grade_checker = $request->input('grade_checker');
+        }
         $checkListTransaction->status = $request->input('status');
         $checkListTransaction->save(); 
         return  response()->json($checkListTransaction);
+    }
+
+    /**
+     * Reject every pending checklist transaction.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function rejectPending()
+    {
+        $updatedCount = CheckListTransaction::where('status', 'PENDING')
+            ->update([
+                'grade' => 1,
+                'status' => 'REJECTED',
+            ]);
+
+        return response()->json([
+            'message' => 'Pending checklist transactions rejected successfully.',
+            'updated_count' => $updatedCount,
+        ]);
     }
 
     /**

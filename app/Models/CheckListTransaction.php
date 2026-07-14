@@ -21,6 +21,8 @@ class CheckListTransaction extends Model
         'time_of_day',
         'comment',
         'date',
+        'grade',
+        'grade_checker',
         'status',
     ];
 }
