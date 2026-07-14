@@ -73,6 +73,9 @@ class OrderSupplierTransactionController extends Controller
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
 
@@ -94,11 +97,17 @@ class OrderSupplierTransactionController extends Controller
            $total_balance = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.payment_status', 0)
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
            $total_paid = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_paid'))   
             ->where('ost.payment_status', 1)
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
          } else {
             $data = DB::table('order_supplier_transaction')
@@ -108,6 +117,9 @@ class OrderSupplierTransactionController extends Controller
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
              ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
 
@@ -130,14 +142,20 @@ class OrderSupplierTransactionController extends Controller
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.payment_status', 0)
             ->where('ost.order_date', '>=', $request->input('dateFrom'))
-            ->where('ost.order_date', '<=', $request->input('dateTo'))            
+            ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
            $total_paid = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_paid'))   
             ->where('ost.payment_status', 1)
             ->where('ost.order_date', '>=', $request->input('dateFrom'))
-            ->where('ost.order_date', '<=', $request->input('dateTo'))  
+            ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();            
 
         }
@@ -164,6 +182,9 @@ class OrderSupplierTransactionController extends Controller
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.status', 'SEND_TO_SUPPLIER')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -184,6 +205,9 @@ class OrderSupplierTransactionController extends Controller
            $total_balance = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.status', 'SEND_TO_SUPPLIER')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
         } else {
@@ -197,6 +221,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
             ->where('order_supplier_transaction.status', 'SEND_TO_SUPPLIER')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -219,6 +246,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('ost.status', 'SEND_TO_SUPPLIER')
             ->where('ost.order_date', '>=', $request->input('dateFrom'))
             ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
             
@@ -245,6 +275,9 @@ class OrderSupplierTransactionController extends Controller
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.approval_status', 'PENDING')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -265,6 +298,9 @@ class OrderSupplierTransactionController extends Controller
            $total_balance = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.approval_status', 'PENDING')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
         } else {
@@ -278,6 +314,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
             ->where('order_supplier_transaction.approval_status', 'PENDING')
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -300,6 +339,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('ost.approval_status', 'PENDING')
             ->where('ost.order_date', '>=', $request->input('dateFrom'))
             ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
             
@@ -326,6 +368,9 @@ class OrderSupplierTransactionController extends Controller
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->where('order_supplier_transaction.payment_status', 0)
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -346,6 +391,9 @@ class OrderSupplierTransactionController extends Controller
            $total_balance = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.payment_status', 0)
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
         } else {
@@ -359,6 +407,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
             ->where('order_supplier_transaction.payment_status', 0)
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
             ->get();
 
              foreach ($data as $sotl) {  
@@ -381,6 +432,9 @@ class OrderSupplierTransactionController extends Controller
             ->where('ost.payment_status', 0)
             ->where('ost.order_date', '>=', $request->input('dateFrom'))
             ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
             ->first();
 
             
