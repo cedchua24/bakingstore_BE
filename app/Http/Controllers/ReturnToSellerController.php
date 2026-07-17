@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ReturnToSeller;
 use App\Models\Product;
+use App\Models\StockOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +51,16 @@ class ReturnToSellerController extends Controller
      */
     public function store(Request $request)
     {
+        $products = Product::find($request->input('id'));
+
+        $stockOrder = new StockOrder;
+        $stockOrder->product_id = $request->input('id');
+        $stockOrder->stock_reason = $request->input('reason');
+        $stockOrder->stock_type = $request->input('newStocks') > 0 ? 'Add' : 'Reduce';
+        $stockOrder->stock = $request->input('newStocks');
+        $stockOrder->pack = $request->input('pack');
+        $stockOrder->type = $request->input('type');
+
         $returnToSeller = new ReturnToSeller;
         $returnToSeller->product_id = $request->input('id'); 
         $returnToSeller->type = $request->input('pack');  
@@ -61,12 +72,12 @@ class ReturnToSellerController extends Controller
         $returnToSeller->status = 0; 
      
         $total_cost =0;
-         $products = Product::find($request->input('id'));
         if ($request->input('pack') == 'Pc') {
           $returnToSeller->price = $products->price / $products->quantity;   
           $products->stock_pc  = $products->stock_pc + $request->input('newStocks');
           $products->stock  = floor($products->stock_pc / $products->quantity);
           $total_cost = ($products->price / $products->quantity) * $request->input('newStocks');
+          $stockOrder->total_stock = $products->stock;
         } else {
         $returnToSeller->price = $products->price;     
           $products->stock = $products->stock + $request->input('newStocks');
@@ -75,8 +86,12 @@ class ReturnToSellerController extends Controller
             $products->stock_pc = $products->stock_pc + $wsStocks;  
           }
           $total_cost = $products->price * $request->input('newStocks');
+          $stockOrder->total_stock = $products->stock;
         }
          $returnToSeller->total_cost = $total_cost;  
+         $stockOrder->price = $returnToSeller->price;
+         $stockOrder->total_cost = $total_cost;
+         $stockOrder->save();
          $returnToSeller->save();
          $products->save();
 
@@ -145,6 +160,18 @@ class ReturnToSellerController extends Controller
                 }
             }
             $products->save();
+
+            $stockOrder = new StockOrder;
+            $stockOrder->product_id = $request->input('product_id');
+            $stockOrder->stock_reason = 'RECEIVED_TO_WAREHOUSE';
+            $stockOrder->stock_type = 'Add';
+            $stockOrder->stock = $quantity;
+            $stockOrder->pack = $request->input('type');
+            $stockOrder->type = 'RECEIVED_TO_WAREHOUSE';
+            $stockOrder->total_stock = $products->stock;
+            $stockOrder->price = $returnToSeller->price;
+            $stockOrder->total_cost = abs($returnToSeller->total_cost);
+            $stockOrder->save();
         }
 
           if ( $request->input('status') == 1 &&  $request->input('current_status') == 2) {
