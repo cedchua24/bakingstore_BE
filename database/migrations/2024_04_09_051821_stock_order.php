@@ -21,6 +21,7 @@ return new class extends Migration
             $table->double('price');
             $table->string('stock_type');
             $table->string('stock_reason');
+            $table->string('type')->default('ADJUSTMENT');
             $table->integer('stock');
             $table->integer('total_stock');
             $table->timestamps();

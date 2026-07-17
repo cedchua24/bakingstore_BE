@@ -64,6 +64,7 @@ class SpoilageController extends Controller
         $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
         $stockOrder->stock = $request->input('newStocks');
         $stockOrder->pack = $request->input('pack');    
+        $stockOrder->type = $request->input('type'); 
             
         $total_cost = 0;
         if ($request->input('pack') == 'Pc') {

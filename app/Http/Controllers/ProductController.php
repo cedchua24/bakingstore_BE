@@ -745,17 +745,26 @@ class ProductController extends Controller
             return response()->json($response);    
     }
 
-          public function fetchModifiedStockDaily($date)
+          public function fetchModifiedStockDaily(Request $request, $date)
     {
          $stock_order_ids = Spoilage::all('stock_order_id');
+        $typeList = $request->input('typeList', []);
+        $typeList = is_array($typeList) ? $typeList : [$typeList];
+        $typeList = array_values(array_filter($typeList, function ($type) {
+            return $type !== null && $type !== '';
+        }));
+
         if ($date === 'undefined') {
             $data = DB::table('stock_order as so')
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('category as c', 'c.id', '=', 'p.category_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.type', 'so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', date('Y-m-d').'%')
+            ->when(count($typeList) > 0, function ($query) use ($typeList) {
+                $query->whereIn('so.type', $typeList);
+            })
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
@@ -766,8 +775,11 @@ class ProductController extends Controller
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.type', 'so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
             ->where('so.updated_at', 'like', $date.'%')
+            ->when(count($typeList) > 0, function ($query) use ($typeList) {
+                $query->whereIn('so.type', $typeList);
+            })
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
@@ -785,6 +797,11 @@ class ProductController extends Controller
        public function fetchModifiedReportList(Request $request)
     {
        $stock_order_ids = Spoilage::all('stock_order_id');
+       $typeList = $request->input('typeList', []);
+       $typeList = is_array($typeList) ? $typeList : [$typeList];
+       $typeList = array_values(array_filter($typeList, function ($type) {
+           return $type !== null && $type !== '';
+       }));
 
        if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '') {
            $tst = 2;
@@ -792,7 +809,10 @@ class ProductController extends Controller
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('category as c', 'c.id', '=', 'p.category_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.price', 'so.total_cost','p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.type', 'so.price', 'so.total_cost','p.product_name', 'b.brand_name')
+            ->when(count($typeList) > 0, function ($query) use ($typeList) {
+                $query->whereIn('so.type', $typeList);
+            })
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
@@ -804,9 +824,12 @@ class ProductController extends Controller
             ->join('products as p', 'p.id', '=', 'so.product_id')
             ->join('brand as b', 'b.id', '=', 'p.brand_id')
             // ->rightJoin('spoilage as sl', 'sl.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack','so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
+            ->select('so.id', 'so.updated_at', 'so.stock_reason', 'so.stock', 'so.pack', 'so.type', 'so.price', 'so.total_cost', 'p.product_name', 'b.brand_name')
             ->where('so.created_at', '>=', $request->input('dateFrom'))
             ->where('so.created_at', '<=', $request->input('dateTo'))
+            ->when(count($typeList) > 0, function ($query) use ($typeList) {
+                $query->whereIn('so.type', $typeList);
+            })
             ->whereNotIn('so.id',  Spoilage::all('stock_order_id'))
             ->orderBy('so.id', 'desc')
             ->get();
@@ -1160,7 +1183,8 @@ class ProductController extends Controller
 
             $stockOrder->stock_type = $request->input('newStocks') > 0 ? "Add" : "Reduce";
             $stockOrder->stock = $request->input('newStocks');
-            $stockOrder->pack = $request->input('pack');    
+            $stockOrder->pack = $request->input('pack');
+            $stockOrder->type = $request->input('type');     
 
             if ($request->input('pack') == 'Pc') {
                 $stockOrder->total_stock = floor($products->stock_pc / $products->quantity);
