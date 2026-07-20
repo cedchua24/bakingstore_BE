@@ -576,6 +576,10 @@ class ShopOrderTransactionController extends Controller
             ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'sot.id')
             ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
             ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+            ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
              'sot.shop_order_transaction_total_price',  'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
@@ -583,7 +587,8 @@ class ShopOrderTransactionController extends Controller
               'sot.status', 'sot.date', 'sot.profit',
               'sot.total_cash', 'sot.total_online',
              'ct.customer_type', 'sot.rider_name', 'sot.delivery_customer_id', 'ds.status as delivery_status',
-             DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list"))    
+             DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+             DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list"))    
              ->where('shop.shop_type_id', 3)
              ->where('sot.date', $request->input('date'))
              ->groupBy('sot.id')
@@ -967,9 +972,20 @@ class ShopOrderTransactionController extends Controller
 
         public function fetctProductOrderTransaction($id, Request $request)
         {
-            $queryDate = function ($query) use ($request) {
+            $isPickup = $request->input('is_pickup');
+            $status = $request->input('status');
+
+            $applyFilters = function ($query) use ($request, $isPickup, $status) {
                 if ($request->filled('dateFrom') && $request->filled('dateTo')) {
                     $query->whereBetween('sot.date', [$request->input('dateFrom'), $request->input('dateTo')]);
+                }
+
+                if ($isPickup !== null && $isPickup !== '' && $isPickup !== 'null') {
+                    $query->where('sot.is_pickup', (int) $isPickup);
+                }
+
+                if ($status !== null && $status !== '' && $status !== 'null') {
+                    $query->where('sot.status', (int) $status);
                 }
             };
 
@@ -992,7 +1008,7 @@ class ShopOrderTransactionController extends Controller
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('so.product_id', $id)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->orderByDesc('sot.id')
                 ->get();
 
@@ -1006,9 +1022,8 @@ class ShopOrderTransactionController extends Controller
                 ->join('shop', 'shop.id', '=', 'sot.shop_id')
                 ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
                 ->where('shop.shop_type_id', 3)
-                ->where('sot.status', 1)
                 ->where('so.product_id', $id)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->first();
 
             // Cash totals
@@ -1019,10 +1034,9 @@ class ShopOrderTransactionController extends Controller
                 ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
                 ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
                 ->where('shop.shop_type_id', 3)
-                ->where('sot.status', 1)
                 ->where('so.product_id', $id)
                 ->where('pt.type', 1)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->first();
 
             // Online totals
@@ -1033,10 +1047,9 @@ class ShopOrderTransactionController extends Controller
                 ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
                 ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')
                 ->where('shop.shop_type_id', 3)
-                ->where('sot.status', 1)
                 ->where('so.product_id', $id)
                 ->where('pt.type', 2)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->first();
 
             // Payment breakdown
@@ -1051,8 +1064,7 @@ class ShopOrderTransactionController extends Controller
                 ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
                 ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
                 ->where('so.product_id', $id)
-                ->where('sot.status', 1)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->groupBy('pt.id')
                 ->get();
 
@@ -1063,7 +1075,7 @@ class ShopOrderTransactionController extends Controller
                 ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
                 ->where('shop.shop_type_id', 3)
                 ->where('so.product_id', $id)
-                ->when(true, $queryDate)
+                ->when(true, $applyFilters)
                 ->first();
 
             // Add mode of payment and quantity calc
@@ -1131,6 +1143,10 @@ class ShopOrderTransactionController extends Controller
                 ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
                 ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'shop_order_transaction.requestor')
                 ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+                ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+                ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+                ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
                 ->select(
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
@@ -1152,7 +1168,8 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
                     'ds.status as delivery_status',
-                    DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+                    DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+                    DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.is_pickup', $id)
@@ -1302,6 +1319,10 @@ class ShopOrderTransactionController extends Controller
                 ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
                 ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'shop_order_transaction.requestor')
                 ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+                ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'shop_order_transaction.id')
+                ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+                ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
                 ->select(
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
@@ -1323,7 +1344,8 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.rider_name',
                     'shop_order_transaction.delivery_customer_id',
                     'ds.status as delivery_status',
-                    DB::raw("GROUP_CONCAT(CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+                    DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+                    DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
                 )
                 ->where('shop.shop_type_id', 3)
                 ->where('shop_order_transaction.status', $id)
