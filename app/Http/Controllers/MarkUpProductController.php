@@ -27,6 +27,7 @@ class MarkUpProductController extends Controller
             ->selectRaw("(CASE WHEN (mup.business_type = 'WHOLESALE') THEN p.stock ELSE p.stock_pc END) as stock")
             ->where('mup.status', 1) 
             ->where('p.disabled', '=', 0)
+            ->orderBy('c.ordering', 'ASC')
             ->orderBy('mup.id', 'DESC')
             ->get();
 
