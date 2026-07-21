@@ -15,7 +15,7 @@ class SupplierController extends Controller
      */
     public function index()
     {
-        $suppliers = Supplier::all();
+        $suppliers = Supplier::orderBy('supplier_name', 'asc')->get();
         // return view('categories.index')->with('categories', $categories);
         return response()->json($suppliers);
     } 

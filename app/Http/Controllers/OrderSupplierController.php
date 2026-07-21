@@ -106,7 +106,17 @@ class OrderSupplierController extends Controller
         return  response()->json($orderSupplier);
     }
 
-     public function fetchApprovalPO($id)
+    public function fetchApprovalPO($id)
+    {
+        return $this->fetchApprovalPOForOrderType($id, 0);
+    }
+
+    public function fetchApprovalPOBranch($id)
+    {
+        return $this->fetchApprovalPOForOrderType($id, 1);
+    }
+
+    private function fetchApprovalPOForOrderType($id, $orderType)
     {
         $orderSupplierTransaction = OrderSupplierTransaction::find($id);
 
@@ -128,9 +138,9 @@ class OrderSupplierController extends Controller
             ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
             ->join('products as p', 'p.id', '=', 'os.product_id')
             ->leftJoin('shop_order as so', 'so.product_id', '=', 'os.product_id')
-            ->leftJoin('shop_order_transaction as sot', function ($join) {
+            ->leftJoin('shop_order_transaction as sot', function ($join) use ($orderType) {
                 $join->on('sot.id', '=', 'so.shop_transaction_id')
-                    ->where('sot.type', 0)
+                    ->where('sot.type', $orderType)
                     ->where('sot.status', 1);
             })
             ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
@@ -232,6 +242,7 @@ class OrderSupplierController extends Controller
               'date' => $orderSupplierTransaction->created_at->format('Y-m-d'),
               'date' => $date,
               'id' => $id,
+              'order_type' => $orderType,
             //   'last_2_months_sales' => $last_2_months_sales,
               'last30Days' => $last30Days,
               'last15Days' => $last15Days,
@@ -244,6 +255,108 @@ class OrderSupplierController extends Controller
 
 
         return  response()->json($response);
+    }
+
+    public function fetchApprovalPOByDateRanges(Request $request, $id)
+    {
+        return $this->fetchApprovalPOByDateRangesForOrderType($request, $id, 0);
+    }
+
+    public function fetchApprovalPOBranchByDateRanges(Request $request, $id)
+    {
+        return $this->fetchApprovalPOByDateRangesForOrderType($request, $id, 1);
+    }
+
+    private function fetchApprovalPOByDateRangesForOrderType(Request $request, $id, $orderType)
+    {
+        $validated = $request->validate([
+            'date_ranges' => 'required|array|min:1|max:12',
+            'date_ranges.*.label' => 'nullable|string|max:50',
+            'date_ranges.*.date_from' => 'required|date_format:Y-m-d',
+            'date_ranges.*.date_to' => 'required|date_format:Y-m-d|after_or_equal:date_ranges.*.date_from',
+        ]);
+
+        $orderSupplierTransaction = OrderSupplierTransaction::findOrFail($id);
+
+        $products = DB::table('order_supplier as os')
+            ->join('products as p', 'p.id', '=', 'os.product_id')
+            ->select(
+                'os.id',
+                'os.order_supplier_transaction_id',
+                'os.quantity',
+                'os.variation as type',
+                'p.id as product_id',
+                'p.product_name',
+                'p.quantity as pQuantity',
+                'p.stock',
+                'p.stock_pc',
+                'p.stock_warning',
+                'p.stock_warning_type',
+                'p.packaging',
+                'p.variation'
+            )
+            ->selectRaw("CASE WHEN os.variation = 'WHOLESALE' THEN p.packaging ELSE p.variation END as unit")
+            ->where('os.order_supplier_transaction_id', $id)
+            ->orderBy('p.product_name')
+            ->get();
+
+        $productIds = $products->pluck('product_id')->unique()->values();
+        $ranges = collect($validated['date_ranges'])->values()->map(function ($range, $index) {
+            return [
+                'key' => 'range_' . ($index + 1),
+                'label' => $range['label'] ?? null,
+                'date_from' => $range['date_from'],
+                'date_to' => $range['date_to'],
+            ];
+        });
+
+        $salesByRange = [];
+
+        if ($productIds->isNotEmpty()) {
+            foreach ($ranges as $range) {
+                $salesByRange[$range['key']] = DB::table('shop_order as so')
+                    ->join('shop_order_transaction as sot', function ($join) use ($orderType) {
+                        $join->on('sot.id', '=', 'so.shop_transaction_id')
+                            ->where('sot.type', $orderType)
+                            ->where('sot.status', 1);
+                    })
+                    ->join('products as p', 'p.id', '=', 'so.product_id')
+                    ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                    ->select('so.product_id')
+                    ->selectRaw("ROUND(COALESCE(SUM(CASE
+                        WHEN mup.business_type = 'WHOLESALE' THEN so.shop_order_quantity * p.quantity
+                        WHEN mup.business_type = 'RETAIL' THEN so.shop_order_quantity
+                        ELSE 0
+                    END), 0)) as sold")
+                    ->whereIn('so.product_id', $productIds)
+                    ->whereBetween('sot.date', [$range['date_from'], $range['date_to']])
+                    ->groupBy('so.product_id')
+                    ->pluck('sold', 'so.product_id');
+            }
+        }
+
+        $products->transform(function ($product) use ($ranges, $salesByRange) {
+            $product->sales_ranges = $ranges->map(function ($range) use ($product, $salesByRange) {
+                return [
+                    'key' => $range['key'],
+                    'label' => $range['label'],
+                    'date_from' => $range['date_from'],
+                    'date_to' => $range['date_to'],
+                    'sold' => (int) ($salesByRange[$range['key']][$product->product_id] ?? 0),
+                ];
+            })->values();
+
+            return $product;
+        });
+
+        return response()->json([
+            'data' => $products,
+            'ranges' => $ranges,
+            'transaction_date' => Carbon::parse($orderSupplierTransaction->created_at)->format('Y-m-d'),
+            'id' => (int) $id,
+            'order_type' => $orderType,
+            'message' => 'Successfully fetched approval products with dynamic sales ranges',
+        ]);
     }
 
      public function fetchOrderByTransactionId($id)

@@ -248,6 +248,9 @@ Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierControlle
 Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::class, 'setToActiveExpiration']);
 Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'saveAutoPo']);
 Route::get('/orderSuppliers/fetchApprovalPO/{id}', [OrderSupplierController::class, 'fetchApprovalPO']);
+Route::get('/orderSuppliers/fetchApprovalPOBranch/{id}', [OrderSupplierController::class, 'fetchApprovalPOBranch']);
+Route::post('/orderSuppliers/fetchApprovalPOByDateRanges/{id}', [OrderSupplierController::class, 'fetchApprovalPOByDateRanges']);
+Route::post('/orderSuppliers/fetchApprovalPOBranchByDateRanges/{id}', [OrderSupplierController::class, 'fetchApprovalPOBranchByDateRanges']);
 
 Route::get('/markUpPrice/indexLimit100', [MarkUpProductController::class, 'indexLimit100']);
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
