@@ -1067,13 +1067,24 @@ public function customerLastOrderList($idParam, Request $request) {
             foreach ($shop_order_transaction_list as $sotl) { 
                 
                $mode_of_payment = DB::table('mode_of_payment as mop')
-                ->select('mop.id', 'mop.payment_type_id', 'pt.payment_type', 'mop.amount', 'mop.shop_order_transaction_id')    
+                ->select(
+                    'mop.id',
+                    'mop.payment_type_id',
+                    'pt.payment_type',
+                    'pt.payment_type as bank_name',
+                    'pt.payment_type_description',
+                    'mop.amount',
+                    'mop.shop_order_transaction_id'
+                )
                 ->join('payment_type as pt', 'pt.id', '=', 'mop.payment_type_id')  
                 ->where('pt.id', '!=', 1)
                 ->where('mop.shop_order_transaction_id', $sotl->id)
                 ->get();
                 
                 $sotl->mode_of_payment = $mode_of_payment;
+                $sotl->bank = $mode_of_payment->pluck('payment_type')->filter()->implode(', ');
+                $sotl->bank_name = $sotl->bank;
+                $sotl->bank_paid_amount = round((float) $mode_of_payment->sum('amount'), 2);
             }
 
              $customerDetails = DB::table('customer as c')

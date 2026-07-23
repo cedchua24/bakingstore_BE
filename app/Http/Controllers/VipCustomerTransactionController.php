@@ -174,15 +174,8 @@ class VipCustomerTransactionController extends Controller
                 DB::raw('SUM(mop_payment.amount) as total_completed_payment')
             )
             ->where('sot_payment.type', 0)
+            ->where('sot_payment.status', 2)
             ->where('vct_payment.vip_customer_id', $id);
-
-        if ($dateFrom != '') {
-            $completedPayments->where('sot_payment.date', '>=', $dateFrom);
-        }
-
-        if ($dateTo != '') {
-            $completedPayments->where('sot_payment.date', '<=', $dateTo);
-        }
 
         $completedPayments->groupBy('vct_payment.customer_id');
 
