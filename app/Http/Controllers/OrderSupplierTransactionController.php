@@ -640,54 +640,87 @@ class OrderSupplierTransactionController extends Controller
          return response()->json($orderSupplierTransaction);
     }
 
-        public function updateReceivedOrder($id, Request $request)
+    public function updateReceivedOrder($id, Request $request)
     {
         try {
-        $orderSupplierTransaction = OrderSupplierTransaction::find($id);
+            $result = DB::transaction(function () use ($id, $request) {
+                // Serialize calls for this order. This also makes API retries idempotent.
+                $orderSupplierTransaction = OrderSupplierTransaction::whereKey($id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $total_transaction_price = DB::table('order_supplier')
-            ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
-            ->join('products', 'products.id', '=', 'order_supplier.product_id')
-            ->select('order_supplier.order_supplier_transaction_id', 'order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
-            ->where('order_supplier_transaction.id', $id)
-            ->get();
-
-            foreach ($total_transaction_price as $row) { 
-                $product = Product::find($row->product_id);
-
-                $initialStock = $product->stock;
-                if ($row->variation === 'WHOLESALE') {
-                      $product->stock = ($initialStock + $row->quantity);
-                        if ($product->quantity > 1) {
-                            $newStock = 0;
-                            $newStock = $product->quantity * $row->quantity;  
-                            $product->stock_pc = $product->stock_pc + $newStock;
-                        }
-                } else {
-                    $newStock = $product->stock_pc + $row->quantity;
-                    $product->stock_pc = $newStock;
-                    $product->stock = floor($product->stock_pc / $product->quantity);
+                if ($orderSupplierTransaction->status === 'COMPLETED') {
+                    return ['already_completed' => true, 'items' => collect()];
                 }
 
-                OrderSupplier::where('order_supplier_transaction_id', $row->order_supplier_transaction_id)
-                ->where('product_id', $row->product_id)
-                ->update(['enable' => 1, 'stock' => $product->stock, 'stock_pc' => $product->stock_pc]);
+                $items = DB::table('order_supplier')
+                    ->select('order_supplier_transaction_id', 'product_id', 'quantity', 'variation')
+                    ->where('order_supplier_transaction_id', $id)
+                    ->orderBy('id')
+                    ->get();
 
-                $product->save();
-            }
+                if ($items->isEmpty()) {
+                    throw new \RuntimeException('The supplier order has no items to receive.');
+                }
 
-        $orderSupplierTransaction->status = 'COMPLETED';
-        $orderSupplierTransaction->checker = $request->input('checker');
-        $orderSupplierTransaction->receiver = $request->input('receiver');
-        $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
-        $orderSupplierTransaction->save();      
+                foreach ($items as $row) {
+                    $product = Product::whereKey($row->product_id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
 
-        return response()->json([
-            'code' => 200,
-            'message' => 'Successfully Updated Received Order',
-            'data' => $total_transaction_price
-        ], 200);
-        } catch (\Exception $e) {
+                    $unitsPerPack = (int) $product->quantity;
+                    $receivedQuantity = (int) $row->quantity;
+
+                    if ($unitsPerPack < 1 || $receivedQuantity < 1) {
+                        throw new \RuntimeException(
+                            "Invalid quantity for product {$row->product_id}."
+                        );
+                    }
+
+                    $receivedPieces = $row->variation === 'WHOLESALE'
+                        ? $unitsPerPack * $receivedQuantity
+                        : $receivedQuantity;
+
+                    // stock_pc is the source of truth; stock is always derived from it.
+                    $product->stock_pc = (int) $product->stock_pc + $receivedPieces;
+                    $product->stock = intdiv($product->stock_pc, $unitsPerPack);
+                    $product->saveOrFail();
+
+                    $updated = OrderSupplier::where(
+                            'order_supplier_transaction_id',
+                            $row->order_supplier_transaction_id
+                        )
+                        ->where('product_id', $row->product_id)
+                        ->update([
+                            'enable' => 1,
+                            'stock' => $product->stock,
+                            'stock_pc' => $product->stock_pc,
+                        ]);
+
+                    if ($updated < 1) {
+                        throw new \RuntimeException(
+                            "Failed to update supplier order item for product {$row->product_id}."
+                        );
+                    }
+                }
+
+                $orderSupplierTransaction->status = 'COMPLETED';
+                $orderSupplierTransaction->checker = $request->input('checker');
+                $orderSupplierTransaction->receiver = $request->input('receiver');
+                $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
+                $orderSupplierTransaction->saveOrFail();
+
+                return ['already_completed' => false, 'items' => $items];
+            }, 3);
+
+            return response()->json([
+                'code' => 200,
+                'message' => $result['already_completed']
+                    ? 'Received order was already completed; stock was not added again.'
+                    : 'Successfully Updated Received Order',
+                'data' => $result['items'],
+            ], 200);
+        } catch (\Throwable $e) {
 
             $this->storeAuditTrail($request, $e, 'Update Received Order API', 'exception');
 

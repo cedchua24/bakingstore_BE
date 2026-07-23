@@ -192,6 +192,7 @@ Route::resource('/vipCustomerTransaction', 'App\Http\Controllers\VipCustomerTran
 Route::get('/vipCustomerTransaction/fetchVipTransactionByVipId/{id}', [VipCustomerTransactionController::class, 'fetchVipTransactionByVipId']);
 Route::get('/vipCustomerTransaction/fetchVipCustomerLastOrder/{id}', [VipCustomerTransactionController::class, 'fetchVipCustomerLastOrder']);
 Route::get('/vipCustomerTransaction/fetchVIPCustomerDebt/{id}', [VipCustomerTransactionController::class, 'fetchVIPCustomerDebt']);
+Route::get('/vipCustomerTransaction/fetchVIPCustomerMonthlyPaid/{id}', [VipCustomerTransactionController::class, 'fetchVIPCustomerMonthlyPaid']);
 Route::get('/vipCustomerNote/getAll', [VipCustomerNoteController::class, 'getAll']);
 Route::resource('/vipCustomerNote', 'App\Http\Controllers\VipCustomerNoteController');
 
