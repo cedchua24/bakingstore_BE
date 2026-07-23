@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\VipCustomerTransaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -401,6 +402,215 @@ class VipCustomerTransactionController extends Controller
             ->values();
 
         return response()->json($data);
+    }
+
+    public function fetchVIPCustomerMonthlyPaid(Request $request, $id)
+    {
+        $this->validate($request, [
+            'month' => 'nullable|date_format:Y-m',
+            'next_months' => 'nullable|integer|min:0|max:120',
+        ]);
+
+        $reportMonth = $request->filled('month')
+            ? Carbon::createFromFormat('Y-m', $request->input('month'))->startOfMonth()
+            : Carbon::now()->startOfMonth()->addMonths((int) $request->input('next_months', 0));
+
+        $months = collect(range(0, 3))->map(function ($monthsAgo) use ($reportMonth) {
+            $month = $reportMonth->copy()->subMonths($monthsAgo);
+
+            return [
+                'month' => $month->format('Y-m'),
+                'label' => $month->format('F Y'),
+                'date_from' => $month->copy()->startOfMonth()->toDateString(),
+                'date_to' => $month->copy()->endOfMonth()->toDateString(),
+            ];
+        });
+
+        $paidByCustomerAndMonth = DB::table('mode_of_payment as mop')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'mop.shop_order_transaction_id')
+            ->join('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->select(
+                'vct.customer_id',
+                DB::raw("DATE_FORMAT(mop.created_at, '%Y-%m') as paid_month"),
+                DB::raw('SUM(mop.amount) as paid_amount')
+            )
+            ->where('vct.vip_customer_id', $id)
+            ->where('sot.type', 0)
+            ->whereBetween('mop.created_at', [
+                $reportMonth->copy()->subMonths(3)->startOfMonth(),
+                $reportMonth->copy()->endOfMonth(),
+            ])
+            ->groupBy('vct.customer_id', DB::raw("DATE_FORMAT(mop.created_at, '%Y-%m')"))
+            ->get()
+            ->groupBy('customer_id');
+
+        // The monthly average uses every recorded completed month before the
+        // report month. The three previous months below are display history only.
+        $historicalPaid = DB::table('mode_of_payment as mop')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'mop.shop_order_transaction_id')
+            ->join('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->select(
+                'vct.customer_id',
+                DB::raw("DATE_FORMAT(mop.created_at, '%Y-%m') as paid_month"),
+                DB::raw('SUM(mop.amount) as paid_amount')
+            )
+            ->where('vct.vip_customer_id', $id)
+            ->where('sot.type', 0)
+            ->where('mop.created_at', '<', $reportMonth)
+            ->groupBy('vct.customer_id', DB::raw("DATE_FORMAT(mop.created_at, '%Y-%m')"))
+            ->get();
+
+        $historicalPaidByCustomer = $historicalPaid->groupBy('customer_id');
+
+        $profitByCustomerAndMonth = DB::table('shop_order_transaction as sot')
+            ->join('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->select(
+                'vct.customer_id',
+                DB::raw("DATE_FORMAT(sot.date, '%Y-%m') as profit_month"),
+                DB::raw('SUM(sot.profit) as profit_amount')
+            )
+            ->where('vct.vip_customer_id', $id)
+            ->where('sot.type', 0)
+            ->where('sot.status', 1)
+            ->whereBetween('sot.date', [
+                $reportMonth->copy()->subMonths(3)->startOfMonth()->toDateString(),
+                $reportMonth->copy()->endOfMonth()->toDateString(),
+            ])
+            ->groupBy('vct.customer_id', DB::raw("DATE_FORMAT(sot.date, '%Y-%m')"))
+            ->get()
+            ->groupBy('customer_id');
+
+        $historicalProfit = DB::table('shop_order_transaction as sot')
+            ->join('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->select(
+                'vct.customer_id',
+                DB::raw("DATE_FORMAT(sot.date, '%Y-%m') as profit_month"),
+                DB::raw('SUM(sot.profit) as profit_amount')
+            )
+            ->where('vct.vip_customer_id', $id)
+            ->where('sot.type', 0)
+            ->where('sot.status', 1)
+            ->where('sot.date', '<', $reportMonth->toDateString())
+            ->groupBy('vct.customer_id', DB::raw("DATE_FORMAT(sot.date, '%Y-%m')"))
+            ->get();
+
+        $historicalProfitByCustomer = $historicalProfit->groupBy('customer_id');
+
+        $customers = DB::table('vip_customer_transaction as vct')
+            ->join('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->join('customer as c', 'c.id', '=', 'vct.customer_id')
+            ->select(
+                'vct.id as vip_customer_transaction_id',
+                'vct.vip_customer_id',
+                'vct.customer_id',
+                'vc.vip_name',
+                'vc.vip_color',
+                'c.first_name',
+                'c.last_name',
+                'c.store_name',
+                DB::raw("TRIM(CONCAT(c.first_name, ' ', COALESCE(c.last_name, ''))) as customer_name")
+            )
+            ->where('vct.vip_customer_id', $id)
+            ->orderBy('c.first_name', 'asc')
+            ->get()
+            ->map(function ($customer) use (
+                $months,
+                $paidByCustomerAndMonth,
+                $historicalPaidByCustomer,
+                $profitByCustomerAndMonth,
+                $historicalProfitByCustomer
+            ) {
+                $customerPayments = $paidByCustomerAndMonth->get($customer->customer_id, collect())
+                    ->keyBy('paid_month');
+                $customerProfits = $profitByCustomerAndMonth->get($customer->customer_id, collect())
+                    ->keyBy('profit_month');
+
+                $monthlyPaid = $months->map(function ($month) use ($customerPayments, $customerProfits) {
+                    $payment = $customerPayments->get($month['month']);
+                    $profit = $customerProfits->get($month['month']);
+
+                    return array_merge($month, [
+                        'paid_amount' => round((float) ($payment->paid_amount ?? 0), 2),
+                        'profit_amount' => round((float) ($profit->profit_amount ?? 0), 2),
+                    ]);
+                });
+
+                $currentPaid = $monthlyPaid->first()['paid_amount'];
+                $currentProfit = $monthlyPaid->first()['profit_amount'];
+                $previousMonths = $monthlyPaid->slice(1)->values();
+                $averageMonthlyPaid = round(
+                    (float) $historicalPaidByCustomer
+                        ->get($customer->customer_id, collect())
+                        ->avg('paid_amount'),
+                    2
+                );
+                $averageMonthlyProfit = round(
+                    (float) $historicalProfitByCustomer
+                        ->get($customer->customer_id, collect())
+                        ->avg('profit_amount'),
+                    2
+                );
+
+                $customer->current_paid = $currentPaid;
+                $customer->paid_amount = $currentPaid;
+                $customer->current_profit = $currentProfit;
+                $customer->profit_amount = $currentProfit;
+                $customer->previous_months = $previousMonths;
+                $customer->upcoming = $previousMonths;
+                $customer->average_monthly_paid = $averageMonthlyPaid;
+                $customer->average_monthly_profit = $averageMonthlyProfit;
+                $customer->amount_needed = round(max($averageMonthlyPaid - $currentPaid, 0), 2);
+                $customer->profit_amount_needed = round(max($averageMonthlyProfit - $currentProfit, 0), 2);
+
+                return $customer;
+            });
+
+        $currentMonthPaid = round($customers->sum('current_paid'), 2);
+        $currentMonthProfit = round($customers->sum('current_profit'), 2);
+        $previousMonthTotals = $months->slice(1)->values()->map(function ($month) use ($customers) {
+            return array_merge($month, [
+                'paid_amount' => round($customers->sum(function ($customer) use ($month) {
+                    $payment = collect($customer->previous_months)->firstWhere('month', $month['month']);
+
+                    return $payment['paid_amount'] ?? 0;
+                }), 2),
+                'profit_amount' => round($customers->sum(function ($customer) use ($month) {
+                    $profit = collect($customer->previous_months)->firstWhere('month', $month['month']);
+
+                    return $profit['profit_amount'] ?? 0;
+                }), 2),
+            ]);
+        });
+        $averageMonthlySales = round(
+            (float) $historicalPaid
+                ->groupBy('paid_month')
+                ->map(function ($payments) {
+                    return $payments->sum('paid_amount');
+                })
+                ->avg(),
+            2
+        );
+        $averageMonthlyProfit = round(
+            (float) $historicalProfit
+                ->groupBy('profit_month')
+                ->map(function ($profits) {
+                    return $profits->sum('profit_amount');
+                })
+                ->avg(),
+            2
+        );
+
+        return response()->json([
+            'report_month' => $months->first(),
+            'current_month_paid' => $currentMonthPaid,
+            'current_month_profit' => $currentMonthProfit,
+            'previous_months' => $previousMonthTotals,
+            'average_monthly_sales' => $averageMonthlySales,
+            'average_monthly_profit' => $averageMonthlyProfit,
+            'amount_needed' => round(max($averageMonthlySales - $currentMonthPaid, 0), 2),
+            'profit_amount_needed' => round(max($averageMonthlyProfit - $currentMonthProfit, 0), 2),
+            'data' => $customers,
+        ]);
     }
 
     /**
