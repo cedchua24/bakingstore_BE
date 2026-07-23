@@ -174,10 +174,40 @@ class VipCustomerTransactionController extends Controller
                 DB::raw('SUM(mop_payment.amount) as total_completed_payment')
             )
             ->where('sot_payment.type', 0)
-            ->where('sot_payment.status', 2)
+            // ->where('sot_payment.status', 2)
             ->where('vct_payment.vip_customer_id', $id);
 
+        if ($dateFrom != '') {
+            $completedPayments->whereDate('mop_payment.created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo != '') {
+            $completedPayments->whereDate('mop_payment.created_at', '<=', $dateTo);
+        }
+
         $completedPayments->groupBy('vct_payment.customer_id');
+
+        $openOrderPayments = DB::table('shop_order_transaction as sot_open_payment')
+            ->join(
+                'vip_customer_transaction as vct_open_payment',
+                'vct_open_payment.customer_id',
+                '=',
+                'sot_open_payment.requestor'
+            )
+            ->join(
+                'mode_of_payment as mop_open_payment',
+                'mop_open_payment.shop_order_transaction_id',
+                '=',
+                'sot_open_payment.id'
+            )
+            ->select(
+                'vct_open_payment.customer_id',
+                DB::raw('SUM(mop_open_payment.amount) as total_open_payment')
+            )
+            ->where('sot_open_payment.type', 0)
+            ->where('sot_open_payment.status', 2)
+            ->where('vct_open_payment.vip_customer_id', $id)
+            ->groupBy('vct_open_payment.customer_id');
 
         $data = DB::table('shop_order_transaction as sot')
             ->join('customer as c', 'c.id', '=', 'sot.requestor')
@@ -191,6 +221,9 @@ class VipCustomerTransactionController extends Controller
             })
             ->leftJoinSub($completedPayments, 'completed_payments', function ($join) {
                 $join->on('completed_payments.customer_id', '=', 'c.id');
+            })
+            ->leftJoinSub($openOrderPayments, 'open_order_payments', function ($join) {
+                $join->on('open_order_payments.customer_id', '=', 'c.id');
             })
             ->select(
                 'vct.id as vip_customer_transaction_id',
@@ -213,7 +246,8 @@ class VipCustomerTransactionController extends Controller
                 DB::raw('COALESCE(draft_orders.draft_order_total_price, 0) as draft_order_total_price'),
                 DB::raw("COALESCE(draft_orders.draft_order_date, MAX(sot.date)) as latest_order_date"),
                 DB::raw('COALESCE(total_orders.total_order_price, 0) as total_order_price'),
-                DB::raw('COALESCE(completed_payments.total_completed_payment, 0) as total_completed_payment')
+                DB::raw('COALESCE(completed_payments.total_completed_payment, 0) as total_completed_payment'),
+                DB::raw('COALESCE(open_order_payments.total_open_payment, 0) as total_open_payment')
             )
             ->where('sot.type', 0)
             ->where('sot.status', 1)
