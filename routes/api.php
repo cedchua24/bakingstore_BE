@@ -246,6 +246,7 @@ Route::resource('/orderSuppliers', 'App\Http\Controllers\OrderSupplierController
 Route::get('/orderSuppliers/fetchOrderByTransactionId/{id}', [OrderSupplierController::class, 'fetchOrderByTransactionId']);
 Route::get('/orderSuppliers/fetchOrderBySupplierId/{id}', [OrderSupplierController::class, 'fetchOrderBySupplierId']);
 Route::get('/orderSuppliers/fetchOrderByProductId/{id}', [OrderSupplierController::class, 'fetchOrderByProductId']);
+Route::get('/orderSuppliers/priceHistory/{productId}', [OrderSupplierController::class, 'fetchPriceHistoryByProductId']);
 Route::post('/orderSuppliers/setToActiveExpiration', [OrderSupplierController::class, 'setToActiveExpiration']);
 Route::post('/orderSuppliers/saveAutoPo', [OrderSupplierController::class, 'saveAutoPo']);
 Route::get('/orderSuppliers/fetchApprovalPO/{id}', [OrderSupplierController::class, 'fetchApprovalPO']);
@@ -254,6 +255,11 @@ Route::post('/orderSuppliers/fetchApprovalPOByDateRanges/{id}', [OrderSupplierCo
 Route::post('/orderSuppliers/fetchApprovalPOBranchByDateRanges/{id}', [OrderSupplierController::class, 'fetchApprovalPOBranchByDateRanges']);
 
 Route::get('/markUpPrice/indexLimit100', [MarkUpProductController::class, 'indexLimit100']);
+Route::get('/markUpPrice/catalog', [MarkUpProductController::class, 'catalog']);
+Route::get('/markUpPrice/productsWithoutMarkup', [MarkUpProductController::class, 'productsWithoutMarkup']);
+Route::get('/markUpPrice/supplierPriceChanges', [MarkUpProductController::class, 'supplierPriceChanges']);
+Route::get('/markUpPrice/salesAvailability', [MarkUpProductController::class, 'salesAvailability']);
+Route::post('/markUpPrice/replace', [MarkUpProductController::class, 'replaceMarkUp']);
 Route::resource('/markUpPrice', 'App\Http\Controllers\MarkUpProductController');
 Route::post('/markUpPrice/saveMarkUp', [MarkUpProductController::class, 'saveMarkUp']);
 Route::get('/markUpPrice/fetchMarkUpBySupplierId/{id}', [MarkUpProductController::class, 'fetchMarkUpBySupplierId']);
@@ -394,6 +400,7 @@ Route::get('/expenseTransaction/fetchExpenseTransactionById/{id}', [ExpenseTrans
 Route::post('/expenseTransaction/searchExpenseTransactionList', [ExpenseTransactionController::class, 'searchExpenseTransactionList']);
 Route::post('/expenseTransaction/searchAllExpenseTransactionList', [ExpenseTransactionController::class, 'searchAllExpenseTransactionList']);
 Route::post('/expenseTransaction/getTotalExpense', [ExpenseTransactionController::class, 'getTotalExpense']);
+Route::post('/expenseTransaction/getTotalExpenseWithFilters', [ExpenseTransactionController::class, 'getTotalExpenseWithFilters']);
 
 
 

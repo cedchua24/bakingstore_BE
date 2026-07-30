@@ -673,6 +673,7 @@ class ProductController extends Controller
                     'os.order_supplier_transaction_id',
                     'ost.order_date as date',
                     'ost.status',
+                    'ost.send_date',
                     's.supplier_name as supplier'
                 )
                 ->selectRaw("
@@ -703,6 +704,9 @@ class ProductController extends Controller
                         'supplier' => $pendingOrder->supplier,
                         'quantity' => $pendingOrder->quantity,
                         'status' => $pendingOrder->status,
+                        'send_date' => $pendingOrder->status === 'SEND_TO_SUPPLIER'
+                            ? $pendingOrder->send_date
+                            : null,
                     ];
                 })
                 ->values();

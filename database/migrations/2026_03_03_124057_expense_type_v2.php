@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('chart_of_account_id');
             $table->string('expense_type');
             $table->integer('expense_type_code');
+            $table->integer('is_profit');
             $table->integer('status');
             $table->timestamps();
         });
