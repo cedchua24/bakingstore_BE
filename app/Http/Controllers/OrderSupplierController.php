@@ -402,6 +402,79 @@ class OrderSupplierController extends Controller
     }
 
     /**
+     * Return the supplier purchase-price history for a product.
+     */
+    public function fetchPriceHistoryByProductId($productId)
+    {
+        $product = Product::findOrFail($productId);
+
+        $history = DB::table('order_supplier as os')
+            ->join(
+                'order_supplier_transaction as ost',
+                'ost.id',
+                '=',
+                'os.order_supplier_transaction_id'
+            )
+            ->leftJoin('supplier as s', 's.id', '=', 'ost.supplier_id')
+            ->select(
+                'os.id as order_supplier_id',
+                'os.order_supplier_transaction_id',
+                'os.product_id',
+                'os.price',
+                'os.quantity',
+                'os.total_price',
+                'os.variation',
+                'os.created_at',
+                'ost.order_date',
+                'ost.status',
+                'ost.invoice_number',
+                's.id as supplier_id',
+                's.supplier_name'
+            )
+            ->where('os.product_id', $product->id)
+            ->orderBy('ost.order_date', 'asc')
+            ->orderBy('os.id', 'asc')
+            ->get();
+
+        $previousPricePerPack = null;
+
+        $history->transform(function ($item) use ($product, &$previousPricePerPack) {
+            $price = (float) $item->price;
+            $pricePerPack = $item->variation === 'WHOLESALE'
+                ? $price
+                : $price * (int) $product->quantity;
+
+            $item->price = $price;
+            $item->quantity = (int) $item->quantity;
+            $item->total_price = (float) $item->total_price;
+            $item->price_per_pack = $pricePerPack;
+            $item->price_change = $previousPricePerPack === null
+                ? null
+                : $pricePerPack - $previousPricePerPack;
+            $item->price_change_percent = $previousPricePerPack === null || $previousPricePerPack == 0
+                ? null
+                : round(
+                    ($pricePerPack - $previousPricePerPack) / $previousPricePerPack * 100,
+                    2
+                );
+
+            $previousPricePerPack = $pricePerPack;
+
+            return $item;
+        });
+
+        return response()->json([
+            'product_id' => $product->id,
+            'product_name' => $product->product_name,
+            'current_price' => (float) $product->price,
+            'data' => $history->sortByDesc(function ($item) {
+                return sprintf('%s-%020d', $item->order_date, $item->order_supplier_id);
+            })->values(),
+            'count' => $history->count(),
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      *
      * @param  \App\Models\OrderSupplier  $orderSupplier

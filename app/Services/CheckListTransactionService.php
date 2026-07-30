@@ -25,6 +25,7 @@ class CheckListTransactionService
             )
             ->where('asg.status', 0)
             ->where('ch.status', 0)
+            ->where('cl.status', 0)
             ->orderByRaw("
                 CASE cl.time_of_day
                     WHEN 'MORNING' THEN 1

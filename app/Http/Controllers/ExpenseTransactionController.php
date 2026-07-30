@@ -263,6 +263,38 @@ class ExpenseTransactionController extends Controller
          return response()->json($total_balance);
     }
 
+    public function getTotalExpenseWithFilters(Request $request)
+    {
+        $request->validate([
+            'is_profit' => 'sometimes|nullable|boolean',
+            'expense_transaction_ids' => 'required|array|min:1',
+            'expense_transaction_ids.*' => 'integer',
+        ]);
+
+        $totalExpense = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->select(DB::raw('SUM(et.amount) as total_expense'))
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('et.approval_status', $request->input('approval_status'));
+            })
+            ->when($request->filled('dateFrom'), function ($query) use ($request) {
+                $query->where('et.expense_date', '>=', $request->input('dateFrom'));
+            })
+            ->when($request->filled('dateTo'), function ($query) use ($request) {
+                $query->where('et.expense_date', '<=', $request->input('dateTo'));
+            })
+            ->when($request->has('is_profit') && $request->input('is_profit') !== null, function ($query) use ($request) {
+                $query->where('ett.is_profit', $request->boolean('is_profit'));
+            })
+            ->whereIn('ett.id', $request->input('expense_transaction_ids'))
+            ->where('et.is_received', 1)
+            ->first();
+
+        return response()->json($totalExpense);
+    }
+
     /**
      * Show the form for creating a new resource.
      *

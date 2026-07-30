@@ -103,6 +103,7 @@ class VipProductTransactionController extends Controller
                 'ost_pending.id as transaction_id',
                 'ost_pending.order_date',
                 'ost_pending.status',
+                'ost_pending.send_date',
                 's_pending.supplier_name',
                 DB::raw('SUM(os_pending.quantity) as quantity')
             )
@@ -112,6 +113,7 @@ class VipProductTransactionController extends Controller
                 'ost_pending.id',
                 'ost_pending.order_date',
                 'ost_pending.status',
+                'ost_pending.send_date',
                 's_pending.supplier_name'
             );
 
@@ -124,7 +126,8 @@ class VipProductTransactionController extends Controller
                 DB::raw("GROUP_CONCAT(pending_order.transaction_id ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC) as pending_order_transaction_ids"),
                 DB::raw("GROUP_CONCAT(pending_order.order_date ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC) as pending_order_dates"),
                 DB::raw("GROUP_CONCAT(pending_order.supplier_name ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC SEPARATOR '||') as pending_order_suppliers"),
-                DB::raw("GROUP_CONCAT(pending_order.status ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC) as pending_order_status")
+                DB::raw("GROUP_CONCAT(pending_order.status ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC) as pending_order_status"),
+                DB::raw("GROUP_CONCAT(CASE WHEN pending_order.status = 'SEND_TO_SUPPLIER' THEN COALESCE(pending_order.send_date, '') ELSE '' END ORDER BY pending_order.order_date ASC, pending_order.transaction_id ASC SEPARATOR '||') as pending_order_send_dates")
             )
             ->groupBy('pending_order.product_id');
 
@@ -218,7 +221,8 @@ class VipProductTransactionController extends Controller
                 DB::raw("COALESCE(pending_supplier_orders.pending_order_transaction_ids, '') as pending_order_transaction_ids"),
                 DB::raw("COALESCE(pending_supplier_orders.pending_order_dates, '') as pending_order_dates"),
                 DB::raw("COALESCE(pending_supplier_orders.pending_order_suppliers, '') as pending_order_suppliers"),
-                DB::raw("COALESCE(pending_supplier_orders.pending_order_status, '') as pending_order_status")
+                DB::raw("COALESCE(pending_supplier_orders.pending_order_status, '') as pending_order_status"),
+                DB::raw("COALESCE(pending_supplier_orders.pending_order_send_dates, '') as pending_order_send_dates")
             )
             ->where('vpt.vip_product_id', $id)
             ->distinct()
@@ -243,6 +247,11 @@ class VipProductTransactionController extends Controller
                 : [];
             $item->pending_order_status = $item->pending_order_status != ''
                 ? explode(',', $item->pending_order_status)
+                : [];
+            $item->pending_order_send_dates = count($item->pending_order_status) > 0
+                ? array_map(function ($sendDate) {
+                    return $sendDate !== '' ? $sendDate : null;
+                }, explode('||', $item->pending_order_send_dates))
                 : [];
         }
 

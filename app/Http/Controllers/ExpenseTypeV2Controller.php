@@ -21,6 +21,7 @@ class ExpenseTypeV2Controller extends Controller
                 'et.id as id',
                 'et.expense_type',
                 'et.expense_type_code',
+                'et.is_profit',
                 'coa.id as chart_of_account_id',
                 'coa.chart_of_account_name',
                 'coa.chart_of_account_code'
