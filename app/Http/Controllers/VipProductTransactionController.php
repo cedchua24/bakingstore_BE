@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\VipProductTransaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -256,6 +257,235 @@ class VipProductTransactionController extends Controller
         }
 
         return response()->json($data);
+    }
+
+    public function fetchVIPProductMonthlySold(Request $request, $id)
+    {
+        $this->validate($request, [
+            'month' => 'nullable|date_format:Y-m',
+            'next_months' => 'nullable|integer|min:0|max:120',
+            'comparison_page' => 'nullable|integer|min:0|max:40',
+        ]);
+
+        $reportMonth = $request->filled('month')
+            ? Carbon::createFromFormat('Y-m', $request->input('month'))->startOfMonth()
+            : Carbon::now()->startOfMonth()->addMonths((int) $request->input('next_months', 0));
+
+        $comparisonPage = (int) $request->input('comparison_page', 0);
+        $firstComparisonMonthAgo = ($comparisonPage * 3) + 1;
+        $monthOffsets = collect([0])->concat(
+            range($firstComparisonMonthAgo, $firstComparisonMonthAgo + 2)
+        );
+
+        $months = $monthOffsets->map(function ($monthsAgo) use ($reportMonth) {
+            $month = $reportMonth->copy()->subMonths($monthsAgo);
+
+            return [
+                'month' => $month->format('Y-m'),
+                'label' => $month->format('F Y'),
+                'date_from' => $month->copy()->startOfMonth()->toDateString(),
+                'date_to' => $month->copy()->endOfMonth()->toDateString(),
+            ];
+        });
+
+        $vipProductIds = DB::table('vip_product_transaction')
+            ->select('product_id')
+            ->where('vip_product_id', $id)
+            ->distinct();
+
+        $salesByProductAndMonth = DB::table('shop_order as so')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+            ->join('products as sold_product', 'sold_product.id', '=', 'so.product_id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->joinSub($vipProductIds, 'vip_products', function ($join) {
+                $join->on('vip_products.product_id', '=', 'so.product_id');
+            })
+            ->select(
+                'so.product_id',
+                DB::raw("DATE_FORMAT(sot.date, '%Y-%m') as sold_month"),
+                DB::raw('SUM(so.shop_order_quantity) as quantity_sold'),
+                DB::raw("SUM(CASE WHEN mup.business_type = 'WHOLESALE' THEN so.shop_order_quantity * sold_product.quantity ELSE so.shop_order_quantity END) as pieces_sold"),
+                DB::raw('SUM(so.shop_order_total_price) as sales_amount'),
+                DB::raw('SUM(so.shop_order_profit) as profit_amount'),
+                DB::raw('COUNT(DISTINCT sot.id) as order_count'),
+                DB::raw('COUNT(DISTINCT sot.requestor) as customer_count')
+            )
+            ->where('sot.type', 0)
+            ->where('sot.status', 1)
+            ->whereBetween('sot.date', [
+                $reportMonth->copy()->subMonths($firstComparisonMonthAgo + 2)->startOfMonth()->toDateString(),
+                $reportMonth->copy()->endOfMonth()->toDateString(),
+            ])
+            ->groupBy('so.product_id', DB::raw("DATE_FORMAT(sot.date, '%Y-%m')"))
+            ->get()
+            ->groupBy('product_id');
+
+        $businessTypes = DB::table('mark_up_product')
+            ->select(
+                'product_id',
+                DB::raw("GROUP_CONCAT(DISTINCT business_type ORDER BY business_type SEPARATOR ',') as business_types")
+            )
+            ->groupBy('product_id');
+
+        $products = DB::table('vip_product_transaction as vpt')
+            ->join('vip_product as vp', 'vp.id', '=', 'vpt.vip_product_id')
+            ->join('products as p', 'p.id', '=', 'vpt.product_id')
+            ->join('category as c', 'c.id', '=', 'p.category_id')
+            ->join('brand as b', 'b.id', '=', 'p.brand_id')
+            ->leftJoinSub($businessTypes, 'product_business_types', function ($join) {
+                $join->on('product_business_types.product_id', '=', 'p.id');
+            })
+            ->select(
+                'vpt.vip_product_id',
+                'vp.vip_product_name',
+                'vp.vip_color',
+                'p.id as product_id',
+                'p.product_name',
+                'p.stock',
+                'p.stock_pc',
+                'p.packaging',
+                'p.variation',
+                'p.quantity',
+                'c.category_name',
+                'b.brand_name',
+                DB::raw("COALESCE(product_business_types.business_types, '') as business_types")
+            )
+            ->where('vpt.vip_product_id', $id)
+            ->distinct()
+            ->orderBy('p.product_name')
+            ->get()
+            ->map(function ($product) use ($months, $salesByProductAndMonth) {
+                $productSales = $salesByProductAndMonth
+                    ->get($product->product_id, collect())
+                    ->keyBy('sold_month');
+
+                $monthlySales = $months->map(function ($month) use ($productSales) {
+                    $sales = $productSales->get($month['month']);
+
+                    return array_merge($month, [
+                        'quantity_sold' => (int) ($sales->quantity_sold ?? 0),
+                        'pieces_sold' => (int) ($sales->pieces_sold ?? 0),
+                        'sales_amount' => round((float) ($sales->sales_amount ?? 0), 2),
+                        'profit_amount' => round((float) ($sales->profit_amount ?? 0), 2),
+                        'order_count' => (int) ($sales->order_count ?? 0),
+                        'customer_count' => (int) ($sales->customer_count ?? 0),
+                    ]);
+                })->values();
+
+                $current = $monthlySales->first();
+                $previousMonths = $monthlySales->slice(1)->values();
+                $lastMonth = $previousMonths->first();
+                $averageSales = round((float) $previousMonths->avg('sales_amount'), 2);
+                $averageProfit = round((float) $previousMonths->avg('profit_amount'), 2);
+                $averageQuantity = round((float) $previousMonths->avg('quantity_sold'), 2);
+                $averagePieces = round((float) $previousMonths->avg('pieces_sold'), 2);
+
+                $product->business_types = $product->business_types !== ''
+                    ? explode(',', $product->business_types)
+                    : [];
+                $product->current_month = $current;
+                $product->previous_months = $previousMonths;
+                $product->average_sales = $averageSales;
+                $product->average_profit = $averageProfit;
+                $product->average_quantity = $averageQuantity;
+                $product->average_pieces = $averagePieces;
+                $product->sales_average_gap = round($current['sales_amount'] - $averageSales, 2);
+                $product->profit_average_gap = round($current['profit_amount'] - $averageProfit, 2);
+                $product->quantity_average_gap = round($current['quantity_sold'] - $averageQuantity, 2);
+                $product->pieces_average_gap = round($current['pieces_sold'] - $averagePieces, 2);
+                $product->sales_last_month_gap = round($current['sales_amount'] - $lastMonth['sales_amount'], 2);
+                $product->profit_last_month_gap = round($current['profit_amount'] - $lastMonth['profit_amount'], 2);
+                $product->quantity_last_month_gap = round($current['quantity_sold'] - $lastMonth['quantity_sold'], 2);
+                $product->pieces_last_month_gap = round($current['pieces_sold'] - $lastMonth['pieces_sold'], 2);
+                $product->sales_change_percentage = $lastMonth['sales_amount'] > 0
+                    ? round((($current['sales_amount'] - $lastMonth['sales_amount']) / $lastMonth['sales_amount']) * 100, 2)
+                    : null;
+                $product->sales_trend = $product->sales_last_month_gap > 0
+                    ? 'HIGHER'
+                    : ($product->sales_last_month_gap < 0 ? 'LOWER' : 'UNCHANGED');
+
+                return $product;
+            });
+
+        $previousMonthTotals = $months->slice(1)->values()->map(function ($month) use ($products) {
+            return array_merge($month, [
+                'quantity_sold' => $products->sum(function ($product) use ($month) {
+                    return collect($product->previous_months)->firstWhere('month', $month['month'])['quantity_sold'] ?? 0;
+                }),
+                'pieces_sold' => $products->sum(function ($product) use ($month) {
+                    return collect($product->previous_months)->firstWhere('month', $month['month'])['pieces_sold'] ?? 0;
+                }),
+                'sales_amount' => round($products->sum(function ($product) use ($month) {
+                    return collect($product->previous_months)->firstWhere('month', $month['month'])['sales_amount'] ?? 0;
+                }), 2),
+                'profit_amount' => round($products->sum(function ($product) use ($month) {
+                    return collect($product->previous_months)->firstWhere('month', $month['month'])['profit_amount'] ?? 0;
+                }), 2),
+            ]);
+        });
+
+        $currentMonth = [
+            'quantity_sold' => $products->sum('current_month.quantity_sold'),
+            'pieces_sold' => $products->sum('current_month.pieces_sold'),
+            'sales_amount' => round($products->sum('current_month.sales_amount'), 2),
+            'profit_amount' => round($products->sum('current_month.profit_amount'), 2),
+        ];
+        $averageSales = round((float) $previousMonthTotals->avg('sales_amount'), 2);
+        $averageProfit = round((float) $previousMonthTotals->avg('profit_amount'), 2);
+        $averageQuantity = round((float) $previousMonthTotals->avg('quantity_sold'), 2);
+        $averagePieces = round((float) $previousMonthTotals->avg('pieces_sold'), 2);
+        $lastMonthTotals = $previousMonthTotals->first();
+        $earliestSaleDate = DB::table('shop_order as earliest_so')
+            ->join(
+                'shop_order_transaction as earliest_sot',
+                'earliest_sot.id',
+                '=',
+                'earliest_so.shop_transaction_id'
+            )
+            ->join(
+                'vip_product_transaction as earliest_vpt',
+                'earliest_vpt.product_id',
+                '=',
+                'earliest_so.product_id'
+            )
+            ->where('earliest_vpt.vip_product_id', $id)
+            ->where('earliest_sot.type', 0)
+            ->where('earliest_sot.status', 1)
+            ->min('earliest_sot.date');
+        $oldestComparisonMonth = $reportMonth->copy()
+            ->subMonths($firstComparisonMonthAgo + 2)
+            ->startOfMonth();
+        $hasOlderComparison = $comparisonPage < 40
+            && $earliestSaleDate
+            && Carbon::parse($earliestSaleDate)->startOfMonth()->lt($oldestComparisonMonth);
+
+        return response()->json([
+            'report_month' => $months->first(),
+            'comparison' => [
+                'page' => $comparisonPage,
+                'previous_page' => $comparisonPage > 0 ? $comparisonPage - 1 : null,
+                'next_page' => $hasOlderComparison ? $comparisonPage + 1 : null,
+                'newer_page' => $comparisonPage > 0 ? $comparisonPage - 1 : null,
+                'older_page' => $hasOlderComparison ? $comparisonPage + 1 : null,
+                'has_newer' => $comparisonPage > 0,
+                'has_older' => (bool) $hasOlderComparison,
+                'months' => $months->slice(1)->values(),
+            ],
+            'filters' => [
+                'comparison_page' => $comparisonPage,
+            ],
+            'current_month' => $currentMonth,
+            'previous_months' => $previousMonthTotals,
+            'average_sales' => $averageSales,
+            'average_profit' => $averageProfit,
+            'average_quantity' => $averageQuantity,
+            'average_pieces' => $averagePieces,
+            'sales_average_gap' => round($currentMonth['sales_amount'] - $averageSales, 2),
+            'profit_average_gap' => round($currentMonth['profit_amount'] - $averageProfit, 2),
+            'sales_last_month_gap' => round($currentMonth['sales_amount'] - ($lastMonthTotals['sales_amount'] ?? 0), 2),
+            'profit_last_month_gap' => round($currentMonth['profit_amount'] - ($lastMonthTotals['profit_amount'] ?? 0), 2),
+            'data' => $products,
+        ]);
     }
 
     public function edit(VipProductTransaction $vipProductTransaction)

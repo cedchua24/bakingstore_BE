@@ -119,6 +119,7 @@ Route::resource('/customerUpdate', 'App\Http\Controllers\CustomerUpdateControlle
 Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController'); 
 
 
+Route::get('/products/fetchProductMonthlySales', [ProductController::class, 'fetchProductMonthlySales']);
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::post('/products/searchProductByName', [ProductController::class, 'searchProductByName']);
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
@@ -200,6 +201,7 @@ Route::resource('/vipProduct', 'App\Http\Controllers\VipProductController');
 Route::resource('/vipProductTransaction', 'App\Http\Controllers\VipProductTransactionController');
 Route::get('/vipProductTransaction/fetchVipTransactionByVipId/{id}', [VipProductTransactionController::class, 'fetchVipTransactionByVipId']);
 Route::get('/vipProductTransaction/fetchVipProductLastOrder/{id}', [VipProductTransactionController::class, 'fetchVipProductLastOrder']);
+Route::get('/vipProductTransaction/fetchVIPProductMonthlySold/{id}', [VipProductTransactionController::class, 'fetchVIPProductMonthlySold']);
 Route::get('/vipProductNote/getAll', [VipProductNoteController::class, 'getAll']);
 Route::resource('/vipProductNote', 'App\Http\Controllers\VipProductNoteController');
 
