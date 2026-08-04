@@ -19,12 +19,14 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use Illuminate\Support\Collection;
 
 
 class PriceListExport implements FromCollection, WithHeadings, WithStyles, WithEvents, ShouldAutoSize, WithCustomStartCell, WithDrawings
 {
     private $categoryRows = [];
+    private $wholesaleRows = [];
     private $headingRow = 10;
     private $shop = null;
 
@@ -77,9 +79,13 @@ class PriceListExport implements FromCollection, WithHeadings, WithStyles, WithE
             $rowNumber++;
 
             foreach ($items as $item) {
+                if ($item->business_type == 'WHOLESALE') {
+                    $this->wholesaleRows[] = $rowNumber;
+                }
+
                 $rows->push([
                     $item->business_type == 'WHOLESALE'
-                        ? $item->product_name . ' ' . $item->packaging
+                        ? $item->product_name . ' Box'
                         : $item->product_name,
 
                     $item->brand_name ?? '',
@@ -262,6 +268,21 @@ class PriceListExport implements FromCollection, WithHeadings, WithStyles, WithE
                             'horizontal' => Alignment::HORIZONTAL_LEFT,
                         ],
                     ]);
+                }
+
+                foreach ($this->wholesaleRows as $row) {
+                    $productName = preg_replace(
+                        '/\s+Box$/i',
+                        '',
+                        (string) $sheet->getCell("A{$row}")->getValue()
+                    );
+
+                    $richText = new RichText();
+                    $richText->createText($productName . ' ');
+                    $boxText = $richText->createTextRun('Box');
+                    $boxText->getFont()->setBold(true);
+
+                    $sheet->getCell("A{$row}")->setValue($richText);
                 }
 
                 for ($row = $this->headingRow + 1; $row <= $highestRow; $row++) {

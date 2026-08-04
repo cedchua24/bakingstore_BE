@@ -150,7 +150,7 @@ class ModeOfPaymentPoController extends Controller
             ->select('mop.id', 'mop.order_supplier_transaction_id',  'mop.amount',
               'p.account_number', 'p.account_name', 'p.account_description', 'p.due_date', 'p.credit_limit', 'p.status', 'b.bank_name', 'pt.payment_term',
               'p.statement_date', 'p.total_balance_due',
-              'sot.total_transaction_price', 'mop.payment_type_po_id')
+              'sot.total_transaction_price', 'mop.payment_type_po_id', 'mop.date as payment_date')
             ->where('mop.order_supplier_transaction_id', '=', $id)    
             ->get();
 
