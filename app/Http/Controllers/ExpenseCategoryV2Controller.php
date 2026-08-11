@@ -57,9 +57,7 @@ class ExpenseCategoryV2Controller extends Controller
                     'coa.chart_of_account_name',
                     'coa.chart_of_account_code'
                 )
-                ->orderBy('coa.chart_of_account_code', 'asc')
-                ->orderBy('ep.expense_type_code', 'asc')
-                ->orderBy('ec.expense_category_code', 'asc')
+                ->orderBy('ec.expense_category_name', 'asc')
                 ->get();
         } else {
             $data = DB::table('expenses_type_v2 as ep')
@@ -79,9 +77,7 @@ class ExpenseCategoryV2Controller extends Controller
                     'coa.chart_of_account_code'
                 )
                 ->where('ep.id', $id)
-                ->orderBy('coa.chart_of_account_code', 'asc')
-                ->orderBy('ep.expense_type_code', 'asc')
-                ->orderBy('ec.expense_category_code', 'asc')
+                ->orderBy('ec.expense_category_name', 'asc')
                 ->get();
         }
 
