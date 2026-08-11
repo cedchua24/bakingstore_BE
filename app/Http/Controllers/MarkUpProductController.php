@@ -444,22 +444,8 @@ class MarkUpProductController extends Controller
 
         $priceChanges = $priceChanges
             ->groupBy('product_id')
-            ->filter(function ($markups, $productId) use ($latestReceivedOrders, $request) {
-                $latestReceivedOrder = $latestReceivedOrders->get($productId);
-
-                if (!$latestReceivedOrder) {
-                    return false;
-                }
-
+            ->filter(function ($markups) use ($request) {
                 $currentProductPrice = (float) $markups->first()->product_price;
-                $completedCapitalPrice = (float) $latestReceivedOrder->completed_price_per_pack;
-
-                // A draft PO may already have changed products.price. Only
-                // accept that capital after the same price has been received
-                // through the latest COMPLETED supplier transaction.
-                if (abs($currentProductPrice - $completedCapitalPrice) > 0.00001) {
-                    return false;
-                }
 
                 if ($request->boolean('include_unchanged')) {
                     return true;
