@@ -257,8 +257,15 @@ class MarkUpProductController extends Controller
             $item->maximum_sellable_quantity = $priceUpdateRequired
                 ? min($availableStock, $oldStockInSellingUnit)
                 : $availableStock;
+            $item->old_stock_consumed = $oldStockInSellingUnit <= 0;
             $item->sale_blocked = $priceUpdateRequired
-                && $item->maximum_sellable_quantity <= 0;
+                && $item->old_stock_consumed;
+
+            // Keep the sales response compatible with clients that use the
+            // product's disabled flag to prevent adding an item to a sale.
+            // This only changes the response; the product remains enabled in
+            // the database and becomes sellable after its markup is updated.
+            $item->disabled = $item->sale_blocked ? 1 : (int) $item->disabled;
             $item->sale_block_reason = $item->sale_blocked
                 ? 'Update the selling price before selling newly received stock.'
                 : null;

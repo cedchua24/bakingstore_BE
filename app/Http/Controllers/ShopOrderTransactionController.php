@@ -1110,6 +1110,173 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);
         }
 
+        /**
+         * Return a product's sold quantity grouped into chart-friendly periods.
+         * Orders are normalized to stock_pc first, then converted to stock units.
+         */
+        public function fetchProductSoldHistory($id, Request $request)
+        {
+            $validated = $request->validate([
+                'dateFrom' => ['required', 'date_format:Y-m-d'],
+                'dateTo' => ['required', 'date_format:Y-m-d', 'after_or_equal:dateFrom'],
+                'groupBy' => ['required', 'in:day,week,month,year'],
+                'type' => ['nullable', 'integer', 'in:0,1'],
+            ]);
+
+            $product = DB::table('products')
+                ->select('id', 'product_name', 'weight', 'quantity')
+                ->where('id', $id)
+                ->first();
+
+            if (!$product) {
+                return response()->json([
+                    'code' => 404,
+                    'message' => 'Product not found.',
+                ], 404);
+            }
+
+            $dateFrom = Carbon::createFromFormat('Y-m-d', $validated['dateFrom'])->startOfDay();
+            $dateTo = Carbon::createFromFormat('Y-m-d', $validated['dateTo'])->startOfDay();
+            $groupBy = $validated['groupBy'];
+            $type = isset($validated['type']) ? (int) $validated['type'] : null;
+
+            // Aggregate by date in SQL first, then combine dates into the requested
+            // period in PHP. This keeps the endpoint compatible across DB drivers.
+            $dailySales = DB::table('shop_order_transaction as sot')
+                ->join('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+                ->join('shop', 'shop.id', '=', 'sot.shop_id')
+                ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                ->join('products as p', 'p.id', '=', 'mup.product_id')
+                ->when($type !== null, function ($query) use ($type) {
+                    if ($type === 0) {
+                        $query->where('shop.shop_type_id', 3);
+                    } else {
+                        $query->where('shop.shop_type_id', '!=', 3);
+                    }
+                })
+                ->where('so.product_id', $id)
+                ->where('sot.status', 1)
+                ->when($type !== null, function ($query) use ($type) {
+                    $query->where('sot.type', $type);
+                })
+                ->whereBetween('sot.date', [$validated['dateFrom'], $validated['dateTo']])
+                ->groupBy('sot.date')
+                ->orderBy('sot.date')
+                ->selectRaw("sot.date,
+                    SUM(CASE
+                        WHEN mup.business_type = 'WHOLESALE'
+                            THEN so.shop_order_quantity * p.quantity
+                        ELSE so.shop_order_quantity
+                    END) as sold_stock_pc")
+                ->get();
+
+            $salesByPeriod = [];
+            foreach ($dailySales as $sale) {
+                $periodKey = $this->soldHistoryPeriodStart(Carbon::parse($sale->date), $groupBy)
+                    ->format('Y-m-d');
+
+                if (!isset($salesByPeriod[$periodKey])) {
+                    $salesByPeriod[$periodKey] = ['sold_stock_pc' => 0];
+                }
+
+                $salesByPeriod[$periodKey]['sold_stock_pc'] += (float) $sale->sold_stock_pc;
+            }
+
+            $history = [];
+            $cursor = $this->soldHistoryPeriodStart($dateFrom->copy(), $groupBy);
+            $lastPeriod = $this->soldHistoryPeriodStart($dateTo->copy(), $groupBy);
+
+            while ($cursor->lte($lastPeriod)) {
+                $periodStart = $cursor->copy();
+                $periodEnd = $this->soldHistoryPeriodEnd($periodStart->copy(), $groupBy);
+                $key = $periodStart->format('Y-m-d');
+                $soldStockPc = round($salesByPeriod[$key]['sold_stock_pc'] ?? 0, 4);
+                $soldStock = round($soldStockPc / max((int) $product->quantity, 1), 4);
+
+                $history[] = [
+                    'period' => $key,
+                    'period_start' => $periodStart->format('Y-m-d'),
+                    'period_end' => $periodEnd->format('Y-m-d'),
+                    'sold_stock_pc' => $soldStockPc,
+                    'sold_quantity' => $soldStock,
+                    'total_order_quantity' => $soldStock,
+                ];
+
+                $cursor = $this->incrementSoldHistoryPeriod($cursor, $groupBy);
+            }
+
+            return response()->json([
+                'product_id' => (int) $product->id,
+                'product_name' => $product->product_name,
+                'product_weight' => (float) $product->weight,
+                'pieces_per_box' => (int) $product->quantity,
+                'weight_per_piece' => $product->quantity > 1 && $product->weight > 0
+                    ? round($product->weight / $product->quantity, 4)
+                    : (float) $product->weight,
+                'date_from' => $validated['dateFrom'],
+                'date_to' => $validated['dateTo'],
+                'group_by' => $groupBy,
+                'type' => $type,
+                'quantity_unit' => 'stock',
+                'total_sold_stock_pc' => round(collect($history)->sum('sold_stock_pc'), 4),
+                'total_sold_quantity' => round(collect($history)->sum('sold_quantity'), 4),
+                'data' => $history,
+                'code' => 200,
+                'message' => 'Product sold history fetched successfully.',
+            ]);
+        }
+
+        private function soldHistoryPeriodStart(Carbon $date, string $groupBy): Carbon
+        {
+            if ($groupBy === 'week') {
+                return $date->startOfWeek(Carbon::MONDAY);
+            }
+
+            if ($groupBy === 'month') {
+                return $date->startOfMonth();
+            }
+
+            if ($groupBy === 'year') {
+                return $date->startOfYear();
+            }
+
+            return $date->startOfDay();
+        }
+
+        private function soldHistoryPeriodEnd(Carbon $date, string $groupBy): Carbon
+        {
+            if ($groupBy === 'week') {
+                return $date->endOfWeek(Carbon::SUNDAY);
+            }
+
+            if ($groupBy === 'month') {
+                return $date->endOfMonth();
+            }
+
+            if ($groupBy === 'year') {
+                return $date->endOfYear();
+            }
+
+            return $date->endOfDay();
+        }
+
+        private function incrementSoldHistoryPeriod(Carbon $date, string $groupBy): Carbon
+        {
+            if ($groupBy === 'week') {
+                return $date->addWeek();
+            }
+
+            if ($groupBy === 'month') {
+                return $date->addMonth();
+            }
+
+            if ($groupBy === 'year') {
+                return $date->addYear();
+            }
+
+            return $date->addDay();
+        }
+
      public function fetchPendingPickUp(Request $request)
         {
             $id = $request->input('is_pickup_status'); // or your pickup id source
