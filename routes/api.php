@@ -216,6 +216,7 @@ Route::post('/customers/updateAndDeleteCustomer', [CustomerController::class, 'u
 
 Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
 Route::post('/customers/fetchCustomerTransaction', [CustomerController::class, 'fetchCustomerTransaction']);
+Route::post('/customers/fetchCustomerSalesHistory/{id}', [CustomerController::class, 'fetchCustomerSalesHistory']);
 Route::post('/customers/fetchCustomerProduct', [CustomerController::class, 'fetchCustomerProduct']);
 
 Route::resource('/suppliers', 'App\Http\Controllers\SupplierController');
