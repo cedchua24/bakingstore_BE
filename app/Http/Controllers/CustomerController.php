@@ -1114,6 +1114,162 @@ public function customerLastOrderList($idParam, Request $request) {
     }
 
     /**
+     * Return a customer's completed sales grouped into chart-friendly periods.
+     */
+    public function fetchCustomerSalesHistory($id, Request $request)
+    {
+        $validated = $request->validate([
+            'dateFrom' => ['required', 'date_format:Y-m-d'],
+            'dateTo' => ['required', 'date_format:Y-m-d', 'after_or_equal:dateFrom'],
+            'groupBy' => ['required', 'in:day,week,month,year'],
+        ]);
+
+        $customer = DB::table('customer')
+            ->select('id', 'first_name', 'last_name', 'store_name')
+            ->where('id', $id)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Customer not found.',
+            ], 404);
+        }
+
+        $dateFrom = Carbon::createFromFormat('Y-m-d', $validated['dateFrom'])->startOfDay();
+        $dateTo = Carbon::createFromFormat('Y-m-d', $validated['dateTo'])->startOfDay();
+        $groupBy = $validated['groupBy'];
+
+        $dailySales = DB::table('shop_order_transaction as sot')
+            ->where('sot.requestor', $id)
+            ->where('sot.status', 1)
+            ->whereBetween('sot.date', [$validated['dateFrom'], $validated['dateTo']])
+            ->groupBy('sot.date')
+            ->orderBy('sot.date')
+            ->selectRaw('sot.date,
+                SUM(sot.shop_order_transaction_total_price) as total_sales,
+                SUM(sot.profit) as total_profit,
+                SUM(sot.total_cash) as total_cash,
+                SUM(sot.total_online) as total_online')
+            ->get();
+
+        $salesByPeriod = [];
+        foreach ($dailySales as $sale) {
+            $periodKey = $this->customerSalesPeriodStart(Carbon::parse($sale->date), $groupBy)
+                ->format('Y-m-d');
+
+            if (!isset($salesByPeriod[$periodKey])) {
+                $salesByPeriod[$periodKey] = [
+                    'total_sales' => 0,
+                    'total_profit' => 0,
+                    'total_cash' => 0,
+                    'total_online' => 0,
+                ];
+            }
+
+            $salesByPeriod[$periodKey]['total_sales'] += (float) $sale->total_sales;
+            $salesByPeriod[$periodKey]['total_profit'] += (float) $sale->total_profit;
+            $salesByPeriod[$periodKey]['total_cash'] += (float) $sale->total_cash;
+            $salesByPeriod[$periodKey]['total_online'] += (float) $sale->total_online;
+        }
+
+        $history = [];
+        $cursor = $this->customerSalesPeriodStart($dateFrom->copy(), $groupBy);
+        $lastPeriod = $this->customerSalesPeriodStart($dateTo->copy(), $groupBy);
+
+        while ($cursor->lte($lastPeriod)) {
+            $periodStart = $cursor->copy();
+            $periodEnd = $this->customerSalesPeriodEnd($periodStart->copy(), $groupBy);
+            $key = $periodStart->format('Y-m-d');
+            $periodSales = $salesByPeriod[$key] ?? [
+                'total_sales' => 0,
+                'total_profit' => 0,
+                'total_cash' => 0,
+                'total_online' => 0,
+            ];
+
+            $history[] = [
+                'period' => $key,
+                'period_start' => $periodStart->format('Y-m-d'),
+                'period_end' => $periodEnd->format('Y-m-d'),
+                'total_sales' => round($periodSales['total_sales'], 2),
+                'total_profit' => round($periodSales['total_profit'], 2),
+                'total_cash' => round($periodSales['total_cash'], 2),
+                'total_online' => round($periodSales['total_online'], 2),
+            ];
+
+            $cursor = $this->incrementCustomerSalesPeriod($cursor, $groupBy);
+        }
+
+        return response()->json([
+            'customer_id' => (int) $customer->id,
+            'customer_name' => trim($customer->first_name . ' ' . $customer->last_name),
+            'store_name' => $customer->store_name,
+            'date_from' => $validated['dateFrom'],
+            'date_to' => $validated['dateTo'],
+            'group_by' => $groupBy,
+            'total_sales' => round(collect($history)->sum('total_sales'), 2),
+            'total_profit' => round(collect($history)->sum('total_profit'), 2),
+            'total_cash' => round(collect($history)->sum('total_cash'), 2),
+            'total_online' => round(collect($history)->sum('total_online'), 2),
+            'data' => $history,
+            'code' => 200,
+            'message' => 'Customer sales history fetched successfully.',
+        ]);
+    }
+
+    private function customerSalesPeriodStart(Carbon $date, string $groupBy): Carbon
+    {
+        if ($groupBy === 'week') {
+            return $date->startOfWeek(Carbon::MONDAY);
+        }
+
+        if ($groupBy === 'month') {
+            return $date->startOfMonth();
+        }
+
+        if ($groupBy === 'year') {
+            return $date->startOfYear();
+        }
+
+        return $date->startOfDay();
+    }
+
+    private function customerSalesPeriodEnd(Carbon $date, string $groupBy): Carbon
+    {
+        if ($groupBy === 'week') {
+            return $date->endOfWeek(Carbon::SUNDAY);
+        }
+
+        if ($groupBy === 'month') {
+            return $date->endOfMonth();
+        }
+
+        if ($groupBy === 'year') {
+            return $date->endOfYear();
+        }
+
+        return $date->endOfDay();
+    }
+
+    private function incrementCustomerSalesPeriod(Carbon $date, string $groupBy): Carbon
+    {
+        if ($groupBy === 'week') {
+            return $date->addWeek();
+        }
+
+        if ($groupBy === 'month') {
+            return $date->addMonth();
+        }
+
+        if ($groupBy === 'year') {
+            return $date->addYear();
+        }
+
+        return $date->addDay();
+    }
+
+    /**
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response
