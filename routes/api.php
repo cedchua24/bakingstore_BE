@@ -303,6 +303,7 @@ Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransact
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
 Route::post('/shopOrderTransaction/fetchSalesList', [ShopOrderTransactionController::class, 'fetchSalesList']);
+Route::post('/shopOrderTransaction/fetchSalesListV2', [ShopOrderTransactionController::class, 'fetchSalesListV2']);
 Route::post('/shopOrderTransaction/fetchEmployeePrepare', [ShopOrderTransactionController::class, 'fetchEmployeePrepare']);
 Route::post('/shopOrderTransaction/fetchEmployeeDispatcher', [ShopOrderTransactionController::class, 'fetchEmployeeDispatcher']);
 Route::post('/shopOrderTransaction/fetchEmployeeChecker', [ShopOrderTransactionController::class, 'fetchEmployeeChecker']);
@@ -311,6 +312,7 @@ Route::post('/shopOrderTransaction/fetchEmployeeSales', [ShopOrderTransactionCon
 
 
 Route::post('/shopOrderTransaction/fetchSortedCustomerReport', [ShopOrderTransactionController::class, 'fetchSortedCustomerReport']);
+Route::post('/shopOrderTransaction/fetchMonthlyCustomerSalesComparison', [ShopOrderTransactionController::class, 'fetchMonthlyCustomerSalesComparison']);
 
 Route::resource('/outOfStockHistory', 'App\Http\Controllers\OutOfStockHistoryController');
 Route::get('/outOfStockHistory/fetchOOSbyProductId/{id}', [OutOfStockHistoryController::class, 'fetchOOSbyProductId']);
@@ -333,21 +335,35 @@ Route::get('/shopOrderTransaction/fetchCustomerDetails/{id}', [ShopOrderTransact
 Route::post('/shopOrderTransaction/fetchSalesByCategory', [ShopOrderTransactionController::class, 'fetchSalesByCategory']);
 Route::post('/shopOrderTransaction/pickUpAndCustomerUpdate', [ShopOrderTransactionController::class, 'pickUpAndCustomerUpdate']);
 Route::post('/shopOrderTransaction/fetchSortedProductReport', [ShopOrderTransactionController::class, 'fetchSortedProductReport']);
+Route::post('/shopOrderTransaction/fetchMonthlyProductSalesComparison', [ShopOrderTransactionController::class, 'fetchMonthlyProductSalesComparison']);
+Route::post('/shopOrderTransaction/fetchMonthlyProductCustomerImpact', [ShopOrderTransactionController::class, 'fetchMonthlyProductCustomerImpact']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
+Route::post('/shopOrderTransaction/fetctProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransactionV2']);
 Route::post('/shopOrderTransaction/fetchProductSoldHistory/{id}', [ShopOrderTransactionController::class, 'fetchProductSoldHistory']);
 Route::post('/shopOrderTransaction/fetctPendingProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctPendingProductOrderTransaction']);
+Route::post('/shopOrderTransaction/fetctPendingProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctPendingProductOrderTransactionV2']);
 Route::post('/shopOrderTransaction/fetchPendingTransactionList', [ShopOrderTransactionController::class, 'fetchPendingTransactionList']);
+Route::post('/shopOrderTransaction/fetchPendingTransactionListV2', [ShopOrderTransactionController::class, 'fetchPendingTransactionListV2']);
 Route::post('/shopOrderTransaction/fetchPendingPickUp', [ShopOrderTransactionController::class, 'fetchPendingPickUp']);
+Route::post('/shopOrderTransaction/fetchPendingPickUpV2', [ShopOrderTransactionController::class, 'fetchPendingPickUpV2']);
 Route::post('/shopOrderTransaction/fetchDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchDeliveryTransaction']);
+Route::post('/shopOrderTransaction/fetchDeliveryTransactionV2', [ShopOrderTransactionController::class, 'fetchDeliveryTransactionV2']);
 Route::post('/shopOrderTransaction/fetchPendingDeliveryTransaction', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransaction']);
+Route::post('/shopOrderTransaction/fetchPendingDeliveryTransactionV2', [ShopOrderTransactionController::class, 'fetchPendingDeliveryTransactionV2']);
 
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDate/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDate']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdDateV2/{id}/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdDateV2']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDateRangeV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDateRangeV2']);
 Route::get('/shopOrderTransaction/fetchPrev/{id}/{today}/{type}', [ShopOrderTransactionController::class, 'fetchPrev']);
+Route::get('/shopOrderTransaction/fetchPrevV2/{id}/{today}/{type}', [ShopOrderTransactionController::class, 'fetchPrevV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDate/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDate']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByDateV2/{date}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByDateV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatus/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatus']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByStatusV2/{status}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByStatusV2']);
 Route::get('/shopOrderTransaction/fetchSortedProduct/{id}', [ShopOrderTransactionController::class, 'fetchSortedProduct']);
 Route::post('/shopOrderTransaction/fetchProductSoldToday', [ShopOrderTransactionController::class, 'fetchProductSoldToday']);
 
@@ -360,6 +376,7 @@ Route::get('/shopOrderTransaction/fetchBranchOrder/{id}', [ShopOrderTransactionC
 Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransaction']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
+Route::put('/shopOrderTransaction/updateShopOrderTransactionStatusV2/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatusV2']);
 Route::put('/shopOrderTransaction/updateShopBranchStatus/{id}', [ShopOrderTransactionController::class, 'updateShopBranchStatus']);
 Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);
 Route::delete('/shopOrderTransaction/deleteShopOrderTransaction/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'deleteShopOrderTransaction']);
@@ -434,6 +451,7 @@ Route::get('/expenses/fetchExpenseById/{id}', [ExpensesController::class, 'fetch
 
 Route::resource('/modeOfPayment', 'App\Http\Controllers\ModeOfPaymentController');
 Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionId/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionId']);
+Route::get('/modeOfPayment/fetchPaymentTypeByShopTransactionIdV2/{id}', [ModeOfPaymentController::class, 'fetchPaymentTypeByShopTransactionIdV2']);
 Route::put('/modeOfPayment/updatePaidStatus/{id}', [ModeOfPaymentController::class, 'updatePaidStatus']);
 
 
@@ -453,6 +471,7 @@ Route::get('/productSupplier/fetchSupplierByProductId/{id}', [ProductSupplierCon
 
 Route::resource('/modeOfPaymentPo', 'App\Http\Controllers\ModeOfPaymentPoController');
 Route::get('/modeOfPaymentPo/fetchPaymentTypePoByShopTransactionId/{id}', [ModeOfPaymentPoController::class, 'fetchPaymentTypePoByShopTransactionId']);
+Route::post('/modeOfPaymentPo/fetchSupplierPaymentTransactionListByDateRange', [ModeOfPaymentPoController::class, 'fetchSupplierPaymentTransactionListByDateRange']);
 Route::get('/modeOfPaymentPo/fetchCreditCardPaymentDTO/{id}', [ModeOfPaymentPoController::class, 'fetchCreditCardPaymentDTO']);
 Route::put('/modeOfPaymentPo/setToCompleteCreditCard/{id}', [ModeOfPaymentPoController::class, 'setToCompleteCreditCard']);
 Route::post('/modeOfPaymentPo/updateOnlinePaymentPO', [ModeOfPaymentPoController::class, 'updateOnlinePaymentPO']);
@@ -463,6 +482,7 @@ Route::resource('/paymentTerm', 'App\Http\Controllers\PaymentTermController');
 
 Route::resource('/paymentTypePo', 'App\Http\Controllers\PaymentTypePoController');
 Route::get('/paymentTypePo/findByCategory/{id}', [PaymentTypePoController::class, 'findByCategory']);
+Route::post('/paymentTypePo/findByCategoryV2/{id}', [PaymentTypePoController::class, 'findByCategoryV2']);
 Route::get('/paymentTerm/fetchNotCashList/{id}', [PaymentTermController::class, 'fetchNotCashList']);
 Route::get('/paymentTerm/fetchCashAndOnline/{id}', [PaymentTermController::class, 'fetchCashAndOnline']);
 

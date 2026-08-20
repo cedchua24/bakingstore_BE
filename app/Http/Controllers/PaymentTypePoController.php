@@ -18,6 +18,7 @@ class PaymentTypePoController extends Controller
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
               'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.buffer_days', 'ptp.due_date', 'ptp.credit_limit', 'ptp.status',
+              'ptp.is_supplier', 'ptp.is_customer',
               'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')   
@@ -33,6 +34,7 @@ class PaymentTypePoController extends Controller
          $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
               'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date','ptp.buffer_days',  'ptp.credit_limit', 'ptp.status',
+              'ptp.is_supplier', 'ptp.is_customer',
                'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
@@ -41,6 +43,53 @@ class PaymentTypePoController extends Controller
             ->get();
 
         return response()->json($data);  
+    }
+
+    public function findByCategoryV2($id, Request $request)
+    {
+        $validated = $request->validate([
+            'is_supplier' => 'required|integer|in:0,1',
+            'is_customer' => 'required|integer|in:0,1',
+            'status' => 'required|integer'
+        ]);
+
+        $data = DB::table('payment_type_po as ptp')
+            ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->where('ptp.payment_term_id', $id)
+            ->where('ptp.status', $validated['status'])
+            ->when((int) $validated['is_supplier'] === 1, function ($query) {
+                $query->where('ptp.is_supplier', 1);
+            })
+            ->when((int) $validated['is_customer'] === 1, function ($query) {
+                $query->where('ptp.is_customer', 1);
+            })
+            ->select(
+                'ptp.id',
+                'ptp.payment_term_id',
+                'pt.payment_term',
+                'pt.status as payment_term_status',
+                'ptp.bank_id',
+                'b.bank_name',
+                'b.status as bank_status',
+                'ptp.account_number',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.due_date',
+                'ptp.buffer_days',
+                'ptp.credit_limit',
+                'ptp.statement_date',
+                'ptp.total_balance_due',
+                'ptp.balance',
+                'ptp.status',
+                'ptp.is_supplier',
+                'ptp.is_customer',
+                'ptp.created_at',
+                'ptp.updated_at'
+            )
+            ->get();
+
+        return response()->json($data);
     }
 
     /**
@@ -62,7 +111,9 @@ class PaymentTypePoController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'payment_term_id' => 'required'
+            'payment_term_id' => 'required',
+            'is_supplier' => 'nullable|integer|in:0,1',
+            'is_customer' => 'nullable|integer|in:0,1'
         ]);
 
         // $item = UserProfile::create($data);
@@ -80,6 +131,8 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->statement_date = $request->input('statement_date');
         $paymentTypePo->total_balance_due = $request->input('total_balance_due');
         $paymentTypePo->status = $request->input('status');
+        $paymentTypePo->is_supplier = (int) $request->input('is_supplier', 0);
+        $paymentTypePo->is_customer = (int) $request->input('is_customer', 0);
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($paymentTypePo);
@@ -98,6 +151,7 @@ class PaymentTypePoController extends Controller
         $data = DB::table('payment_type_po as ptp')
             ->select( 'pt.payment_term', 'ptp.id', 'ptp.bank_id', 'b.bank_name', 'ptp.payment_term_id',
               'ptp.account_number', 'ptp.account_name', 'ptp.account_description', 'ptp.due_date', 'ptp.buffer_days', 'ptp.credit_limit', 'ptp.status',
+              'ptp.is_supplier', 'ptp.is_customer',
               'ptp.statement_date', 'ptp.total_balance_due')
             ->join('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')    
             ->join('bank as b', 'ptp.bank_id', '=', 'b.id')  
@@ -129,6 +183,11 @@ class PaymentTypePoController extends Controller
      */
     public function update(Request $request, PaymentTypePo $paymentTypePo)
     {
+        $this->validate($request, [
+            'is_supplier' => 'nullable|integer|in:0,1',
+            'is_customer' => 'nullable|integer|in:0,1'
+        ]);
+
         $paymentTypePo = PaymentTypePo::find($paymentTypePo->id);
         $paymentTypePo->payment_term_id = $request->input('payment_term_id');
         $paymentTypePo->bank_id = $request->input('bank_id');
@@ -141,6 +200,8 @@ class PaymentTypePoController extends Controller
         $paymentTypePo->statement_date = $request->input('statement_date');
         $paymentTypePo->total_balance_due = $request->input('total_balance_due');
         $paymentTypePo->status = $request->input('status');
+        $paymentTypePo->is_supplier = (int) $request->input('is_supplier', $paymentTypePo->is_supplier);
+        $paymentTypePo->is_customer = (int) $request->input('is_customer', $paymentTypePo->is_customer);
         $paymentTypePo->save();
         // return redirect('/categories')->with('success', 'Categories Created');
         return  response()->json($paymentTypePo);

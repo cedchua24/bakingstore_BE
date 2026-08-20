@@ -181,6 +181,186 @@ class ModeOfPaymentPoController extends Controller
             return response()->json($response);   
     }
 
+    public function fetchSupplierPaymentTransactionListByDateRange(Request $request)
+    {
+        $validated = $request->validate([
+            'dateFrom' => ['required', 'date_format:Y-m-d'],
+            'dateTo' => ['required', 'date_format:Y-m-d', 'after_or_equal:dateFrom'],
+        ]);
+
+        $payments = DB::table('mode_of_payment_po as mop')
+            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'mop.order_supplier_transaction_id')
+            ->join('supplier as s', 's.id', '=', 'ost.supplier_id')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_po_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->whereBetween('mop.date', [$validated['dateFrom'], $validated['dateTo']])
+            ->orderByDesc('mop.date')
+            ->orderByDesc('mop.id')
+            ->select(
+                'mop.id',
+                'mop.order_supplier_transaction_id',
+                'mop.payment_type_po_id',
+                'mop.payment_term_id as payment_payment_term_id',
+                'mop.amount',
+                'mop.date as payment_date',
+                'mop.type as payment_type',
+                'mop.status as payment_status',
+                'mop.created_at as payment_created_at',
+                'mop.updated_at as payment_updated_at',
+                'ost.supplier_id',
+                'ost.invoice_number',
+                'ost.withTax',
+                'ost.total_transaction_price',
+                'ost.status as order_status',
+                'ost.payment_status as order_payment_status',
+                'ost.approval_status',
+                'ost.stock_status',
+                'ost.order_date',
+                'ost.note',
+                's.supplier_name',
+                'ptp.payment_term_id',
+                'ptp.bank_id',
+                'ptp.account_number',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.due_date',
+                'ptp.buffer_days',
+                'ptp.credit_limit',
+                'ptp.statement_date',
+                'ptp.total_balance_due',
+                'ptp.balance as payment_type_po_balance',
+                'ptp.status as payment_type_po_status',
+                'ptp.is_supplier',
+                'ptp.is_customer',
+                'ptp.created_at as payment_type_po_created_at',
+                'ptp.updated_at as payment_type_po_updated_at',
+                'b.bank_name',
+                'b.status as bank_status',
+                'b.created_at as bank_created_at',
+                'b.updated_at as bank_updated_at',
+                'pt.payment_term',
+                'pt.status as payment_term_status'
+            )
+            ->get();
+
+        $banks = $payments
+            ->whereNotNull('bank_id')
+            ->unique('bank_id')
+            ->map(fn ($payment) => [
+                'id' => $payment->bank_id,
+                'bank_name' => $payment->bank_name,
+                'account_number' => $payment->account_number,
+                'account_name' => $payment->account_name,
+                'account_description' => $payment->account_description,
+                'status' => $payment->bank_status,
+                'created_at' => $payment->bank_created_at,
+                'updated_at' => $payment->bank_updated_at,
+            ])
+            ->values();
+
+        $paymentTypePo = $payments
+            ->unique('payment_type_po_id')
+            ->map(fn ($payment) => [
+                'id' => $payment->payment_type_po_id,
+                'payment_term_id' => $payment->payment_term_id,
+                'bank_id' => $payment->bank_id,
+                'account_number' => $payment->account_number,
+                'account_name' => $payment->account_name,
+                'account_description' => $payment->account_description,
+                'due_date' => $payment->due_date,
+                'buffer_days' => $payment->buffer_days,
+                'credit_limit' => $payment->credit_limit,
+                'statement_date' => $payment->statement_date,
+                'total_balance_due' => $payment->total_balance_due,
+                'balance' => $payment->payment_type_po_balance,
+                'status' => $payment->payment_type_po_status,
+                'is_supplier' => $payment->is_supplier,
+                'is_customer' => $payment->is_customer,
+                'payment_term' => $payment->payment_term,
+                'payment_term_status' => $payment->payment_term_status,
+                'created_at' => $payment->payment_type_po_created_at,
+                'updated_at' => $payment->payment_type_po_updated_at,
+            ])
+            ->values();
+
+        $accountDetailFields = [
+            'payment_term_id', 'bank_id', 'account_number', 'account_name',
+            'account_description', 'due_date', 'buffer_days', 'credit_limit',
+            'statement_date', 'total_balance_due', 'payment_type_po_balance',
+            'payment_type_po_status', 'is_supplier', 'is_customer',
+            'payment_type_po_created_at', 'payment_type_po_updated_at',
+            'bank_name', 'bank_status', 'bank_created_at', 'bank_updated_at',
+            'payment_term', 'payment_term_status',
+        ];
+
+        $payments->each(function ($payment) use ($accountDetailFields) {
+            foreach ($accountDetailFields as $field) {
+                unset($payment->{$field});
+            }
+        });
+
+        $orderIds = $payments->pluck('order_supplier_transaction_id')->unique()->values();
+        $orderItems = collect();
+
+        if ($orderIds->isNotEmpty()) {
+            $orderItems = DB::table('order_supplier as os')
+                ->leftJoin('products as p', 'p.id', '=', 'os.product_id')
+                ->whereIn('os.order_supplier_transaction_id', $orderIds)
+                ->orderBy('os.id')
+                ->select(
+                    'os.id',
+                    'os.order_supplier_transaction_id',
+                    'os.product_id',
+                    'p.product_name',
+                    'os.price',
+                    'os.quantity',
+                    'os.total_price',
+                    'os.stock_remaining',
+                    'os.stock_pc',
+                    'os.stock',
+                    'os.variation',
+                    'os.expiration',
+                    'os.enable'
+                )
+                ->get()
+                ->groupBy('order_supplier_transaction_id');
+        }
+
+        $payments->each(function ($payment) use ($orderItems) {
+            $payment->order_supplier = $orderItems
+                ->get($payment->order_supplier_transaction_id, collect())
+                ->values();
+        });
+
+        $paymentAccounts = $payments
+            ->groupBy('payment_type_po_id')
+            ->map(function ($accountPayments) {
+                $account = $accountPayments->first();
+
+                return [
+                    'payment_type_po_id' => $account->payment_type_po_id,
+                    'total_amount' => $accountPayments->sum('amount'),
+                    'payment_count' => $accountPayments->count(),
+                    'payments' => $accountPayments->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'dateFrom' => $validated['dateFrom'],
+            'dateTo' => $validated['dateTo'],
+            'total_amount' => $payments->sum('amount'),
+            'total_count' => $payments->count(),
+            'payment_account_count' => $paymentAccounts->count(),
+            'bank' => $banks->first(),
+            'payment_type_po' => $paymentTypePo,
+            'data' => $paymentAccounts,
+            'code' => 2020,
+            'message' => 'Successfully fetched supplier payment transactions',
+        ]);
+    }
+
      public function fetchCreditCardPaymentDTO($id)
     {
 
