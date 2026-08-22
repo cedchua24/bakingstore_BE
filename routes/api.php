@@ -116,6 +116,7 @@ Route::resource('/categories', 'App\Http\Controllers\CategoryController');
 Route::resource('/customerTypes', 'App\Http\Controllers\CustomerTypeController');
 
 Route::resource('/customerUpdate', 'App\Http\Controllers\CustomerUpdateController');
+Route::get('/salesRepRequest', [SalesRepController::class, 'fetchRequests']);
 Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController'); 
 
 

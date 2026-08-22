@@ -644,19 +644,24 @@ class OrderSupplierTransactionController extends Controller
     {
         try {
             $result = DB::transaction(function () use ($id, $request) {
-                // Serialize calls for this order. This also makes API retries idempotent.
+                // Lock the order so simultaneous/double-click requests are processed once.
                 $orderSupplierTransaction = OrderSupplierTransaction::whereKey($id)
                     ->lockForUpdate()
                     ->firstOrFail();
 
                 if ($orderSupplierTransaction->status === 'COMPLETED') {
-                    return ['already_completed' => true, 'items' => collect()];
+                    return [
+                        'already_completed' => true,
+                        'items' => collect(),
+                    ];
                 }
 
                 $items = DB::table('order_supplier')
-                    ->select('order_supplier_transaction_id', 'product_id', 'quantity', 'variation')
-                    ->where('order_supplier_transaction_id', $id)
-                    ->orderBy('id')
+                    ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
+                    ->join('products', 'products.id', '=', 'order_supplier.product_id')
+                    ->select('order_supplier.order_supplier_transaction_id', 'order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
+                    ->where('order_supplier_transaction.id', $id)
+                    ->orderBy('order_supplier.id')
                     ->get();
 
                 if ($items->isEmpty()) {
@@ -668,40 +673,29 @@ class OrderSupplierTransactionController extends Controller
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    $unitsPerPack = (int) $product->quantity;
-                    $receivedQuantity = (int) $row->quantity;
-
-                    if ($unitsPerPack < 1 || $receivedQuantity < 1) {
-                        throw new \RuntimeException(
-                            "Invalid quantity for product {$row->product_id}."
-                        );
+                    // Keep the original stock and stock_pc calculation unchanged.
+                    $initialStock = $product->stock;
+                    if ($row->variation === 'WHOLESALE') {
+                        $product->stock = $initialStock + $row->quantity;
+                        if ($product->quantity > 1) {
+                            $newStock = $product->quantity * $row->quantity;
+                            $product->stock_pc = $product->stock_pc + $newStock;
+                        }
+                    } else {
+                        $newStock = $product->stock_pc + $row->quantity;
+                        $product->stock_pc = $newStock;
+                        $product->stock = floor($product->stock_pc / $product->quantity);
                     }
 
-                    $receivedPieces = $row->variation === 'WHOLESALE'
-                        ? $unitsPerPack * $receivedQuantity
-                        : $receivedQuantity;
-
-                    // stock_pc is the source of truth; stock is always derived from it.
-                    $product->stock_pc = (int) $product->stock_pc + $receivedPieces;
-                    $product->stock = intdiv($product->stock_pc, $unitsPerPack);
                     $product->saveOrFail();
 
-                    $updated = OrderSupplier::where(
-                            'order_supplier_transaction_id',
-                            $row->order_supplier_transaction_id
-                        )
+                    OrderSupplier::where('order_supplier_transaction_id', $row->order_supplier_transaction_id)
                         ->where('product_id', $row->product_id)
                         ->update([
                             'enable' => 1,
                             'stock' => $product->stock,
                             'stock_pc' => $product->stock_pc,
                         ]);
-
-                    if ($updated < 1) {
-                        throw new \RuntimeException(
-                            "Failed to update supplier order item for product {$row->product_id}."
-                        );
-                    }
                 }
 
                 $orderSupplierTransaction->status = 'COMPLETED';
@@ -710,7 +704,10 @@ class OrderSupplierTransactionController extends Controller
                 $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
                 $orderSupplierTransaction->saveOrFail();
 
-                return ['already_completed' => false, 'items' => $items];
+                return [
+                    'already_completed' => false,
+                    'items' => $items,
+                ];
             }, 3);
 
             return response()->json([
