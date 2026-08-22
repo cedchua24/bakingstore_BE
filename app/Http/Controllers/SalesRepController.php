@@ -19,6 +19,18 @@ class SalesRepController extends Controller
     }
 
     /**
+     * Display pending sales representative requests.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function fetchRequests()
+    {
+        $salesRepRequests = SalesRep::where('status', 0)->get();
+
+        return response()->json($salesRepRequests);
+    }
+
+    /**
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response

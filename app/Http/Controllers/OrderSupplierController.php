@@ -367,7 +367,7 @@ class OrderSupplierController extends Controller
             ->join('products as p', 'p.id', '=', 'os.product_id')
             ->leftJoin('shop_order as so', 'so.product_id', '=', 'os.product_id')
             ->select('os.id', 'os.order_supplier_transaction_id', 'os.price',  'os.quantity', 'os.expiration', 'os.stock_remaining',
-             'os.total_price', 'p.product_name', 'p.variation', 'p.weight', 'p.quantity as pQuantity','p.id as product_id',
+             'os.total_price', 'p.product_name', 'p.variation', 'p.weight', 'p.packaging', 'p.quantity as pQuantity','p.id as product_id',
              'p.stock', 'p.stock_warning', 'p.stock_warning_type', 'so.shop_order_quantity')    
             ->selectRaw("(CASE WHEN (os.variation = 'WHOLESALE') THEN p.packaging ELSE p.variation END) as unit")
             ->where('ost.id', $id)
