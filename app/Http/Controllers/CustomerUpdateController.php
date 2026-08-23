@@ -40,7 +40,8 @@ class CustomerUpdateController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'customer_id' => 'required'
+            'customer_id' => 'required|integer|exists:customer,id',
+            'user_id' => 'required|integer|exists:users,id',
         ]);
 
         // $item = UserProfile::create($data);
@@ -98,9 +99,14 @@ class CustomerUpdateController extends Controller
      */
     public function update(Request $request, CustomerUpdate $customerUpdate)
     {
-        $customerUpdate = CustomerUpdate::find($brand->id);
+        $this->validate($request, [
+            'customer_id' => 'required|integer|exists:customer,id',
+            'user_id' => 'required|integer|exists:users,id',
+            'status' => 'required|integer|in:0,1',
+        ]);
         
         $customerUpdate->customer_id = $request->input('customer_id');
+        $customerUpdate->user_id = $request->input('user_id');
         $customerUpdate->status = $request->input('status');
         $customerUpdate->chat = $request->input('chat');
         $customerUpdate->promo = $request->input('promo');
