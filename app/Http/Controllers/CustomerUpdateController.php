@@ -42,6 +42,7 @@ class CustomerUpdateController extends Controller
         $this->validate($request, [
             'customer_id' => 'required|integer|exists:customer,id',
             'user_id' => 'required|integer|exists:users,id',
+            'comment' => 'nullable|string',
         ]);
 
         // $item = UserProfile::create($data);
@@ -53,9 +54,14 @@ class CustomerUpdateController extends Controller
         $customerUpdate = new CustomerUpdate;
         $customerUpdate->customer_id = $request->input('customer_id');
         $customerUpdate->user_id = $request->input('user_id');
+        $customerUpdate->last_order_date = DB::table('shop_order_transaction')
+            ->where('requestor', $request->input('customer_id'))
+            ->where('checker', 0)
+            ->max('date');
         $customerUpdate->status = 0;
         $customerUpdate->chat = $request->input('chat');
         $customerUpdate->promo = $request->input('promo');
+        $customerUpdate->comment = $request->input('comment');
         $customerUpdate->save();
         $customer = Customer::find($request->input('customer_id'));
         if ($request->input('backlog') == 1) {
@@ -103,6 +109,7 @@ class CustomerUpdateController extends Controller
             'customer_id' => 'required|integer|exists:customer,id',
             'user_id' => 'required|integer|exists:users,id',
             'status' => 'required|integer|in:0,1',
+            'comment' => 'nullable|string',
         ]);
         
         $customerUpdate->customer_id = $request->input('customer_id');
@@ -110,6 +117,7 @@ class CustomerUpdateController extends Controller
         $customerUpdate->status = $request->input('status');
         $customerUpdate->chat = $request->input('chat');
         $customerUpdate->promo = $request->input('promo');
+        $customerUpdate->comment = $request->input('comment');
         $customerUpdate->save();
       
 

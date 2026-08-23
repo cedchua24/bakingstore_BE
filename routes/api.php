@@ -179,6 +179,8 @@ Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class,
 Route::post('/customers/customerBacklogList/{id}', [CustomerController::class, 'customerBacklogList']);
 Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'customerConvoList']);
 Route::post('/customers/customerReorder/{id}', [CustomerController::class, 'customerReorder']);
+Route::post('/customers/customerReorderV2', [CustomerController::class, 'customerReorderV2']);
+Route::post('/customers/customerLastOrderAllListV2', [CustomerController::class, 'customerLastOrderAllListV2']);
 Route::post('/customers/searchVipCustomerList', [CustomerController::class, 'searchVipCustomerList']);
 
 
@@ -219,6 +221,7 @@ Route::post('/customers/updateAndDeleteCustomer', [CustomerController::class, 'u
 
 Route::get('/customers/fetchAllCustomer/{id}', [CustomerController::class, 'fetchAllCustomer']);
 Route::post('/customers/fetchCustomerTransaction', [CustomerController::class, 'fetchCustomerTransaction']);
+Route::post('/customers/fetchCustomerTransactionV2', [CustomerController::class, 'fetchCustomerTransactionV2']);
 Route::post('/customers/fetchCustomerSalesHistory/{id}', [CustomerController::class, 'fetchCustomerSalesHistory']);
 Route::post('/customers/fetchCustomerProduct', [CustomerController::class, 'fetchCustomerProduct']);
 
@@ -292,6 +295,7 @@ Route::resource('/warehouse', 'App\Http\Controllers\WarehouseController');
 Route::get('/warehouse/fetchWarehouseStock/{id}', [WarehouseController::class, 'fetchWarehouseStock']);
 
 Route::resource('/shop', 'App\Http\Controllers\ShopController');
+Route::get('/environment/database', [ShopController::class, 'fetchDatabaseEnvironment']);
 Route::get('/shop/fetchShopList/{id}', [ShopController::class, 'fetchShopList']);
 Route::get('/shop/fetchShopActive/{id}', [ShopController::class, 'fetchShopActive']);
 Route::get('/shop/fetchCurrentShop/{id}', [ShopController::class, 'fetchCurrentShop']);

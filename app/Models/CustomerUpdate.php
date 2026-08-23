@@ -12,6 +12,7 @@ class CustomerUpdate extends Model
     protected $casts = [
         'customer_id' => 'integer',
         'user_id' => 'integer',
+        'last_order_date' => 'date:Y-m-d',
         'status' => 'integer',
     ];
     
