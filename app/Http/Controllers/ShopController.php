@@ -18,7 +18,8 @@ class ShopController extends Controller
         return response()->json([
             'db_host' => $databaseHost,
             'is_local' => $isLocalDatabase,
-            'active_shop_color' => $isLocalDatabase ? 'pink' : null,
+            'default_color' => config('app.default_color'),
+            'active_shop_color' => $isLocalDatabase ? 'pink' : config('app.default_color'),
         ]);
     }
 

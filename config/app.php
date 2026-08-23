@@ -58,6 +58,8 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
+    'default_color' => '#'.ltrim(env('DEFAULT_COLOR', '35221c'), '#'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*
