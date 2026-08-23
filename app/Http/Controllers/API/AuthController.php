@@ -44,6 +44,7 @@ class AuthController extends Controller
             'role_as' => $user->role_as,
             'name' => $user->name,
             'email' => $user->email,
+            'default_color' => config('app.default_color'),
             'token' => $newToken->plainTextToken,
             'expires_at' => $newToken->accessToken->created_at
                 ->addMinutes(config('sanctum.expiration'))
@@ -107,6 +108,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role_as' => $user->role_as,
+            'default_color' => config('app.default_color'),
             'token' => $newToken->plainTextToken,
             'expires_at' => $newToken->accessToken->created_at
                 ->addMinutes(config('sanctum.expiration'))
