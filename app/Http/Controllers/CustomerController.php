@@ -311,6 +311,7 @@ class CustomerController extends Controller
     $start = 0;
     $minus = 0;
     $max_ids = 0;
+    $search = trim((string) $request->input('search', ''));
     
 
       
@@ -321,7 +322,8 @@ class CustomerController extends Controller
             ->groupBy('requestor');
 
         $data = DB::table('customer as c')
-            ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')          
+            ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')
+            ->leftJoin('users as follow_up_user', 'follow_up_user.id', '=', 'cu.user_id')
             ->join('shop_order_transaction as sot', function ($join) use ($latestshop_order_transaction) {
                 $join->on('sot.requestor', '=', 'cu.customer_id')
                     ->joinSub($latestshop_order_transaction, 'latest_shop_order_transaction', function ($join) {
@@ -329,14 +331,19 @@ class CustomerController extends Controller
                             ->on('sot.created_at', '=', 'latest_shop_order_transaction.max_date');
                     });
             })
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email',
                     'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',  'sot.profit',
-                    'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                    'cu.user_id', 'follow_up_user.name as follow_up_user_name', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment',
+                    'cu.status as update_status', 'cu.created_at as update_date',)
             ->groupBy('c.id') 
             ->where('cu.status', 0)    
+            ->where('c.backlog', '!=', 1)
             ->where('cu.created_at', '>=', $request->input('dateFrom'))
             ->where('cu.created_at', '<=', $request->input('dateTo'))    
             ->where('sot.checker', 0) 
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->orderBy('sot.date', 'desc')      
             ->get();
 
@@ -346,7 +353,8 @@ class CustomerController extends Controller
             ->groupBy('requestor');
 
         $data = DB::table('customer as c')
-            ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')          
+            ->join('customer_update as cu', 'cu.customer_id', '=', 'c.id')
+            ->leftJoin('users as follow_up_user', 'follow_up_user.id', '=', 'cu.user_id')
             ->join('shop_order_transaction as sot', function ($join) use ($latestshop_order_transaction) {
                 $join->on('sot.requestor', '=', 'cu.customer_id')
                     ->joinSub($latestshop_order_transaction, 'latest_shop_order_transaction', function ($join) {
@@ -354,12 +362,17 @@ class CustomerController extends Controller
                             ->on('sot.created_at', '=', 'latest_shop_order_transaction.max_date');
                     });
             })
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email',
                     'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price', 'sot.profit',
-                    'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                    'cu.user_id', 'follow_up_user.name as follow_up_user_name', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment',
+                    'cu.status as update_status', 'cu.created_at as update_date',)
             ->groupBy('c.id') 
             ->where('cu.status', 0) 
+            ->where('c.backlog', '!=', 1)
             ->where('sot.checker', 0) 
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->orderBy('cu.created_at', 'desc')        
             ->get();
     
@@ -429,6 +442,7 @@ class CustomerController extends Controller
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:255'],
             'followed_up_from' => ['nullable', 'date'],
             'followed_up_to' => ['nullable', 'date', 'after_or_equal:followed_up_from'],
             'amount_min' => ['nullable', 'numeric', 'min:0'],
@@ -455,11 +469,16 @@ class CustomerController extends Controller
                 $join->on('latest_cu.customer_id', '=', 'c.id');
             })
             ->join('customer_update as cu', 'cu.id', '=', 'latest_cu.latest_update_id')
+            ->leftJoin('users as follow_up_user', 'follow_up_user.id', '=', 'cu.user_id')
             ->joinSub($completedOrderTotals, 'orders', function ($join) {
                 $join->on('orders.requestor', '=', 'c.id');
             })
             ->where('cu.status', 0)
+            ->where('c.backlog', '!=', 1)
             ->whereColumn('orders.last_order_created_at', '<', 'cu.created_at')
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->when($validated['followed_up_from'] ?? null, function ($query, $date) {
                 $query->whereDate('cu.created_at', '>=', $date);
             })
@@ -483,8 +502,11 @@ class CustomerController extends Controller
                 'c.disabled',
                 'cu.id as customer_update_id',
                 'cu.user_id',
+                'follow_up_user.name as follow_up_user_name',
+                'cu.last_order_date as follow_up_last_order_date',
                 'cu.chat',
                 'cu.promo',
+                'cu.comment',
                 'cu.status as update_status',
                 'cu.created_at as followed_up_at',
                 'orders.last_order_date',
@@ -523,6 +545,7 @@ class CustomerController extends Controller
                 'has_more_pages' => $customers->hasMorePages(),
             ],
             'filters' => [
+                'search' => $validated['search'] ?? null,
                 'followed_up_from' => $validated['followed_up_from'] ?? null,
                 'followed_up_to' => $validated['followed_up_to'] ?? null,
                 'amount_min' => isset($validated['amount_min']) ? (float) $validated['amount_min'] : null,
@@ -533,7 +556,7 @@ class CustomerController extends Controller
     }
 
 
-        public function customerReorder($idParam, Request $request) {
+    public function customerReorder($idParam, Request $request) {
         $pageCount = 0;
         $start = 0;
         $minus = 0;
@@ -558,7 +581,8 @@ class CustomerController extends Controller
                 })
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
                         'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',  'sot.profit',
-                        'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                        'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update_status',
+                        'cu.created_at as update_date',)
                 ->groupBy('c.id') 
                 ->where('cu.status', 0)    
                 ->where('sot.checker', 0) 
@@ -583,7 +607,8 @@ class CustomerController extends Controller
                 })
                 ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
                         'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price', 'sot.profit',
-                        'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update_status', 'cu.created_at as update_date',)
+                        'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update_status',
+                        'cu.created_at as update_date',)
                 ->groupBy('c.id') 
                 ->where('cu.status', 0) 
                 ->where('sot.checker', 0) 
@@ -640,6 +665,162 @@ class CustomerController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Return customers who placed a completed order after their latest follow-up.
+     * Customer backlog state is intentionally not part of this workflow.
+     */
+    public function customerReorderV2(Request $request)
+    {
+        $request->merge([
+            'reordered_from' => $request->input('reordered_from', $request->input('dateFrom')),
+            'reordered_to' => $request->input('reordered_to', $request->input('dateTo')),
+            'amount_min' => $request->input('amount_min', $request->input('required_amount')),
+        ]);
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'reordered_from' => ['nullable', 'date'],
+            'reordered_to' => ['nullable', 'date', 'after_or_equal:reordered_from'],
+            'amount_min' => ['nullable', 'numeric', 'min:0'],
+            'amount_max' => ['nullable', 'numeric', 'min:0', 'gte:amount_min'],
+        ]);
+
+        $latestCustomerUpdates = DB::table('customer_update')
+            ->select('customer_id', DB::raw('MAX(id) as latest_update_id'))
+            ->groupBy('customer_id');
+
+        $latestCompletedOrders = DB::table('shop_order_transaction')
+            ->select('requestor', DB::raw('MAX(id) as latest_order_id'))
+            ->where('checker', 0)
+            ->groupBy('requestor');
+
+        $completedOrderTotals = DB::table('shop_order_transaction')
+            ->select(
+                'requestor',
+                DB::raw('SUM(shop_order_transaction_total_price) as total_sales'),
+                DB::raw('COUNT(id) as total_orders')
+            )
+            ->where('checker', 0)
+            ->groupBy('requestor');
+
+        $query = DB::table('customer as c')
+            ->joinSub($latestCustomerUpdates, 'latest_cu', function ($join) {
+                $join->on('latest_cu.customer_id', '=', 'c.id');
+            })
+            ->join('customer_update as cu', 'cu.id', '=', 'latest_cu.latest_update_id')
+            ->leftJoin('users as follow_up_user', 'follow_up_user.id', '=', 'cu.user_id')
+            ->joinSub($latestCompletedOrders, 'latest_order', function ($join) {
+                $join->on('latest_order.requestor', '=', 'c.id');
+            })
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'latest_order.latest_order_id')
+            ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
+            ->joinSub($completedOrderTotals, 'orders', function ($join) {
+                $join->on('orders.requestor', '=', 'c.id');
+            })
+            ->where('cu.status', 0)
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $this->applyCustomerSearch($query, $search);
+            })
+            ->where(function ($query) {
+                $query->where(function ($query) {
+                    $query->whereNotNull('cu.last_order_date')
+                        ->whereColumn('sot.date', '>', 'cu.last_order_date');
+                })->orWhere(function ($query) {
+                    // Historical updates created before last_order_date existed
+                    // retain the old timestamp-based fallback.
+                    $query->whereNull('cu.last_order_date')
+                        ->whereColumn('sot.created_at', '>=', 'cu.created_at');
+                });
+            })
+            ->when($validated['reordered_from'] ?? null, function ($query, $date) {
+                $query->whereDate('sot.date', '>=', $date);
+            })
+            ->when($validated['reordered_to'] ?? null, function ($query, $date) {
+                $query->whereDate('sot.date', '<=', $date);
+            })
+            ->when(isset($validated['amount_min']), function ($query) use ($validated) {
+                $query->where('orders.total_sales', '>=', $validated['amount_min']);
+            })
+            ->when(isset($validated['amount_max']), function ($query) use ($validated) {
+                $query->where('orders.total_sales', '<=', $validated['amount_max']);
+            })
+            ->select(
+                'c.id',
+                'c.first_name',
+                'c.last_name',
+                'c.store_name',
+                'c.contact_number',
+                'c.email',
+                'c.address',
+                'c.disabled',
+                'cu.id as customer_update_id',
+                'cu.user_id',
+                'follow_up_user.name as follow_up_user_name',
+                'cu.last_order_date as previous_order_date',
+                'cu.chat',
+                'cu.promo',
+                'cu.comment',
+                'cu.created_at as followed_up_at',
+                'sot.id as reorder_transaction_id',
+                'sot.sales_rep_id',
+                'sr.first_name as sales_rep_name',
+                'sot.date as reordered_at',
+                'sot.created_at as reorder_created_at',
+                'sot.shop_order_transaction_total_price as reorder_amount',
+                'sot.profit as reorder_profit',
+                'orders.total_sales',
+                'orders.total_orders'
+            )
+            ->orderByDesc('sot.created_at')
+            ->orderByDesc('sot.id');
+
+        $page = !empty($validated['search']) ? 1 : (int) ($validated['page'] ?? 1);
+        $customers = $query->paginate(100, ['*'], 'page', $page);
+        $today = Carbon::today();
+
+        $customers->getCollection()->transform(function ($customer) use ($today) {
+            $customer->reorder_amount = round((float) $customer->reorder_amount, 2);
+            $customer->reorder_profit = round((float) $customer->reorder_profit, 2);
+            $customer->total_sales = round((float) $customer->total_sales, 2);
+            $customer->total_orders = (int) $customer->total_orders;
+            $customer->days_to_reorder = Carbon::parse($customer->followed_up_at)
+                ->diffInDays(Carbon::parse($customer->reorder_created_at));
+            $customer->days_since_reorder = Carbon::parse($customer->reordered_at)
+                ->startOfDay()
+                ->diffInDays($today);
+            $customer->days_between_orders = $customer->previous_order_date !== null
+                ? Carbon::parse($customer->previous_order_date)->diffInDays(Carbon::parse($customer->reordered_at))
+                : null;
+            $customer->reorder_summary = $customer->days_between_orders !== null
+                ? 'Ordered again after ' . number_format($customer->days_between_orders) . ' days'
+                : 'First completed order on record';
+
+            return $customer;
+        });
+
+        return response()->json([
+            'data' => $customers->items(),
+            'pagination' => [
+                'current_page' => $customers->currentPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+                'last_page' => $customers->lastPage(),
+                'from' => $customers->firstItem(),
+                'to' => $customers->lastItem(),
+                'has_more_pages' => $customers->hasMorePages(),
+            ],
+            'filters' => [
+                'search' => $validated['search'] ?? null,
+                'reordered_from' => $validated['reordered_from'] ?? null,
+                'reordered_to' => $validated['reordered_to'] ?? null,
+                'amount_min' => isset($validated['amount_min']) ? (float) $validated['amount_min'] : null,
+                'amount_max' => isset($validated['amount_max']) ? (float) $validated['amount_max'] : null,
+            ],
+            'sort' => 'reordered_at_desc',
+        ]);
+    }
+
         
     public function customerBacklogList($idParam, Request $request) {
         $newData = [];
@@ -648,6 +829,7 @@ class CustomerController extends Controller
         $max_ids = 0;
         $required_amount = $request->input('required_amount');
         $dateFrom = $request->input('dateFrom');
+        $search = trim((string) $request->input('search', ''));
         
         if ($request->input('dateFrom') == null ) {
             $total_page =  DB::table('shop_order_transaction as sot')
@@ -655,6 +837,9 @@ class CustomerController extends Controller
                 ->distinct()
                 ->where('sot.checker',  0)
                 ->where('c.backlog',  1)
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 ->count('sot.requestor');
 
             if ($idParam == 1) {
@@ -670,6 +855,9 @@ class CustomerController extends Controller
                 ->groupBy('sot.requestor')
                 ->orderByRaw('MAX(sot. id) DESC')   // Sort before pagination
                 ->where('c.backlog',  1)
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 ->offset($offset)
                 ->limit(100)
                 ->get();
@@ -682,6 +870,9 @@ class CustomerController extends Controller
                 ->where('sot.checker', 0)
                 ->where('sot.date', '<=', $dateFrom)
                 ->where('c.backlog',  1)
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 ->groupBy('sot.requestor')
                 ->havingRaw('SUM(sot.shop_order_transaction_total_price) >= ?', [$required_amount])
                 ->count();
@@ -701,6 +892,9 @@ class CustomerController extends Controller
                     ->where('sot.checker', 0)
                     ->where('sot.date', '<=', $request->input('dateFrom'))
                     ->where('c.backlog',  1)
+                    ->when($search !== '', function ($query) use ($search) {
+                        $this->applyCustomerSearch($query, $search);
+                    })
                     ->groupBy('sot.requestor')
                     ->orderByRaw('MAX(sot.id) DESC')       // correct sorting
                     ->offset($offset)
@@ -727,6 +921,9 @@ class CustomerController extends Controller
                 ->select('sot.id')   
                 ->where('sot.checker',  0)
                 ->where('c.backlog',  1)
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 ->whereIn('sot.id', $ids)
                 ->get();
 
@@ -737,28 +934,36 @@ class CustomerController extends Controller
         
             if ($request->input('dateFrom') != '' ) {
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' ,
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email', 'c.address' ,
                 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
-                'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')
+                'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update status',
+                'cu.created_at as update_date')
                 ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
                 ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
                 ->where('sot.date', '<=', $request->input('dateFrom'))
                 ->where('sot.checker',  0)
                 ->where('c.backlog',  1)
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 // ->where('cu.customer_id', null)  
                 ->whereIn('sot.id', $sots)     
                 ->groupBy('c.id')
                 ->get();
             } else {
             $data = DB::table('customer as c')
-                ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+                ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email',
                 'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
-                'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')
+                'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update status',
+                'cu.created_at as update_date')
                 ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
                 ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
                 ->whereIn('sot.id', $sots)  
                 ->where('sot.checker',  0)
                 ->where('c.backlog',  1)   
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
                 ->groupBy('c.id')
                 ->get();
             }
@@ -844,22 +1049,37 @@ class CustomerController extends Controller
     {
         // Keep the old frontend field names as aliases while exposing clearer v2 names.
         $request->merge([
-            'last_order_before' => $request->input('last_order_before', $request->input('dateFrom')),
+            'last_order_after' => $request->input('last_order_after', $request->input('last_order_from')),
+            'last_order_before' => $request->input(
+                'last_order_before',
+                $request->input('last_order_to', $request->input('dateFrom'))
+            ),
             'amount_min' => $request->input('amount_min', $request->input('required_amount')),
         ]);
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
-            'last_order_before' => ['nullable', 'date', 'before_or_equal:today'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'last_order_after' => ['nullable', 'date', 'before_or_equal:today'],
+            'last_order_before' => ['nullable', 'date', 'before_or_equal:today', 'after_or_equal:last_order_after'],
             'inactive_days_min' => ['nullable', 'integer', 'min:0'],
+            'inactive_days_max' => ['nullable', 'integer', 'min:0', 'gte:inactive_days_min'],
             'amount_min' => ['nullable', 'numeric', 'min:0'],
             'amount_max' => ['nullable', 'numeric', 'min:0', 'gte:amount_min'],
         ]);
 
-        $page = (int) ($validated['page'] ?? 1);
+        $page = !empty($validated['search']) ? 1 : (int) ($validated['page'] ?? 1);
         $perPage = 100;
         $today = Carbon::today();
         $lastOrderBefore = $validated['last_order_before'] ?? null;
+        $lastOrderAfter = $validated['last_order_after'] ?? null;
+
+        if (isset($validated['inactive_days_max'])) {
+            $inactiveDate = $today->copy()->subDays((int) $validated['inactive_days_max'])->toDateString();
+            $lastOrderAfter = $lastOrderAfter === null || $inactiveDate > $lastOrderAfter
+                ? $inactiveDate
+                : $lastOrderAfter;
+        }
 
         if (isset($validated['inactive_days_min'])) {
             $inactiveDate = $today->copy()->subDays((int) $validated['inactive_days_min'])->toDateString();
@@ -891,6 +1111,9 @@ class CustomerController extends Controller
                     ->whereColumn('cu.customer_id', 'c.id')
                     ->whereColumn('cu.created_at', '>=', 'orders.last_order_created_at');
             })
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->select(
                 'c.id',
                 'c.first_name',
@@ -906,6 +1129,9 @@ class CustomerController extends Controller
             )
             ->when($lastOrderBefore, function ($query, $date) {
                 $query->where('orders.last_order_date', '<=', $date);
+            })
+            ->when($lastOrderAfter, function ($query, $date) {
+                $query->where('orders.last_order_date', '>=', $date);
             })
             ->when(isset($validated['amount_min']), function ($query) use ($validated) {
                 $query->where('orders.total_sales', '>=', $validated['amount_min']);
@@ -939,9 +1165,144 @@ class CustomerController extends Controller
                 'has_more_pages' => $customers->hasMorePages(),
             ],
             'filters' => [
+                'search' => $validated['search'] ?? null,
+                'last_order_after' => $lastOrderAfter,
                 'last_order_before' => $lastOrderBefore,
                 'inactive_days_min' => isset($validated['inactive_days_min'])
                     ? (int) $validated['inactive_days_min']
+                    : null,
+                'inactive_days_max' => isset($validated['inactive_days_max'])
+                    ? (int) $validated['inactive_days_max']
+                    : null,
+                'amount_min' => isset($validated['amount_min']) ? (float) $validated['amount_min'] : null,
+                'amount_max' => isset($validated['amount_max']) ? (float) $validated['amount_max'] : null,
+            ],
+            'sort' => 'days_since_last_order_desc',
+        ]);
+    }
+
+    /**
+     * Return order activity for every customer with completed orders,
+     * regardless of follow-up history.
+     */
+    public function customerLastOrderAllListV2(Request $request)
+    {
+        $request->merge([
+            'last_order_after' => $request->input('last_order_after', $request->input('last_order_from')),
+            'last_order_before' => $request->input(
+                'last_order_before',
+                $request->input('last_order_to', $request->input('dateFrom'))
+            ),
+            'amount_min' => $request->input('amount_min', $request->input('required_amount')),
+        ]);
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'last_order_after' => ['nullable', 'date', 'before_or_equal:today'],
+            'last_order_before' => ['nullable', 'date', 'before_or_equal:today', 'after_or_equal:last_order_after'],
+            'inactive_days_min' => ['nullable', 'integer', 'min:0'],
+            'inactive_days_max' => ['nullable', 'integer', 'min:0', 'gte:inactive_days_min'],
+            'amount_min' => ['nullable', 'numeric', 'min:0'],
+            'amount_max' => ['nullable', 'numeric', 'min:0', 'gte:amount_min'],
+        ]);
+
+        $page = !empty($validated['search']) ? 1 : (int) ($validated['page'] ?? 1);
+        $today = Carbon::today();
+        $lastOrderBefore = $validated['last_order_before'] ?? null;
+        $lastOrderAfter = $validated['last_order_after'] ?? null;
+
+        if (isset($validated['inactive_days_max'])) {
+            $inactiveDate = $today->copy()->subDays((int) $validated['inactive_days_max'])->toDateString();
+            $lastOrderAfter = $lastOrderAfter === null || $inactiveDate > $lastOrderAfter
+                ? $inactiveDate
+                : $lastOrderAfter;
+        }
+
+        if (isset($validated['inactive_days_min'])) {
+            $inactiveDate = $today->copy()->subDays((int) $validated['inactive_days_min'])->toDateString();
+            $lastOrderBefore = $lastOrderBefore === null || $inactiveDate < $lastOrderBefore
+                ? $inactiveDate
+                : $lastOrderBefore;
+        }
+
+        $completedOrderTotals = DB::table('shop_order_transaction')
+            ->select(
+                'requestor',
+                DB::raw('MAX(date) as last_order_date'),
+                DB::raw('SUM(shop_order_transaction_total_price) as total_sales'),
+                DB::raw('COUNT(id) as total_orders')
+            )
+            ->where('checker', 0)
+            ->groupBy('requestor');
+
+        $query = DB::table('customer as c')
+            ->joinSub($completedOrderTotals, 'orders', function ($join) {
+                $join->on('orders.requestor', '=', 'c.id');
+            })
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $this->applyCustomerSearch($query, $search);
+            })
+            ->when($lastOrderBefore, function ($query, $date) {
+                $query->where('orders.last_order_date', '<=', $date);
+            })
+            ->when($lastOrderAfter, function ($query, $date) {
+                $query->where('orders.last_order_date', '>=', $date);
+            })
+            ->when(isset($validated['amount_min']), function ($query) use ($validated) {
+                $query->where('orders.total_sales', '>=', $validated['amount_min']);
+            })
+            ->when(isset($validated['amount_max']), function ($query) use ($validated) {
+                $query->where('orders.total_sales', '<=', $validated['amount_max']);
+            })
+            ->select(
+                'c.id',
+                'c.first_name',
+                'c.last_name',
+                'c.store_name',
+                'c.contact_number',
+                'c.email',
+                'c.address',
+                'c.disabled',
+                'orders.last_order_date',
+                'orders.total_sales',
+                'orders.total_orders'
+            )
+            ->orderBy('orders.last_order_date')
+            ->orderBy('c.id');
+
+        $customers = $query->paginate(100, ['*'], 'page', $page);
+        $customers->getCollection()->transform(function ($customer) use ($today) {
+            $customer->total_sales = round((float) $customer->total_sales, 2);
+            $customer->total_orders = (int) $customer->total_orders;
+            $customer->has_orders = true;
+            $customer->days_since_last_order = Carbon::parse($customer->last_order_date)
+                ->startOfDay()
+                ->diffInDays($today);
+
+            return $customer;
+        });
+
+        return response()->json([
+            'data' => $customers->items(),
+            'pagination' => [
+                'current_page' => $customers->currentPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+                'last_page' => $customers->lastPage(),
+                'from' => $customers->firstItem(),
+                'to' => $customers->lastItem(),
+                'has_more_pages' => $customers->hasMorePages(),
+            ],
+            'filters' => [
+                'search' => $validated['search'] ?? null,
+                'last_order_after' => $lastOrderAfter,
+                'last_order_before' => $lastOrderBefore,
+                'inactive_days_min' => isset($validated['inactive_days_min'])
+                    ? (int) $validated['inactive_days_min']
+                    : null,
+                'inactive_days_max' => isset($validated['inactive_days_max'])
+                    ? (int) $validated['inactive_days_max']
                     : null,
                 'amount_min' => isset($validated['amount_min']) ? (float) $validated['amount_min'] : null,
                 'amount_max' => isset($validated['amount_max']) ? (float) $validated['amount_max'] : null,
@@ -958,12 +1319,17 @@ public function customerLastOrderList($idParam, Request $request) {
     $max_ids = 0;
     $required_amount = $request->input('required_amount');
     $dateFrom = $request->input('dateFrom');
+    $search = trim((string) $request->input('search', ''));
     
      if ($request->input('dateFrom') == null ) {
-           $total_page =  DB::table('shop_order_transaction')
+           $total_page =  DB::table('shop_order_transaction as sot')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
             ->distinct()
-            ->where('checker',  0)
-            ->count('requestor');
+            ->where('sot.checker',  0)
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
+            ->count('sot.requestor');
 
         if ($idParam == 1) {
             $offset = 0;
@@ -971,11 +1337,15 @@ public function customerLastOrderList($idParam, Request $request) {
             $offset = ($idParam - 1) * 100;   // Proper zero-based offset
         }
 
-        $max_ids = DB::table('shop_order_transaction')
-            ->select(DB::raw('MAX(id) as id'))
-            ->where('checker', 0)
-            ->groupBy('requestor')
-            ->orderByRaw('MAX(id) DESC')   // Sort before pagination
+        $max_ids = DB::table('shop_order_transaction as sot')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
+            ->select(DB::raw('MAX(sot.id) as id'))
+            ->where('sot.checker', 0)
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
+            ->groupBy('sot.requestor')
+            ->orderByRaw('MAX(sot.id) DESC')   // Sort before pagination
             ->offset($offset)
             ->limit(100)
             ->get();
@@ -983,9 +1353,13 @@ public function customerLastOrderList($idParam, Request $request) {
 
 
            $total_page = DB::table('shop_order_transaction as sot')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
             ->select('sot.requestor')
             ->where('sot.checker', 0)
             ->where('sot.date', '<=', $dateFrom)
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->groupBy('sot.requestor')
             ->havingRaw('SUM(sot.shop_order_transaction_total_price) >= ?', [$required_amount])
             ->count();
@@ -996,15 +1370,19 @@ public function customerLastOrderList($idParam, Request $request) {
                 $offset = ($idParam - 1) * 100;  // Correct pagination offset
             }
 
-            $query = DB::table('shop_order_transaction')
+            $query = DB::table('shop_order_transaction as sot')
+                ->join('customer as c', 'c.id', '=', 'sot.requestor')
                 ->select(
-                    DB::raw('MAX(id) as id'),
-                    DB::raw('SUM(shop_order_transaction_total_price) as total_sales')
+                    DB::raw('MAX(sot.id) as id'),
+                    DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales')
                 )
-                ->where('checker', 0)
-                ->where('date', '<=', $request->input('dateFrom'))
-                ->groupBy('requestor')
-                ->orderByRaw('MAX(id) DESC')       // correct sorting
+                ->where('sot.checker', 0)
+                ->where('sot.date', '<=', $request->input('dateFrom'))
+                ->when($search !== '', function ($query) use ($search) {
+                    $this->applyCustomerSearch($query, $search);
+                })
+                ->groupBy('sot.requestor')
+                ->orderByRaw('MAX(sot.id) DESC')       // correct sorting
                 ->offset($offset)
                 ->limit(100);
 
@@ -1037,26 +1415,34 @@ public function customerLastOrderList($idParam, Request $request) {
       
         if ($request->input('dateFrom') != '' ) {
           $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' ,
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email', 'c.address' ,
              'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
-             'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')
+             'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update status',
+             'cu.created_at as update_date')
              ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
              ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
             ->where('sot.date', '<=', $request->input('dateFrom'))
             ->where('sot.checker',  0)
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
              ->where('cu.customer_id', null)  
             ->whereIn('sot.id', $sots)     
             ->groupBy('c.id')
             ->get();
         } else {
            $data = DB::table('customer as c')
-            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email',
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.contact_number', 'c.email',
              'c.address' , 'c.disabled', 'sot.date', 'sot.shop_order_transaction_total_price',
-             'cu.user_id', 'cu.chat', 'cu.promo', 'cu.status as update status', 'cu.created_at as update_date')
+             'cu.user_id', 'cu.last_order_date', 'cu.chat', 'cu.promo', 'cu.comment', 'cu.status as update status',
+             'cu.created_at as update_date')
             ->join('shop_order_transaction as sot', 'sot.requestor', '=', 'c.id')  
             ->leftJoin('customer_update as cu', 'cu.customer_id', '=', 'sot.requestor') 
             ->whereIn('sot.id', $sots)  
             ->where('sot.checker',  0)
+            ->when($search !== '', function ($query) use ($search) {
+                $this->applyCustomerSearch($query, $search);
+            })
             ->where('cu.customer_id', null)   
             ->groupBy('c.id')
             ->get();
@@ -1348,6 +1734,216 @@ public function customerLastOrderList($idParam, Request $request) {
     /**
      * Return a customer's completed sales grouped into chart-friendly periods.
      */
+       public function fetchCustomerTransactionV2(Request $request)
+    {
+        $request->merge([
+            'dateFrom' => in_array($request->input('dateFrom'), ['', 'null'], true) ? null : $request->input('dateFrom'),
+            'dateTo' => in_array($request->input('dateTo'), ['', 'null'], true) ? null : $request->input('dateTo'),
+        ]);
+
+        $validated = $request->validate([
+            'id' => 'required',
+            'dateFrom' => 'nullable|date',
+            'dateTo' => 'nullable|date',
+        ]);
+
+        $id = $validated['id'];
+        $dateFrom = $validated['dateFrom'] ?? null;
+        $dateTo = $validated['dateTo'] ?? null;
+        $applyDateFilter = function ($query, $column) use ($dateFrom, $dateTo) {
+            if ($dateFrom) {
+                $query->whereDate($column, '>=', $dateFrom);
+            }
+
+            if ($dateTo) {
+                $query->whereDate($column, '<=', $dateTo);
+            }
+
+            return $query;
+        };
+
+        $shop_order_transaction_list = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
+            ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
+             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
+             'c.first_name as requestor_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
+              'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
+              'shop_order_transaction.total_cash', 'shop_order_transaction.total_online', 'ct.customer_type',
+              'shop_order_transaction.rider_name', 'c.ads', 'c.created_at')
+             ->where('shop_order_transaction.requestor', $id)
+             ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+             })
+             ->orderBy('shop_order_transaction.id', 'DESC')
+             ->get();
+
+            $data = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(shop_order_transaction_total_price) as total_price'), DB::raw('SUM(profit) as total_profit'),  DB::raw('COUNT(shop_id) as total_count'),)
+            ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
+            ->first();
+
+
+           $cash = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(mop.amount) as total_cash'))
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+            ->leftJoin('bank as payment_bank', 'payment_bank.id', '=', 'ptp.bank_id')
+            ->leftJoin('payment_term as payment_term', 'payment_term.id', '=', 'ptp.payment_term_id')
+            ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
+            ->first();
+
+            $online = DB::table('shop_order_transaction')
+            ->select(DB::raw('SUM(mop.amount) as total_online'))
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'shop_order_transaction.id')
+            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+            ->leftJoin('bank as payment_bank', 'payment_bank.id', '=', 'ptp.bank_id')
+            ->leftJoin('payment_term as payment_term', 'payment_term.id', '=', 'ptp.payment_term_id')
+            ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
+            ->first();
+
+           $total = DB::table('shop_order_transaction')
+            ->select(DB::raw('COUNT(shop_id) as total_count'),)
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->where('shop_order_transaction.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'shop_order_transaction.date');
+            })
+            ->first();
+
+            $payment_type = DB::table('shop_order_transaction as sot')
+            ->select(
+                DB::raw('SUM(mop.amount) as total_amount'),
+                'ptp.id',
+                'ptp.id as payment_type_po_id',
+                'ptp.account_name as payment_type',
+                'ptp.account_description as payment_type_description',
+                'ptp.payment_term_id',
+                'ptp.bank_id',
+                'ptp.account_number',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.due_date',
+                'ptp.buffer_days',
+                'ptp.credit_limit',
+                'ptp.statement_date',
+                'ptp.total_balance_due',
+                'ptp.balance as payment_type_po_balance',
+                'ptp.status as payment_type_po_status',
+                'ptp.is_supplier',
+                'ptp.is_customer',
+                'ptp.created_at as payment_type_po_created_at',
+                'ptp.updated_at as payment_type_po_updated_at',
+                'payment_bank.bank_name',
+                'payment_bank.status as bank_status',
+                'payment_bank.created_at as bank_created_at',
+                'payment_bank.updated_at as bank_updated_at',
+                'payment_term.payment_term',
+                'payment_term.status as payment_term_status',
+                'payment_term.created_at as payment_term_created_at',
+                'payment_term.updated_at as payment_term_updated_at'
+            )
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->join('payment_type_po as ptp', 'mop.payment_type_id', '=', 'ptp.id')
+            ->leftJoin('bank as payment_bank', 'payment_bank.id', '=', 'ptp.bank_id')
+            ->leftJoin('payment_term as payment_term', 'payment_term.id', '=', 'ptp.payment_term_id')
+            ->where('sot.requestor', $id)
+            ->tap(function ($query) use ($applyDateFilter) {
+                $applyDateFilter($query, 'sot.date');
+            })
+            ->groupBy('ptp.id')
+            ->get();
+
+
+            foreach ($shop_order_transaction_list as $sotl) {
+
+               $mode_of_payment = DB::table('mode_of_payment as mop')
+                ->select(
+                    'mop.id',
+                    'mop.payment_type_id',
+                    'ptp.account_name as payment_type',
+                    'ptp.account_description as payment_type_description',
+                    'mop.amount',
+                    'mop.is_paid',
+                    'mop.shop_order_transaction_id',
+                    'mop.created_at',
+                    'mop.updated_at',
+                    'ptp.id as payment_type_po_id',
+                    'ptp.payment_term_id',
+                    'ptp.bank_id',
+                    'ptp.account_number',
+                    'ptp.account_name',
+                    'ptp.account_description',
+                    'ptp.due_date',
+                    'ptp.buffer_days',
+                    'ptp.credit_limit',
+                    'ptp.statement_date',
+                    'ptp.total_balance_due',
+                    'ptp.balance as payment_type_po_balance',
+                    'ptp.status as payment_type_po_status',
+                    'ptp.is_supplier',
+                    'ptp.is_customer',
+                    'ptp.created_at as payment_type_po_created_at',
+                    'ptp.updated_at as payment_type_po_updated_at',
+                    'payment_bank.bank_name',
+                    'payment_bank.status as bank_status',
+                    'payment_bank.created_at as bank_created_at',
+                    'payment_bank.updated_at as bank_updated_at',
+                    'payment_term.payment_term',
+                    'payment_term.status as payment_term_status',
+                    'payment_term.created_at as payment_term_created_at',
+                    'payment_term.updated_at as payment_term_updated_at'
+                )
+                ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+            ->leftJoin('bank as payment_bank', 'payment_bank.id', '=', 'ptp.bank_id')
+            ->leftJoin('payment_term as payment_term', 'payment_term.id', '=', 'ptp.payment_term_id')
+                ->where('ptp.id', '!=', 1)
+                ->where('mop.shop_order_transaction_id', $sotl->id)
+                ->get();
+
+                $sotl->mode_of_payment = $mode_of_payment;
+                $sotl->bank = $mode_of_payment->pluck('payment_type')->filter()->implode(', ');
+                $sotl->bank_name = $sotl->bank;
+                $sotl->bank_paid_amount = round((float) $mode_of_payment->sum('amount'), 2);
+            }
+
+             $customerDetails = DB::table('customer as c')
+            ->select('c.id', 'c.first_name', 'c.last_name', 'c.contact_number', 'c.email', 'c.address' , 'c.disabled')
+            ->where('c.id', $id)
+            ->first();
+
+
+           $response = [
+              'total_price' =>$data->total_price,
+              'total_profit' =>$data->total_profit,
+              'total_count' =>$total->total_count,
+              'total_cash' =>$cash->total_cash,
+              'total_online' =>$online->total_online,
+              'data' => $shop_order_transaction_list,
+              'customerDetails' => $customerDetails,
+              'payment' => $payment_type,
+              'code' => 200,
+              'date' => date('Y-m-d'),
+              'message' => "Successfully Added"
+          ];
+
+
+            return response()->json($response);
+    }
+
     public function fetchCustomerSalesHistory($id, Request $request)
     {
         $validated = $request->validate([
@@ -1600,6 +2196,18 @@ public function customerLastOrderList($idParam, Request $request) {
       
 
         return response()->json($customer);
+    }
+
+    private function applyCustomerSearch($query, string $search): void
+    {
+        $query->where(function ($query) use ($search) {
+            $like = '%' . $search . '%';
+
+            $query->where('c.first_name', 'like', $like)
+                ->orWhere('c.last_name', 'like', $like)
+                ->orWhere('c.store_name', 'like', $like)
+                ->orWhereRaw("CONCAT_WS(' ', c.first_name, c.last_name) LIKE ?", [$like]);
+        });
     }
 
     /**

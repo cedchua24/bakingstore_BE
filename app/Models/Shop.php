@@ -12,4 +12,11 @@ class Shop extends Model
     public $primaryKey ='id';
 
     public $timestamps = true;
+
+    public function getColorAttribute($value)
+    {
+        return config('database.connections.mysql.host') === '127.0.0.1'
+            ? 'pink'
+            : $value;
+    }
 }

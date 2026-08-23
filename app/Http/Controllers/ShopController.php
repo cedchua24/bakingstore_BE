@@ -9,6 +9,19 @@ use Mail;
 
 class ShopController extends Controller
 {
+    public function fetchDatabaseEnvironment()
+    {
+        $connection = config('database.default');
+        $databaseHost = config("database.connections.{$connection}.host");
+        $isLocalDatabase = $databaseHost === '127.0.0.1';
+
+        return response()->json([
+            'db_host' => $databaseHost,
+            'is_local' => $isLocalDatabase,
+            'active_shop_color' => $isLocalDatabase ? 'pink' : null,
+        ]);
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -32,7 +45,7 @@ class ShopController extends Controller
 
     
 
-        public function fetchShopActive()
+    public function fetchShopActive()
     {
         $data = DB::table('shop')
           ->join('shop_type', 'shop.shop_type_id', '=', 'shop_type.id')
@@ -40,6 +53,17 @@ class ShopController extends Controller
             'shop_type.shop_type_description' , 'shop.color', 'shop.status', 'shop.address', 'shop.contact_number')
           ->where('shop.status', 1)  
           ->get();
+
+        $isLocalDatabase = config('database.connections.mysql.host') === '127.0.0.1';
+
+        $data->each(function ($shop) use ($isLocalDatabase) {
+            if ($isLocalDatabase) {
+                $shop->color = 'pink';
+            }
+
+            $shop->active_shop_color = $shop->color;
+        });
+
         return response()->json($data);  
     }
 

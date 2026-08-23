@@ -8,22 +8,18 @@ return new class extends Migration
 {
     public function up()
     {
-        if (!Schema::hasColumn('customer_update', 'user_id')) {
+        if (!Schema::hasColumn('customer_update', 'comment')) {
             Schema::table('customer_update', function (Blueprint $table) {
-                $table->foreignId('user_id')
-                    ->nullable()
-                    ->after('customer_id')
-                    ->constrained('users')
-                    ->nullOnDelete();
+                $table->text('comment')->nullable()->after('promo');
             });
         }
     }
 
     public function down()
     {
-        if (Schema::hasColumn('customer_update', 'user_id')) {
+        if (Schema::hasColumn('customer_update', 'comment')) {
             Schema::table('customer_update', function (Blueprint $table) {
-                $table->dropConstrainedForeignId('user_id');
+                $table->dropColumn('comment');
             });
         }
     }
