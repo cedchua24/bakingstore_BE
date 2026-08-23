@@ -173,6 +173,8 @@ Route::get('/productTransactions/fetchProductTransactionList/{id}', [ProductTran
 Route::resource('/brands', 'App\Http\Controllers\BrandController');
 Route::resource('/emails', 'App\Http\Controllers\EmailController');
 Route::resource('/customers', 'App\Http\Controllers\CustomerController');
+Route::post('/v2/customers/customerLastOrderList', [CustomerController::class, 'customerLastOrderListV2']);
+Route::post('/v2/customers/customerConvoList', [CustomerController::class, 'customerConvoListV2']);
 Route::post('/customers/customerLastOrderList/{id}', [CustomerController::class, 'customerLastOrderList']);
 Route::post('/customers/customerBacklogList/{id}', [CustomerController::class, 'customerBacklogList']);
 Route::post('/customers/customerConvoList/{id}', [CustomerController::class, 'customerConvoList']);
