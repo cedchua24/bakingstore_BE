@@ -1314,6 +1314,269 @@ class ShopOrderTransactionController extends Controller
                 ]);
             }
 
+            public function fetchMonthlySalesImpactAnalysis(Request $request)
+            {
+                $validated = $request->validate([
+                    'month' => 'required|date_format:Y-m',
+                    'limit' => 'nullable|integer|min:1|max:5000',
+                    'supplier_id' => 'nullable|integer|min:1',
+                    'category_id' => 'nullable|integer|min:1',
+                ]);
+
+                $limit = (int) ($validated['limit'] ?? 10);
+                $reportMonth = Carbon::createFromFormat('Y-m', $validated['month'])->startOfMonth();
+                $months = collect([0, 1, 2, 3])->map(function ($monthsAgo) use ($reportMonth) {
+                    $month = $reportMonth->copy()->subMonths($monthsAgo);
+
+                    return [
+                        'month' => $month->format('Y-m'),
+                        'label' => $month->format('F Y'),
+                        'date_from' => $month->copy()->startOfMonth()->toDateString(),
+                        'date_to' => $month->copy()->endOfMonth()->toDateString(),
+                    ];
+                });
+
+                $salesCases = $months->map(function ($month, $index) {
+                    $number = $index + 1;
+
+                    return DB::raw("SUM(CASE WHEN sot.date BETWEEN '{$month['date_from']}' AND '{$month['date_to']}' THEN so.shop_order_total_price ELSE 0 END) as month_{$number}_sales");
+                })->all();
+                $quantityCases = $months->map(function ($month, $index) {
+                    $number = $index + 1;
+
+                    return DB::raw("SUM(CASE WHEN sot.date BETWEEN '{$month['date_from']}' AND '{$month['date_to']}' THEN CASE WHEN UPPER(mup.business_type) = 'WHOLESALE' THEN so.shop_order_quantity * p.quantity ELSE so.shop_order_quantity END ELSE 0 END) as month_{$number}_quantity");
+                })->all();
+                $orderCases = $months->map(function ($month, $index) {
+                    $number = $index + 1;
+
+                    return DB::raw("COUNT(DISTINCT CASE WHEN sot.date BETWEEN '{$month['date_from']}' AND '{$month['date_to']}' THEN sot.id END) as month_{$number}_orders");
+                })->all();
+
+                $baseQuery = function () use ($months, $validated) {
+                    $query = DB::table('shop_order as so')
+                        ->join('shop_order_transaction as sot', 'sot.id', '=', 'so.shop_transaction_id')
+                        ->join('products as p', 'p.id', '=', 'so.product_id')
+                        ->join('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+                        ->where('p.disabled', 0)
+                        ->where('sot.status', 1)
+                        ->where('sot.type', 0)
+                        ->whereBetween('sot.date', [$months->last()['date_from'], $months->first()['date_to']]);
+
+                    if (!empty($validated['category_id'])) {
+                        $query->where('p.category_id', $validated['category_id']);
+                    }
+                    if (!empty($validated['supplier_id'])) {
+                        $supplierId = $validated['supplier_id'];
+                        $query->whereExists(function ($supplierQuery) use ($supplierId) {
+                            $supplierQuery->select(DB::raw(1))
+                                ->from('product_supplier as ps')
+                                ->whereColumn('ps.product_id', 'p.id')
+                                ->where('ps.supplier_id', $supplierId);
+                        });
+                    }
+
+                    return $query;
+                };
+
+                $totals = $baseQuery()->select(array_merge($salesCases, $quantityCases, $orderCases))->first();
+                $monthSummaries = $months->map(function ($month, $index) use ($totals) {
+                    $number = $index + 1;
+
+                    return array_merge($month, [
+                        'total_sales' => round((float) ($totals->{"month_{$number}_sales"} ?? 0), 2),
+                        'total_quantity' => (int) ($totals->{"month_{$number}_quantity"} ?? 0),
+                        'total_orders' => (int) ($totals->{"month_{$number}_orders"} ?? 0),
+                    ]);
+                })->values();
+
+                $usesReceivedPaymentSales = empty($validated['category_id'])
+                    && empty($validated['supplier_id']);
+
+                if ($usesReceivedPaymentSales) {
+                    $this->usePaymentTypePo();
+                    $paymentSalesCases = $months->map(function ($month, $index) {
+                        $number = $index + 1;
+
+                        return DB::raw("SUM(CASE WHEN DATE(mop.created_at) BETWEEN '{$month['date_from']}' AND '{$month['date_to']}' THEN mop.amount ELSE 0 END) as month_{$number}_sales");
+                    })->all();
+
+                    $paymentTotals = DB::table('shop_order_transaction as sot')
+                        ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+                        ->joinSub($this->paymentTypeSource(), 'pt', 'mop.payment_type_id', '=', 'pt.id')
+                        ->join('shop', 'shop.id', '=', 'sot.shop_id')
+                        ->select($paymentSalesCases)
+                        ->where('shop.shop_type_id', 3)
+                        ->whereDate('mop.created_at', '>=', $months->last()['date_from'])
+                        ->whereDate('mop.created_at', '<=', $months->first()['date_to'])
+                        ->first();
+
+                    $monthSummaries = $monthSummaries->map(function ($summary, $index) use ($paymentTotals) {
+                        $number = $index + 1;
+                        $summary['total_sales'] = round((float) ($paymentTotals->{"month_{$number}_sales"} ?? 0), 2);
+
+                        return $summary;
+                    });
+                }
+
+                $current = $monthSummaries[0];
+                $lastMonth = $monthSummaries[1];
+                $previousThree = $monthSummaries->slice(1, 3);
+                $averageSales = round((float) $previousThree->avg('total_sales'), 2);
+                $averageQuantity = round((float) $previousThree->avg('total_quantity'), 2);
+                $averageOrders = round((float) $previousThree->avg('total_orders'), 2);
+
+                $products = $baseQuery()
+                    ->select(array_merge([
+                        'p.id as product_id',
+                        'p.product_name',
+                        'p.packaging',
+                        'p.variation',
+                    ], $salesCases, $quantityCases))
+                    ->groupBy('p.id', 'p.product_name', 'p.packaging', 'p.variation')
+                    ->get()
+                    ->map(function ($product) {
+                        return $this->buildMonthlyImpactItem($product, 'product', false);
+                    });
+
+                $customers = $baseQuery()
+                    ->join('customer as c', 'c.id', '=', 'sot.requestor')
+                    ->select(array_merge([
+                        'c.id as customer_id',
+                        'c.first_name',
+                        'c.last_name',
+                        'c.store_name',
+                    ], $salesCases, $quantityCases))
+                    ->groupBy('c.id', 'c.first_name', 'c.last_name', 'c.store_name')
+                    ->get()
+                    ->map(function ($customer) {
+                        return $this->buildMonthlyImpactItem($customer, 'customer', true);
+                    });
+
+                $productDrivers = $this->buildImpactDrivers($products, $limit);
+                $customerDrivers = $this->buildImpactDrivers($customers, $limit);
+                $salesGap = round($current['total_sales'] - $averageSales, 2);
+                $lastMonthGap = round($current['total_sales'] - $lastMonth['total_sales'], 2);
+
+                return response()->json([
+                    'report_month' => $months->first(),
+                    'comparison_months' => $months->slice(1)->values(),
+                    'filters' => [
+                        'limit' => $limit,
+                        'type' => 'ALL',
+                        'supplier_id' => $validated['supplier_id'] ?? null,
+                        'category_id' => $validated['category_id'] ?? null,
+                    ],
+                    'sales_summary' => [
+                        'sales_basis' => $usesReceivedPaymentSales
+                            ? 'RECEIVED_PAYMENTS'
+                            : 'FILTERED_ORDER_LINES',
+                        'current' => $current,
+                        'last_month' => $lastMonth,
+                        'previous_three_month_average' => [
+                            'total_sales' => $averageSales,
+                            'total_quantity' => $averageQuantity,
+                            'total_orders' => $averageOrders,
+                        ],
+                        'vs_last_month' => $this->buildSalesComparison($current['total_sales'], $lastMonth['total_sales']),
+                        'vs_previous_three_month_average' => $this->buildSalesComparison($current['total_sales'], $averageSales),
+                        'trend' => $salesGap > 0 ? 'HIGHER' : ($salesGap < 0 ? 'LOWER' : 'UNCHANGED'),
+                    ],
+                    'why_sales_changed' => [
+                        'headline' => $salesGap < 0
+                            ? 'Sales are below the previous three-month average.'
+                            : ($salesGap > 0 ? 'Sales are above the previous three-month average.' : 'Sales match the previous three-month average.'),
+                        'sales_gap_vs_last_month' => $lastMonthGap,
+                        'sales_gap_vs_previous_three_month_average' => $salesGap,
+                        'product_net_impact' => round($products->sum('sales_impact'), 2),
+                        'customer_net_impact' => round($customers->sum('sales_impact'), 2),
+                        'missing_customer_count' => $customers->where('status', 'MISSING')->count(),
+                        'declining_customer_count' => $customers->where('status', 'DECLINING')->count(),
+                        'missing_product_count' => $products->where('status', 'MISSING')->count(),
+                        'declining_product_count' => $products->where('status', 'DECLINING')->count(),
+                    ],
+                    'product_impact' => $productDrivers,
+                    'customer_impact' => $customerDrivers,
+                    'code' => 200,
+                    'message' => 'Monthly sales impact analysis fetched successfully.',
+                ]);
+            }
+
+            private function buildMonthlyImpactItem($row, $kind, $includeCustomerName)
+            {
+                $sales = collect([1, 2, 3, 4])->map(function ($number) use ($row) {
+                    return round((float) ($row->{"month_{$number}_sales"} ?? 0), 2);
+                });
+                $quantities = collect([1, 2, 3, 4])->map(function ($number) use ($row) {
+                    return (int) ($row->{"month_{$number}_quantity"} ?? 0);
+                });
+                $usualSales = round((float) $sales->slice(1)->avg(), 2);
+                $usualQuantity = round((float) $quantities->slice(1)->avg(), 2);
+                $salesImpact = round($sales[0] - $usualSales, 2);
+                $quantityImpact = round($quantities[0] - $usualQuantity, 2);
+
+                if ($sales[0] == 0 && $usualSales > 0) {
+                    $status = 'MISSING';
+                } elseif ($usualSales == 0 && $sales[0] > 0) {
+                    $status = 'NEW_OR_RETURNING';
+                } elseif ($salesImpact < 0) {
+                    $status = 'DECLINING';
+                } elseif ($salesImpact > 0) {
+                    $status = 'GROWING';
+                } else {
+                    $status = 'UNCHANGED';
+                }
+
+                $item = [
+                    $kind.'_id' => (int) $row->{$kind.'_id'},
+                    'status' => $status,
+                    'current_sales' => $sales[0],
+                    'last_month_sales' => $sales[1],
+                    'previous_three_month_average_sales' => $usualSales,
+                    'sales_impact' => $salesImpact,
+                    'sales_change_percentage' => $usualSales > 0 ? round(($salesImpact / $usualSales) * 100, 2) : null,
+                    'current_quantity' => $quantities[0],
+                    'previous_three_month_average_quantity' => $usualQuantity,
+                    'quantity_impact' => $quantityImpact,
+                ];
+
+                if ($includeCustomerName) {
+                    $name = trim($row->first_name.' '.$row->last_name);
+                    $item['customer_name'] = $name;
+                    $item['store_name'] = $row->store_name;
+                    $item['display_name'] = $row->store_name ? $name.' ('.$row->store_name.')' : $name;
+                } else {
+                    $item['product_name'] = $row->product_name;
+                    $item['packaging'] = $row->packaging;
+                    $item['variation'] = $row->variation;
+                }
+
+                return $item;
+            }
+
+            private function buildImpactDrivers($items, $limit)
+            {
+                return [
+                    'total_count' => $items->count(),
+                    'negative_net_impact' => round($items->where('sales_impact', '<', 0)->sum('sales_impact'), 2),
+                    'positive_net_impact' => round($items->where('sales_impact', '>', 0)->sum('sales_impact'), 2),
+                    'biggest_declines' => $items->where('sales_impact', '<', 0)->sortBy('sales_impact')->take($limit)->values(),
+                    'missing' => $items->where('status', 'MISSING')->sortBy('sales_impact')->take($limit)->values(),
+                    'biggest_growth' => $items->where('sales_impact', '>', 0)->sortByDesc('sales_impact')->take($limit)->values(),
+                ];
+            }
+
+            private function buildSalesComparison($currentSales, $benchmarkSales)
+            {
+                $difference = round($currentSales - $benchmarkSales, 2);
+
+                return [
+                    'sales_difference' => $difference,
+                    'sales_change_percentage' => $benchmarkSales > 0
+                        ? round(($difference / $benchmarkSales) * 100, 2)
+                        : null,
+                ];
+            }
+
 
    public function fetchOnlineShopOrderTransactionList(Request $request)
     {
@@ -1549,6 +1812,7 @@ class ShopOrderTransactionController extends Controller
     public function fetchOnlineShopOrderTransactionListV2(Request $request)
     {
         $date = $request->input('date') ?: date('Y-m-d');
+        $transactionId = $request->attributes->get('transaction_id_filter');
 
         $shopOrderTransactionList = DB::table('shop_order_transaction as sot')
             ->join('shop', 'shop.id', '=', 'sot.shop_id')
@@ -1589,6 +1853,9 @@ class ShopOrderTransactionController extends Controller
             )
             ->where('shop.shop_type_id', 3)
             ->where('sot.date', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->groupBy('sot.id')
             ->orderBy('sot.id', 'DESC')
             ->get();
@@ -1621,6 +1888,9 @@ class ShopOrderTransactionController extends Controller
             ->where('shop.shop_type_id', 3)
             ->where('sot.status', 1)
             ->where('sot.date', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->sum('so.shop_order_profit');
 
         $totalSalesCompleted = DB::table('shop_order_transaction as sot')
@@ -1628,6 +1898,9 @@ class ShopOrderTransactionController extends Controller
             ->where('shop.shop_type_id', 3)
             ->where('sot.status', 1)
             ->where('sot.date', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->sum('sot.shop_order_transaction_total_price');
 
         $paymentSummary = DB::table('shop_order_transaction as sot')
@@ -1636,6 +1909,9 @@ class ShopOrderTransactionController extends Controller
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
             ->where('mop.created_at', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->selectRaw(
                 'SUM(CASE WHEN sot.date = ? AND ptp.payment_term_id = 1 THEN mop.amount ELSE 0 END) as total_cash,
                  SUM(CASE WHEN sot.date < ? AND ptp.payment_term_id = 1 THEN mop.amount ELSE 0 END) as total_cash_prev,
@@ -1652,6 +1928,9 @@ class ShopOrderTransactionController extends Controller
             ->where('shop.shop_type_id', 3)
             ->where('mop.created_at', '>', $date)
             ->where('sot.date', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->selectRaw(
                 'SUM(CASE WHEN ptp.payment_term_id = 1 THEN mop.amount ELSE 0 END) as total_cash_outdated,
                  SUM(CASE WHEN ptp.payment_term_id <> 1 THEN mop.amount ELSE 0 END) as total_online_outdated,
@@ -1663,12 +1942,18 @@ class ShopOrderTransactionController extends Controller
             ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->where('mop.created_at', $date)
             ->where('sot.date', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->sum('mop.amount');
 
         $totalPaidPrev = DB::table('mode_of_payment as mop')
             ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->where('mop.created_at', $date)
             ->where('sot.date', '<', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->sum('mop.amount');
 
         $paymentTypes = DB::table('shop_order_transaction as sot')
@@ -1677,6 +1962,9 @@ class ShopOrderTransactionController extends Controller
             ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
             ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
             ->where('mop.created_at', $date)
+            ->when($transactionId !== null, function ($query) use ($transactionId) {
+                $query->where('sot.id', $transactionId);
+            })
             ->select(
                 DB::raw('SUM(mop.amount) as total_amount'),
                 DB::raw('SUM(mop.is_paid) as total_paid_count'),
@@ -1777,6 +2065,35 @@ class ShopOrderTransactionController extends Controller
             'date' => $date,
             'message' => 'Successfully fetched online shop order transactions',
         ]);
+    }
+
+    public function fetchOnlineShopOrderTransactionListByIdV2($id, Request $request)
+    {
+        if (!ctype_digit((string) $id) || (int) $id < 1) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'The transaction ID must be a positive integer.',
+            ], 422);
+        }
+
+        $transaction = DB::table('shop_order_transaction as sot')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->where('shop.shop_type_id', 3)
+            ->where('sot.id', (int) $id)
+            ->select('sot.id', 'sot.date')
+            ->first();
+
+        if (!$transaction) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Online shop order transaction not found.',
+            ], 404);
+        }
+
+        $request->merge(['date' => $transaction->date]);
+        $request->attributes->set('transaction_id_filter', $transaction->id);
+
+        return $this->fetchOnlineShopOrderTransactionListV2($request);
     }
 
             public function fetctPendingProductOrderTransaction($id, Request $request)
@@ -2265,8 +2582,9 @@ class ShopOrderTransactionController extends Controller
             $dateFrom = $request->input('dateFrom');
             $dateTo = $request->input('dateTo');
             $status = $request->input('status');
+            $categoryId = $request->input('category_id');
 
-            $applyFilters = function ($query) use ($dateFrom, $dateTo, $status) {
+            $applyFilters = function ($query) use ($dateFrom, $dateTo, $status, $categoryId) {
                 $query->when(
                     !empty($dateFrom) && !empty($dateTo) && $dateFrom !== 'null' && $dateTo !== 'null',
                     function ($q) use ($dateFrom, $dateTo) {
@@ -2281,6 +2599,21 @@ class ShopOrderTransactionController extends Controller
                     $status !== null && $status !== '' && $status !== 'null',
                     function ($q) use ($status) {
                         $q->where('shop_order_transaction.status', $status);
+                    }
+                );
+
+                $query->when(
+                    $categoryId !== null && $categoryId !== '' && $categoryId !== 'null',
+                    function ($q) use ($categoryId) {
+                        $q->whereExists(function ($categoryQuery) use ($categoryId) {
+                            $categoryQuery->select(DB::raw(1))
+                                ->from('shop_order as category_so')
+                                ->join('mark_up_product as category_mup', 'category_mup.id', '=', 'category_so.mark_up_product_id')
+                                ->join('products as category_product', 'category_product.id', '=', 'category_mup.product_id')
+                                ->join('category as category_filter', 'category_filter.id', '=', 'category_product.category_id')
+                                ->whereColumn('category_so.shop_transaction_id', 'shop_order_transaction.id')
+                                ->where('category_filter.id', $categoryId);
+                        });
                     }
                 );
             };
@@ -2407,6 +2740,20 @@ class ShopOrderTransactionController extends Controller
                     $status !== null && $status !== '' && $status !== 'null',
                     function ($q) use ($status) {
                         $q->where('sot.status', $status);
+                    }
+                )
+                ->when(
+                    $categoryId !== null && $categoryId !== '' && $categoryId !== 'null',
+                    function ($q) use ($categoryId) {
+                        $q->whereExists(function ($categoryQuery) use ($categoryId) {
+                            $categoryQuery->select(DB::raw(1))
+                                ->from('shop_order as category_so')
+                                ->join('mark_up_product as category_mup', 'category_mup.id', '=', 'category_so.mark_up_product_id')
+                                ->join('products as category_product', 'category_product.id', '=', 'category_mup.product_id')
+                                ->join('category as category_filter', 'category_filter.id', '=', 'category_product.category_id')
+                                ->whereColumn('category_so.shop_transaction_id', 'sot.id')
+                                ->where('category_filter.id', $categoryId);
+                        });
                     }
                 )
                 ->groupBy('pt.id', 'pt.payment_type', 'pt.payment_type_description')

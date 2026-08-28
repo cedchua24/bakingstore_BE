@@ -344,10 +344,12 @@ Route::post('/shopOrderTransaction/pickUpAndCustomerUpdate', [ShopOrderTransacti
 Route::post('/shopOrderTransaction/fetchSortedProductReport', [ShopOrderTransactionController::class, 'fetchSortedProductReport']);
 Route::post('/shopOrderTransaction/fetchMonthlyProductSalesComparison', [ShopOrderTransactionController::class, 'fetchMonthlyProductSalesComparison']);
 Route::post('/shopOrderTransaction/fetchMonthlyProductCustomerImpact', [ShopOrderTransactionController::class, 'fetchMonthlyProductCustomerImpact']);
+Route::post('/shopOrderTransaction/fetchMonthlySalesImpactAnalysis', [ShopOrderTransactionController::class, 'fetchMonthlySalesImpactAnalysis']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
+Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdV2/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdV2'])->whereNumber('id');
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransactionV2']);
 Route::post('/shopOrderTransaction/fetchProductSoldHistory/{id}', [ShopOrderTransactionController::class, 'fetchProductSoldHistory']);
