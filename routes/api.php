@@ -426,8 +426,11 @@ Route::resource('/chartOfAccounts', 'App\Http\Controllers\ChartOfAccountsControl
 
 Route::resource('/expenseTransaction', 'App\Http\Controllers\ExpenseTransactionController');
 Route::get('/expenseTransaction/fetchExpenseTransactionList/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionList']);
+Route::get('/expenseTransaction/fetchExpenseTransactionListV2/{date}', [ExpenseTransactionController::class, 'fetchExpenseTransactionListV2']);
 Route::get('/expenseTransaction/fetchExpenseTransactionById/{id}', [ExpenseTransactionController::class, 'fetchExpenseTransactionById']);
 Route::post('/expenseTransaction/searchExpenseTransactionList', [ExpenseTransactionController::class, 'searchExpenseTransactionList']);
+Route::post('/expenseTransaction/searchExpenseTransactionListV2', [ExpenseTransactionController::class, 'searchExpenseTransactionListV2']);
+Route::post('/expenseTransaction/getMonthlyExpenseComparisonV2', [ExpenseTransactionController::class, 'getMonthlyExpenseComparisonV2']);
 Route::post('/expenseTransaction/searchAllExpenseTransactionList', [ExpenseTransactionController::class, 'searchAllExpenseTransactionList']);
 Route::post('/expenseTransaction/getTotalExpense', [ExpenseTransactionController::class, 'getTotalExpense']);
 Route::post('/expenseTransaction/getTotalExpenseWithFilters', [ExpenseTransactionController::class, 'getTotalExpenseWithFilters']);

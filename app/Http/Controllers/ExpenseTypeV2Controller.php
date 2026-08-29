@@ -75,24 +75,38 @@ class ExpenseTypeV2Controller extends Controller
     }
 
 
-        public function fetchExpenseTypeCategoryById($id, $id2)
+    public function fetchExpenseTypeCategoryById($id, $id2)
     {
-          $data = DB::table('expenses_type_v2 as et')
+        $category = DB::table('expenses_type_v2 as et')
+            ->join('expenses_category_v2 as ec', 'et.id', '=', 'ec.expense_type_id')
+            ->select('et.expense_type', 'ec.expense_category_name')
+            ->where('et.id', $id)
+            ->where('ec.id', $id2)
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'data' => [],
+                'code' => 404,
+                'message' => 'Expense type and category combination not found',
+            ], 404);
+        }
+
+        $data = DB::table('expenses_type_v2 as et')
             ->join('expenses_category_v2 as ec', 'et.id', '=', 'ec.expense_type_id')
             ->join('expenses_v2 as e', 'ec.id', '=', 'e.expense_category_id')
-            ->select('e.id', 'e.expense_name', 'e.is_hidden', 'et.expense_type', 'et.chart_of_account_id', 'et.expense_type_code', 'et.id as expense_type_id', 'et.status', 'ec.expense_category_name')    
-            ->where('et.id', $id)   
-            ->where('ec.id', $id2) 
+            ->select('e.id', 'e.expense_name', 'e.is_hidden', 'et.expense_type', 'et.chart_of_account_id', 'et.expense_type_code', 'et.id as expense_type_id', 'et.status', 'ec.expense_category_name')
+            ->where('et.id', $id)
+            ->where('ec.id', $id2)
             ->get();
 
-
-          $response = [
-              'data' => $data,
-              'name' => $data[0]->expense_type,
-              'expense_category_name' => $data[0]->expense_category_name,
-              'code' => 200,
-              'message' => "Successfully Added"
-          ];
+        $response = [
+            'data' => $data,
+            'name' => $category->expense_type,
+            'expense_category_name' => $category->expense_category_name,
+            'code' => 200,
+            'message' => 'Successfully fetched',
+        ];
 
         return response()->json($response);  
     }
