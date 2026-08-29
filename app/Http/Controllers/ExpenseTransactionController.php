@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ExpenseTransaction;
 use App\Http\Controllers\BalanceTransactionController;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -20,7 +21,7 @@ class ExpenseTransactionController extends Controller
         //
     }
 
-        public function fetchExpenseTransactionList($id)
+    public function fetchExpenseTransactionList($id)
     {
         $data = DB::table('expenses_transaction as et')
             ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
@@ -67,6 +68,59 @@ class ExpenseTransactionController extends Controller
             )
             ->orderBy('et.id', 'desc')
             ->limit(100)
+            ->get();
+
+        return response()->json($data);
+    }
+
+    public function fetchExpenseTransactionListV2(Request $request, $date)
+    {
+        $request->merge(['date' => $date]);
+
+        $validated = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+
+        $data = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
+            ->join('users as u', 'u.id', '=', 'et.user_id')
+            ->leftJoin('users as us', 'us.id', '=', 'et.approver_id')
+            ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
+            ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->select(
+                'et.id',
+                'et.amount',
+                'et.details',
+                'et.shop_id',
+                'et.approval_status',
+                'et.status',
+                'et.is_received',
+                'et.payment_type_po_id',
+                'et.expense_date',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+                'ec.expense_category_name',
+                'ec.expense_category_code',
+                'ett.expense_type',
+                'ett.expense_type_code',
+                'coa.chart_of_account_name',
+                'coa.chart_of_account_code',
+                'u.name',
+                'us.name as approver_name',
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number'
+            )
+            ->whereDate('et.expense_date', $validated['date'])
+            ->orderBy('et.id', 'desc')
+            ->limit(20)
             ->get();
 
         return response()->json($data);
@@ -246,6 +300,278 @@ class ExpenseTransactionController extends Controller
             ->get();
 
         return response()->json($data);
+    }
+
+    /**
+     * Search expense transactions using optional multi-select filters.
+     *
+     * An omitted or empty filter array means "all" for that filter.
+     */
+    public function searchExpenseTransactionListV2(Request $request)
+    {
+        $filters = $request->validate([
+            'ids' => 'sometimes|array',
+            'ids.*' => 'integer|min:1',
+            'chart_of_account_ids' => 'sometimes|array',
+            'chart_of_account_ids.*' => 'integer|min:1',
+            'expense_type_ids' => 'sometimes|array',
+            'expense_type_ids.*' => 'integer|min:1',
+            'expense_category_ids' => 'sometimes|array',
+            'expense_category_ids.*' => 'integer|min:1',
+            'expense_ids' => 'sometimes|array',
+            'expense_ids.*' => 'integer|min:1',
+            'approval_statuses' => 'sometimes|array',
+            'approval_statuses.*' => 'string',
+            'is_received' => 'sometimes|array',
+            'is_received.*' => 'boolean',
+            'dateFrom' => 'sometimes|nullable|date',
+            'dateTo' => 'sometimes|nullable|date',
+        ]);
+
+        if (!empty($filters['dateFrom']) && !empty($filters['dateTo'])) {
+            $request->validate([
+                'dateTo' => 'after_or_equal:dateFrom',
+            ]);
+        }
+
+        $data = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
+            ->join('users as u', 'u.id', '=', 'et.user_id')
+            ->leftJoin('users as us', 'us.id', '=', 'et.approver_id')
+            ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
+            ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+            ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+            ->select(
+                'et.id',
+                'et.amount',
+                'et.details',
+                'et.shop_id',
+                'et.approval_status',
+                'et.status',
+                'et.is_received',
+                'et.payment_type_po_id',
+                'et.expense_date',
+                'et.date_received',
+                'e.id as expense_id',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+                'ec.id as expense_category_id',
+                'ec.expense_category_name',
+                'ec.expense_category_code',
+                'ett.id as expense_type_id',
+                'ett.expense_type',
+                'ett.expense_type_code',
+                'coa.id as chart_of_account_id',
+                'coa.chart_of_account_name',
+                'coa.chart_of_account_code',
+                'u.name',
+                'us.name as approver_name',
+                'pt.payment_term',
+                'b.bank_name',
+                'ptp.account_name',
+                'ptp.account_description',
+                'ptp.account_number'
+            )
+            ->when(!empty($filters['ids']), fn ($query) => $query->whereIn('et.id', $filters['ids']))
+            ->when(!empty($filters['chart_of_account_ids']), fn ($query) => $query->whereIn('coa.id', $filters['chart_of_account_ids']))
+            ->when(!empty($filters['expense_type_ids']), fn ($query) => $query->whereIn('ett.id', $filters['expense_type_ids']))
+            ->when(!empty($filters['expense_category_ids']), fn ($query) => $query->whereIn('ec.id', $filters['expense_category_ids']))
+            ->when(!empty($filters['expense_ids']), fn ($query) => $query->whereIn('e.id', $filters['expense_ids']))
+            ->when(!empty($filters['approval_statuses']), fn ($query) => $query->whereIn('et.approval_status', $filters['approval_statuses']))
+            ->when(!empty($filters['is_received']), fn ($query) => $query->whereIn('et.is_received', $filters['is_received']))
+            ->when(!empty($filters['dateFrom']), fn ($query) => $query->whereDate('et.expense_date', '>=', $filters['dateFrom']))
+            ->when(!empty($filters['dateTo']), fn ($query) => $query->whereDate('et.expense_date', '<=', $filters['dateTo']))
+            ->orderBy('et.id', 'desc')
+            ->get();
+
+        return response()->json($data);
+    }
+
+    /**
+     * Compare the current calendar month's expenses with the previous month and
+     * the average of the previous three complete calendar months.
+     */
+    public function getMonthlyExpenseComparisonV2(Request $request)
+    {
+        $filters = $request->validate([
+            'month' => 'sometimes|date_format:Y-m',
+            'ids' => 'sometimes|array',
+            'ids.*' => 'integer|min:1',
+            'chart_of_account_ids' => 'sometimes|array',
+            'chart_of_account_ids.*' => 'integer|min:1',
+            'expense_type_ids' => 'sometimes|array',
+            'expense_type_ids.*' => 'integer|min:1',
+            'expense_category_ids' => 'sometimes|array',
+            'expense_category_ids.*' => 'integer|min:1',
+            'expense_ids' => 'sometimes|array',
+            'expense_ids.*' => 'integer|min:1',
+            'approval_statuses' => 'sometimes|array',
+            'approval_statuses.*' => 'string',
+            'is_received' => 'sometimes|array',
+            'is_received.*' => 'boolean',
+        ]);
+
+        $currentMonth = !empty($filters['month'])
+            ? Carbon::createFromFormat('Y-m-d', $filters['month'].'-01', 'Asia/Singapore')->startOfMonth()
+            : Carbon::now('Asia/Singapore')->startOfMonth();
+        $months = collect(range(0, 3))->map(function ($monthsAgo) use ($currentMonth) {
+            $month = $currentMonth->copy()->subMonthsNoOverflow($monthsAgo);
+
+            return [
+                'month' => $month->format('Y-m'),
+                'label' => $month->format('F Y'),
+                'date_from' => $month->copy()->startOfMonth()->toDateString(),
+                'date_to' => $month->copy()->endOfMonth()->toDateString(),
+            ];
+        });
+
+        $query = DB::table('expenses_transaction as et')
+            ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
+            ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
+            ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
+            ->select(
+                'e.id as expense_id',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+                'ec.id as expense_category_id',
+                'ec.expense_category_name',
+                'ett.id as expense_type_id',
+                'ett.expense_type',
+                'coa.id as chart_of_account_id',
+                'coa.chart_of_account_name'
+            );
+
+        foreach ($months as $index => $month) {
+            $monthNumber = $index + 1;
+            $query->selectRaw(
+                "SUM(CASE WHEN et.expense_date BETWEEN ? AND ? THEN et.amount ELSE 0 END) as month_{$monthNumber}_amount",
+                [$month['date_from'], $month['date_to']]
+            );
+        }
+
+        $expenses = $query
+            ->whereBetween('et.expense_date', [
+                $months->last()['date_from'],
+                $months->first()['date_to'],
+            ])
+            ->when(!empty($filters['ids']), fn ($q) => $q->whereIn('et.id', $filters['ids']))
+            ->when(!empty($filters['chart_of_account_ids']), fn ($q) => $q->whereIn('coa.id', $filters['chart_of_account_ids']))
+            ->when(!empty($filters['expense_type_ids']), fn ($q) => $q->whereIn('ett.id', $filters['expense_type_ids']))
+            ->when(!empty($filters['expense_category_ids']), fn ($q) => $q->whereIn('ec.id', $filters['expense_category_ids']))
+            ->when(!empty($filters['expense_ids']), fn ($q) => $q->whereIn('e.id', $filters['expense_ids']))
+            ->when(!empty($filters['approval_statuses']), fn ($q) => $q->whereIn('et.approval_status', $filters['approval_statuses']))
+            ->when(!empty($filters['is_received']), fn ($q) => $q->whereIn('et.is_received', $filters['is_received']))
+            ->groupBy(
+                'e.id',
+                'e.expense_name',
+                'e.expense_code',
+                'e.is_hidden',
+                'ec.id',
+                'ec.expense_category_name',
+                'ett.id',
+                'ett.expense_type',
+                'coa.id',
+                'coa.chart_of_account_name'
+            )
+            ->get()
+            ->map(function ($expense) use ($months) {
+                $history = $months->map(function ($month, $index) use ($expense) {
+                    return array_merge($month, [
+                        'amount' => round((float) $expense->{'month_'.($index + 1).'_amount'}, 2),
+                    ]);
+                })->values();
+
+                $currentAmount = $history[0]['amount'];
+                $previousAmount = $history[1]['amount'];
+                $previousThreeMonthAverage = round((float) $history->slice(1)->avg('amount'), 2);
+                $differenceFromPrevious = round($currentAmount - $previousAmount, 2);
+                $differenceFromAverage = round($currentAmount - $previousThreeMonthAverage, 2);
+                $isNew = $currentAmount > 0 && $history->slice(1)->every(fn ($month) => $month['amount'] == 0);
+                $isUnusual = !$isNew
+                    && $currentAmount > $previousAmount
+                    && $previousThreeMonthAverage > 0
+                    && $currentAmount >= ($previousThreeMonthAverage * 1.5);
+
+                if ($isNew) {
+                    $status = 'NEW';
+                } elseif ($isUnusual) {
+                    $status = 'UNUSUAL';
+                } elseif ($differenceFromPrevious > 0) {
+                    $status = 'INCREASED';
+                } elseif ($differenceFromPrevious < 0) {
+                    $status = 'DECREASED';
+                } else {
+                    $status = 'UNCHANGED';
+                }
+
+                return [
+                    'expense_id' => (int) $expense->expense_id,
+                    'expense_name' => $expense->expense_name,
+                    'expense_code' => $expense->expense_code,
+                    'is_hidden' => (int) $expense->is_hidden,
+                    'expense_category_id' => (int) $expense->expense_category_id,
+                    'expense_category_name' => $expense->expense_category_name,
+                    'expense_type_id' => (int) $expense->expense_type_id,
+                    'expense_type' => $expense->expense_type,
+                    'chart_of_account_id' => (int) $expense->chart_of_account_id,
+                    'chart_of_account_name' => $expense->chart_of_account_name,
+                    'status' => $status,
+                    'is_new' => $isNew,
+                    'is_unusual' => $isUnusual,
+                    'is_increased' => $status === 'INCREASED',
+                    'is_decreased' => $status === 'DECREASED',
+                    'current_month_amount' => $currentAmount,
+                    'previous_month_amount' => $previousAmount,
+                    'previous_three_month_average' => $previousThreeMonthAverage,
+                    'difference_from_previous_month' => $differenceFromPrevious,
+                    'change_from_previous_month_percentage' => $previousAmount > 0
+                        ? round(($differenceFromPrevious / $previousAmount) * 100, 2)
+                        : null,
+                    'difference_from_three_month_average' => $differenceFromAverage,
+                    'change_from_three_month_average_percentage' => $previousThreeMonthAverage > 0
+                        ? round(($differenceFromAverage / $previousThreeMonthAverage) * 100, 2)
+                        : null,
+                    'monthly_history' => $history,
+                ];
+            })
+            ->sortByDesc('current_month_amount')
+            ->values();
+
+        $currentTotal = round($expenses->sum('current_month_amount'), 2);
+        $previousTotal = round($expenses->sum('previous_month_amount'), 2);
+        $averageTotal = round($expenses->sum('previous_three_month_average'), 2);
+
+        return response()->json([
+            'report_month' => $months->first(),
+            'previous_month' => $months[1],
+            'average_months' => $months->slice(1)->values(),
+            'unusual_threshold_percentage' => 50,
+            'filters' => $filters,
+            'summary' => [
+                'current_month_total' => $currentTotal,
+                'previous_month_total' => $previousTotal,
+                'previous_three_month_average_total' => $averageTotal,
+                'difference_from_previous_month' => round($currentTotal - $previousTotal, 2),
+                'difference_from_three_month_average' => round($currentTotal - $averageTotal, 2),
+                'unusual_expense_count' => $expenses->where('is_unusual', true)->count(),
+                'increased_expense_count' => $expenses->where('is_increased', true)->count(),
+                'decreased_expense_count' => $expenses->where('is_decreased', true)->count(),
+                'new_expense_count' => $expenses->where('is_new', true)->count(),
+            ],
+            'data' => $expenses,
+            'unusual_expenses' => $expenses->where('is_unusual', true)->values(),
+            'increased_expenses' => $expenses->where('is_increased', true)->values(),
+            'decreased_expenses' => $expenses->where('is_decreased', true)->values(),
+            'new_expenses' => $expenses->where('is_new', true)->values(),
+            'code' => 200,
+            'message' => 'Monthly expense comparison fetched successfully.',
+        ]);
     }
 
     public function getTotalExpense(Request $request)
