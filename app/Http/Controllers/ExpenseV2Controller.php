@@ -72,10 +72,7 @@ class ExpenseV2Controller extends Controller
                     'coa.chart_of_account_name',
                     'coa.chart_of_account_code'
                 )
-                ->orderBy('coa.chart_of_account_code', 'asc')
-                ->orderBy('ep.expense_type_code', 'asc')
-                ->orderBy('ec.expense_category_code', 'asc')
-                ->orderBy('e.expense_code', 'asc')
+                ->orderBy('e.expense_name', 'asc')
                 ->get();
 
             return response()->json($data);
@@ -105,10 +102,7 @@ class ExpenseV2Controller extends Controller
                     'coa.chart_of_account_code'
                 )
                 ->where('ec.id', $id)
-                ->orderBy('coa.chart_of_account_code', 'asc')
-                ->orderBy('ep.expense_type_code', 'asc')
-                ->orderBy('ec.expense_category_code', 'asc')
-                ->orderBy('e.expense_code', 'asc')
+                ->orderBy('e.expense_name', 'asc')
                 ->get();
 
             return response()->json($data);
@@ -212,9 +206,49 @@ class ExpenseV2Controller extends Controller
      * @param  \App\Models\ExpenseV2  $expenseV2
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, ExpenseV2 $expenseV2)
+    public function update(Request $request, $id)
     {
-        //
+        $expense = ExpenseV2::find($id);
+
+        if (!$expense) {
+            return response()->json([
+                'data' => null,
+                'code' => 404,
+                'message' => 'Expense not found.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'expense_category_id' => 'sometimes|integer|min:1|exists:expenses_category_v2,id',
+            'expense_name' => 'sometimes|string|max:255',
+            'expense_code' => 'sometimes|string|max:255',
+            'details' => 'sometimes|nullable|string',
+            'account_nature' => 'sometimes|string|in:DEBIT,CREDIT',
+            'is_hidden' => 'sometimes|boolean',
+            'status' => 'sometimes|integer',
+        ]);
+
+        if (empty($validated)) {
+            return response()->json([
+                'errors' => [
+                    'request' => ['At least one expense field must be provided.'],
+                ],
+                'code' => 422,
+                'message' => 'No fields were provided for update.',
+            ], 422);
+        }
+
+        foreach ($validated as $field => $value) {
+            $expense->{$field} = $value;
+        }
+
+        $expense->save();
+
+        return response()->json([
+            'data' => $expense->fresh(),
+            'code' => 200,
+            'message' => 'Expense successfully updated.',
+        ]);
     }
 
     /**
