@@ -436,6 +436,10 @@ class VipCustomerTransactionController extends Controller
         $this->validate($request, [
             'month' => 'nullable|date_format:Y-m',
             'next_months' => 'nullable|integer|min:0|max:120',
+            'impact_group' => 'nullable|string|max:50',
+            'filter' => 'nullable|string|max:50',
+            'limit' => 'nullable|integer|min:1|max:500',
+            'search' => 'nullable|string|max:100',
         ]);
 
         $reportMonth = $request->filled('month')
@@ -577,6 +581,20 @@ class VipCustomerTransactionController extends Controller
                         ->avg('profit_amount'),
                     2
                 );
+                $threeMonthAveragePaid = round((float) $previousMonths->avg('paid_amount'), 2);
+                $threeMonthAverageProfit = round((float) $previousMonths->avg('profit_amount'), 2);
+                $paidVsThreeMonthAverage = round($currentPaid - $threeMonthAveragePaid, 2);
+                $paidVsLastMonth = round($currentPaid - (float) ($previousMonths->first()['paid_amount'] ?? 0), 2);
+
+                if ($currentPaid == 0.0 && $threeMonthAveragePaid > 0) {
+                    $impactStatus = 'missing';
+                } elseif ($currentPaid > $threeMonthAveragePaid) {
+                    $impactStatus = 'winning';
+                } elseif ($currentPaid < $threeMonthAveragePaid) {
+                    $impactStatus = 'declining';
+                } else {
+                    $impactStatus = 'stable';
+                }
 
                 $customer->current_paid = $currentPaid;
                 $customer->paid_amount = $currentPaid;
@@ -586,11 +604,87 @@ class VipCustomerTransactionController extends Controller
                 $customer->upcoming = $previousMonths;
                 $customer->average_monthly_paid = $averageMonthlyPaid;
                 $customer->average_monthly_profit = $averageMonthlyProfit;
+                $customer->three_month_average_paid = $threeMonthAveragePaid;
+                $customer->three_month_average_profit = $threeMonthAverageProfit;
+                $customer->paid_vs_last_month = $paidVsLastMonth;
+                $customer->paid_vs_three_month_average = $paidVsThreeMonthAverage;
+                $customer->last_month_paid = (float) ($previousMonths->first()['paid_amount'] ?? 0);
+                $customer->impact_status = $impactStatus;
                 $customer->amount_needed = round(max($averageMonthlyPaid - $currentPaid, 0), 2);
                 $customer->profit_amount_needed = round(max($averageMonthlyProfit - $currentProfit, 0), 2);
 
                 return $customer;
             });
+
+        // Rank movement compares the selected report month with the immediately
+        // preceding month. Equal amounts share the same deterministic ordering.
+        $currentRanks = $customers->sortBy([
+            ['current_paid', 'desc'],
+            ['customer_id', 'asc'],
+        ])->values()->pluck('customer_id')->flip();
+        $lastMonthRanks = $customers->sortBy([
+            ['last_month_paid', 'desc'],
+            ['customer_id', 'asc'],
+        ])->values()->pluck('customer_id')->flip();
+
+        $customers->each(function ($customer) use ($currentRanks, $lastMonthRanks) {
+            $customer->current_rank = $currentRanks->get($customer->customer_id) + 1;
+            $customer->last_month_rank = $lastMonthRanks->get($customer->customer_id) + 1;
+            $customer->rank_movement = $customer->last_month_rank - $customer->current_rank;
+        });
+
+        $impactCounts = [
+            'winning' => $customers->where('impact_status', 'winning')->count(),
+            'declining' => $customers->where('impact_status', 'declining')->count(),
+            'missing' => $customers->where('impact_status', 'missing')->count(),
+            'stable' => $customers->where('impact_status', 'stable')->count(),
+            'all' => $customers->count(),
+        ];
+
+        $impactGroup = strtolower(trim((string) $request->input(
+            'impact_group',
+            $request->input('filter', 'all')
+        )));
+        $impactGroup = str_replace([' ', '-'], '_', $impactGroup);
+        $impactGroup = [
+            'winning_customers' => 'winning',
+            'declining_customers' => 'declining',
+            'losing' => 'declining',
+            'losing_customers' => 'declining',
+            'missing_customers' => 'missing',
+            'highest_sales_customers' => 'highest_sales',
+            'all_results' => 'all',
+        ][$impactGroup] ?? $impactGroup;
+
+        if (!in_array($impactGroup, ['winning', 'declining', 'missing', 'highest_sales', 'all'], true)) {
+            return response()->json([
+                'message' => 'The selected impact group is invalid.',
+                'errors' => ['impact_group' => ['Use winning, declining, missing, highest_sales, or all.']],
+            ], 422);
+        }
+
+        $filteredCustomers = $customers;
+        if (in_array($impactGroup, ['winning', 'declining', 'missing'], true)) {
+            $filteredCustomers = $filteredCustomers->where('impact_status', $impactGroup);
+        }
+
+        if ($request->filled('search')) {
+            $search = strtolower(trim($request->input('search')));
+            $filteredCustomers = $filteredCustomers->filter(function ($customer) use ($search) {
+                return str_contains(strtolower($customer->customer_name ?? ''), $search)
+                    || str_contains(strtolower($customer->store_name ?? ''), $search);
+            });
+        }
+
+        $filteredCustomers = $impactGroup === 'declining'
+            ? $filteredCustomers->sortBy('paid_vs_three_month_average')
+            : $filteredCustomers->sortByDesc('current_paid');
+        $filteredCustomers = $filteredCustomers->values();
+        $filteredTotal = $filteredCustomers->count();
+
+        if ($request->filled('limit')) {
+            $filteredCustomers = $filteredCustomers->take((int) $request->input('limit'))->values();
+        }
 
         $currentMonthPaid = round($customers->sum('current_paid'), 2);
         $currentMonthProfit = round($customers->sum('current_profit'), 2);
@@ -636,7 +730,10 @@ class VipCustomerTransactionController extends Controller
             'average_monthly_profit' => $averageMonthlyProfit,
             'amount_needed' => round(max($averageMonthlySales - $currentMonthPaid, 0), 2),
             'profit_amount_needed' => round(max($averageMonthlyProfit - $currentMonthProfit, 0), 2),
-            'data' => $customers,
+            'impact_group' => $impactGroup,
+            'impact_counts' => $impactCounts,
+            'filtered_total' => $filteredTotal,
+            'data' => $filteredCustomers,
         ]);
     }
 

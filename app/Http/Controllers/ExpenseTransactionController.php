@@ -493,6 +493,8 @@ class ExpenseTransactionController extends Controller
                 $differenceFromPrevious = round($currentAmount - $previousAmount, 2);
                 $differenceFromAverage = round($currentAmount - $previousThreeMonthAverage, 2);
                 $isNew = $currentAmount > 0 && $history->slice(1)->every(fn ($month) => $month['amount'] == 0);
+                $isMissing = $currentAmount == 0
+                    && $history->slice(1)->contains(fn ($month) => $month['amount'] > 0);
                 $isUnusual = !$isNew
                     && $currentAmount > $previousAmount
                     && $previousThreeMonthAverage > 0
@@ -500,6 +502,8 @@ class ExpenseTransactionController extends Controller
 
                 if ($isNew) {
                     $status = 'NEW';
+                } elseif ($isMissing) {
+                    $status = 'MISSING';
                 } elseif ($isUnusual) {
                     $status = 'UNUSUAL';
                 } elseif ($differenceFromPrevious > 0) {
@@ -523,6 +527,7 @@ class ExpenseTransactionController extends Controller
                     'chart_of_account_name' => $expense->chart_of_account_name,
                     'status' => $status,
                     'is_new' => $isNew,
+                    'is_missing' => $isMissing,
                     'is_unusual' => $isUnusual,
                     'is_increased' => $status === 'INCREASED',
                     'is_decreased' => $status === 'DECREASED',
@@ -563,12 +568,14 @@ class ExpenseTransactionController extends Controller
                 'increased_expense_count' => $expenses->where('is_increased', true)->count(),
                 'decreased_expense_count' => $expenses->where('is_decreased', true)->count(),
                 'new_expense_count' => $expenses->where('is_new', true)->count(),
+                'missing_expense_count' => $expenses->where('is_missing', true)->count(),
             ],
             'data' => $expenses,
             'unusual_expenses' => $expenses->where('is_unusual', true)->values(),
             'increased_expenses' => $expenses->where('is_increased', true)->values(),
             'decreased_expenses' => $expenses->where('is_decreased', true)->values(),
             'new_expenses' => $expenses->where('is_new', true)->values(),
+            'missing_expenses' => $expenses->where('is_missing', true)->values(),
             'code' => 200,
             'message' => 'Monthly expense comparison fetched successfully.',
         ]);

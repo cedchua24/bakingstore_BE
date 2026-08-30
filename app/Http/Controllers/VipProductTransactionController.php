@@ -265,6 +265,10 @@ class VipProductTransactionController extends Controller
             'month' => 'nullable|date_format:Y-m',
             'next_months' => 'nullable|integer|min:0|max:120',
             'comparison_page' => 'nullable|integer|min:0|max:40',
+            'impact_group' => 'nullable|string|max:50',
+            'filter' => 'nullable|string|max:50',
+            'limit' => 'nullable|integer|min:1|max:500',
+            'search' => 'nullable|string|max:100',
         ]);
 
         $reportMonth = $request->filled('month')
@@ -354,7 +358,7 @@ class VipProductTransactionController extends Controller
             ->distinct()
             ->orderBy('p.product_name')
             ->get()
-            ->map(function ($product) use ($months, $salesByProductAndMonth) {
+            ->map(function ($product) use ($months, $salesByProductAndMonth, $reportMonth) {
                 $productSales = $salesByProductAndMonth
                     ->get($product->product_id, collect())
                     ->keyBy('sold_month');
@@ -379,16 +383,43 @@ class VipProductTransactionController extends Controller
                 $averageProfit = round((float) $previousMonths->avg('profit_amount'), 2);
                 $averageQuantity = round((float) $previousMonths->avg('quantity_sold'), 2);
                 $averagePieces = round((float) $previousMonths->avg('pieces_sold'), 2);
+                $benchmarkMonths = collect(range(1, 3))->map(function ($monthsAgo) use ($reportMonth, $productSales) {
+                    $sales = $productSales->get($reportMonth->copy()->subMonths($monthsAgo)->format('Y-m'));
+
+                    return [
+                        'sales_amount' => round((float) ($sales->sales_amount ?? 0), 2),
+                        'quantity_sold' => (int) ($sales->quantity_sold ?? 0),
+                    ];
+                });
+                $threeMonthAverageSales = round((float) $benchmarkMonths->avg('sales_amount'), 2);
+                $threeMonthAverageQuantity = round((float) $benchmarkMonths->avg('quantity_sold'), 2);
+                $salesVsThreeMonthAverage = round($current['sales_amount'] - $threeMonthAverageSales, 2);
+
+                if ($current['sales_amount'] == 0.0 && $threeMonthAverageSales > 0) {
+                    $impactStatus = 'missing';
+                } elseif ($current['sales_amount'] > $threeMonthAverageSales) {
+                    $impactStatus = 'winning';
+                } elseif ($current['sales_amount'] < $threeMonthAverageSales) {
+                    $impactStatus = 'declining';
+                } else {
+                    $impactStatus = 'stable';
+                }
 
                 $product->business_types = $product->business_types !== ''
                     ? explode(',', $product->business_types)
                     : [];
                 $product->current_month = $current;
+                $product->current_month_sales = (float) $current['sales_amount'];
                 $product->previous_months = $previousMonths;
                 $product->average_sales = $averageSales;
                 $product->average_profit = $averageProfit;
                 $product->average_quantity = $averageQuantity;
                 $product->average_pieces = $averagePieces;
+                $product->three_month_average_sales = $threeMonthAverageSales;
+                $product->three_month_average_quantity = $threeMonthAverageQuantity;
+                $product->sales_vs_three_month_average = $salesVsThreeMonthAverage;
+                $product->impact_status = $impactStatus;
+                $product->last_month_sales = (float) ($benchmarkMonths->first()['sales_amount'] ?? 0);
                 $product->sales_average_gap = round($current['sales_amount'] - $averageSales, 2);
                 $product->profit_average_gap = round($current['profit_amount'] - $averageProfit, 2);
                 $product->quantity_average_gap = round($current['quantity_sold'] - $averageQuantity, 2);
@@ -406,6 +437,87 @@ class VipProductTransactionController extends Controller
 
                 return $product;
             });
+
+        $currentRanks = $products->sortBy([
+            ['current_month_sales', 'desc'],
+            ['product_id', 'asc'],
+        ])->values()->pluck('product_id')->flip();
+        $lastMonthRanks = $products->sortBy([
+            ['last_month_sales', 'desc'],
+            ['product_id', 'asc'],
+        ])->values()->pluck('product_id')->flip();
+
+        $products->each(function ($product) use ($currentRanks, $lastMonthRanks) {
+            $product->current_rank = $currentRanks->get($product->product_id) + 1;
+            $product->last_month_rank = $lastMonthRanks->get($product->product_id) + 1;
+            $product->rank_movement = $product->last_month_rank - $product->current_rank;
+            // Short aliases are included for table clients that render `rank`
+            // and `previous_rank` directly.
+            $product->rank = $product->current_rank;
+            $product->previous_rank = $product->last_month_rank;
+            $product->rank_change = $product->rank_movement;
+            $product->rank_movement_direction = $product->rank_movement > 0
+                ? 'UP'
+                : ($product->rank_movement < 0 ? 'DOWN' : 'UNCHANGED');
+        });
+
+        $impactCounts = [
+            'winning' => $products->where('impact_status', 'winning')->count(),
+            'declining' => $products->where('impact_status', 'declining')->count(),
+            'missing' => $products->where('impact_status', 'missing')->count(),
+            'stable' => $products->where('impact_status', 'stable')->count(),
+            'all' => $products->count(),
+        ];
+
+        $impactGroup = strtolower(trim((string) $request->input(
+            'impact_group',
+            $request->input('filter', 'all')
+        )));
+        $impactGroup = str_replace([' ', '-'], '_', $impactGroup);
+        $impactGroup = [
+            'winning_products' => 'winning',
+            'declining_products' => 'declining',
+            'losing' => 'declining',
+            'losing_products' => 'declining',
+            'missing_products' => 'missing',
+            'highest_sales_products' => 'highest_sales',
+            'all_results' => 'all',
+        ][$impactGroup] ?? $impactGroup;
+
+        if (!in_array($impactGroup, ['winning', 'declining', 'missing', 'highest_sales', 'all'], true)) {
+            return response()->json([
+                'message' => 'The selected impact group is invalid.',
+                'errors' => ['impact_group' => ['Use winning, declining, missing, highest_sales, or all.']],
+            ], 422);
+        }
+
+        $filteredProducts = $products;
+        if (in_array($impactGroup, ['winning', 'declining', 'missing'], true)) {
+            $filteredProducts = $filteredProducts->where('impact_status', $impactGroup);
+        }
+
+        if ($request->filled('search')) {
+            $search = strtolower(trim($request->input('search')));
+            $filteredProducts = $filteredProducts->filter(function ($product) use ($search) {
+                return str_contains(strtolower($product->product_name ?? ''), $search)
+                    || str_contains(strtolower($product->brand_name ?? ''), $search)
+                    || str_contains(strtolower($product->category_name ?? ''), $search);
+            });
+        }
+
+        if ($impactGroup === 'declining') {
+            $filteredProducts = $filteredProducts->sortBy('sales_vs_three_month_average');
+        } elseif ($impactGroup === 'missing') {
+            $filteredProducts = $filteredProducts->sortByDesc('three_month_average_sales');
+        } else {
+            $filteredProducts = $filteredProducts->sortByDesc('current_month_sales');
+        }
+
+        $filteredProducts = $filteredProducts->values();
+        $filteredTotal = $filteredProducts->count();
+        if ($request->filled('limit')) {
+            $filteredProducts = $filteredProducts->take((int) $request->input('limit'))->values();
+        }
 
         $previousMonthTotals = $months->slice(1)->values()->map(function ($month) use ($products) {
             return array_merge($month, [
@@ -473,7 +585,13 @@ class VipProductTransactionController extends Controller
             ],
             'filters' => [
                 'comparison_page' => $comparisonPage,
+                'impact_group' => $impactGroup,
+                'limit' => $request->filled('limit') ? (int) $request->input('limit') : null,
+                'search' => $request->input('search'),
             ],
+            'impact_counts' => $impactCounts,
+            'filtered_total' => $filteredTotal,
+            'rank_scope' => 'vip_product_group',
             'current_month' => $currentMonth,
             'previous_months' => $previousMonthTotals,
             'average_sales' => $averageSales,
@@ -484,7 +602,7 @@ class VipProductTransactionController extends Controller
             'profit_average_gap' => round($currentMonth['profit_amount'] - $averageProfit, 2),
             'sales_last_month_gap' => round($currentMonth['sales_amount'] - ($lastMonthTotals['sales_amount'] ?? 0), 2),
             'profit_last_month_gap' => round($currentMonth['profit_amount'] - ($lastMonthTotals['profit_amount'] ?? 0), 2),
-            'data' => $products,
+            'data' => $filteredProducts,
         ]);
     }
 
