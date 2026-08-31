@@ -512,7 +512,7 @@ class ShopOrderTransactionController extends Controller
         $validated = $request->validate([
             'month' => 'required|date_format:Y-m',
             'limit' => 'nullable|integer|min:1|max:5000',
-            'sort' => 'nullable|in:current_sales,current_profit,previous_sales,biggest_increase,biggest_drop,rank_drop',
+            'sort' => 'nullable|in:current_sales,current_profit,previous_sales,biggest_increase,biggest_drop,rank_drop,biggest_rank_drop',
             'direction' => 'nullable|in:asc,desc,ASC,DESC',
         ]);
 
@@ -650,6 +650,12 @@ class ShopOrderTransactionController extends Controller
             $customer['previous_rank'] = $previousRanks[$customer['customer_id']] + 1;
             $customer['rank_change'] = $customer['previous_rank'] - $customer['current_rank'];
             $customer['rank_drop'] = max(0, $customer['current_rank'] - $customer['previous_rank']);
+            $customer['rank'] = $customer['current_rank'];
+            $customer['last_month_rank'] = $customer['previous_rank'];
+            $customer['rank_movement'] = $customer['rank_change'];
+            $customer['rank_movement_direction'] = $customer['rank_change'] > 0
+                ? 'UP'
+                : ($customer['rank_change'] < 0 ? 'DOWN' : 'UNCHANGED');
 
             return $customer;
         });
@@ -664,10 +670,14 @@ class ShopOrderTransactionController extends Controller
             'biggest_increase' => 'sales_increase',
             'biggest_drop' => 'sales_drop',
             'rank_drop' => 'rank_drop',
+            'biggest_rank_drop' => 'rank_drop',
         ];
+        $sortableCustomers = $sort === 'biggest_rank_drop'
+            ? $customers->where('status', '!=', 'MISSING')->where('rank_drop', '>', 0)
+            : $customers;
         $sortedCustomers = $direction === 'asc'
-            ? $customers->sortBy($sortFields[$sort])
-            : $customers->sortByDesc($sortFields[$sort]);
+            ? $sortableCustomers->sortBy($sortFields[$sort])
+            : $sortableCustomers->sortByDesc($sortFields[$sort]);
 
         $positiveImpact = $customers
             ->filter(function ($customer) {
@@ -686,6 +696,12 @@ class ShopOrderTransactionController extends Controller
         $missingCustomers = $customers
             ->where('status', 'MISSING')
             ->sortBy('sales_impact')
+            ->take($limit)
+            ->values();
+        $biggestRankDropCustomers = $customers
+            ->where('status', '!=', 'MISSING')
+            ->where('rank_drop', '>', 0)
+            ->sortByDesc('rank_drop')
             ->take($limit)
             ->values();
 
@@ -714,6 +730,7 @@ class ShopOrderTransactionController extends Controller
             'positive_impact_customers' => $positiveImpact,
             'declining_customers' => $decliningCustomers,
             'missing_customers' => $missingCustomers,
+            'biggest_rank_drop_customers' => $biggestRankDropCustomers,
             'code' => 200,
             'message' => 'Monthly customer sales comparison fetched successfully.',
         ]);
@@ -885,15 +902,18 @@ class ShopOrderTransactionController extends Controller
                 $validated = $request->validate([
                     'month' => 'required|date_format:Y-m',
                     'limit' => 'nullable|integer|min:1|max:5000',
-                    'sort' => 'nullable|in:current_sales,current_quantity,previous_sales,biggest_drop,rank_drop',
-                    'direction' => 'nullable|in:asc,desc,ASC,DESC',
+                    'product_group' => 'nullable|string|max:50',
+                    'impact_group' => 'nullable|string|max:50',
+                    // `direction` is accepted as a temporary frontend alias for
+                    // the product group; it no longer controls asc/desc sorting.
+                    'direction' => 'nullable|string|max:50',
                     'type' => 'nullable|in:ALL,All,all,WHOLESALE,Wholesale,wholesale,RETAIL,Retail,retail',
                     'supplier_id' => 'nullable|integer|min:1',
                     'category_id' => 'nullable|integer|min:1',
                 ]);
 
                 $reportMonth = Carbon::createFromFormat('Y-m', $validated['month'])->startOfMonth();
-                $months = collect([0, 1, 2])->map(function ($monthsAgo) use ($reportMonth) {
+                $months = collect([0, 1, 2, 3])->map(function ($monthsAgo) use ($reportMonth) {
                     $month = $reportMonth->copy()->subMonths($monthsAgo);
 
                     return [
@@ -930,6 +950,7 @@ class ShopOrderTransactionController extends Controller
                         'p.packaging',
                         'p.variation',
                         'p.quantity as pieces_per_package',
+                        'p.created_at as product_created_at',
                     ], $monthCases))
                     ->where('p.disabled', 0)
                     ->where('sot.status', 1)
@@ -938,7 +959,7 @@ class ShopOrderTransactionController extends Controller
                         $months->last()['date_from'],
                         $months->first()['date_to'],
                     ])
-                    ->groupBy('p.id', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.packaging', 'p.variation', 'p.quantity');
+                    ->groupBy('p.id', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.packaging', 'p.variation', 'p.quantity', 'p.created_at');
 
                 if (!empty($validated['type']) && strtoupper($validated['type']) !== 'ALL') {
                     $query->where('mup.business_type', strtoupper($validated['type']));
@@ -958,7 +979,7 @@ class ShopOrderTransactionController extends Controller
                     $query->where('p.category_id', $validated['category_id']);
                 }
 
-                $products = $query->get()->map(function ($product) use ($months) {
+                $products = $query->get()->map(function ($product) use ($months, $reportMonth) {
                     $history = $months->map(function ($month, $index) use ($product) {
                         $number = $index + 1;
 
@@ -972,6 +993,24 @@ class ShopOrderTransactionController extends Controller
                     $current = $history[0];
                     $previous = $history[1];
                     $salesGap = round($current['sales_amount'] - $previous['sales_amount'], 2);
+                    $previousThree = $history->slice(1, 3);
+                    $averageSales = round((float) $previousThree->avg('sales_amount'), 2);
+                    $averageQuantity = round((float) $previousThree->avg('quantity_sold'), 2);
+                    $salesImpact = round($current['sales_amount'] - $averageSales, 2);
+                    $isNewProduct = !empty($product->product_created_at)
+                        && Carbon::parse($product->product_created_at)->format('Y-m') === $reportMonth->format('Y-m');
+
+                    if ($isNewProduct) {
+                        $impactStatus = 'NEW_PRODUCT';
+                    } elseif ($current['sales_amount'] == 0.0 && $averageSales > 0) {
+                        $impactStatus = 'MISSING';
+                    } elseif ($current['sales_amount'] > $averageSales) {
+                        $impactStatus = 'WINNING';
+                    } elseif ($current['sales_amount'] < $averageSales) {
+                        $impactStatus = 'DECLINING';
+                    } else {
+                        $impactStatus = 'UNCHANGED';
+                    }
 
                     return [
                         'product_id' => (int) $product->product_id,
@@ -982,10 +1021,16 @@ class ShopOrderTransactionController extends Controller
                         'quantity' => (int) $product->pieces_per_package,
                         'variation' => $product->variation,
                         'pieces_per_package' => (int) $product->pieces_per_package,
+                        'product_created_at' => $product->product_created_at,
+                        'is_new_product' => $isNewProduct,
+                        'impact_status' => $impactStatus,
                         'current_month' => $current,
                         'previous_month' => $previous,
                         'three_month_comparison' => $history,
                         'sales_change' => $salesGap,
+                        'previous_three_month_average_sales' => $averageSales,
+                        'previous_three_month_average_quantity' => $averageQuantity,
+                        'sales_impact' => $salesImpact,
                         'sales_drop' => round(max(0, -$salesGap), 2),
                         'sales_change_percentage' => $previous['sales_amount'] > 0
                             ? round(($salesGap / $previous['sales_amount']) * 100, 2)
@@ -1005,26 +1050,76 @@ class ShopOrderTransactionController extends Controller
                     $product['previous_rank'] = $previousRanks[$product['product_id']] + 1;
                     $product['rank_change'] = $product['previous_rank'] - $product['current_rank'];
                     $product['rank_drop'] = max(0, $product['current_rank'] - $product['previous_rank']);
+                    $product['rank'] = $product['current_rank'];
+                    $product['last_month_rank'] = $product['previous_rank'];
+                    $product['rank_movement'] = $product['rank_change'];
                     return $product;
                 });
 
                 $limit = (int) ($validated['limit'] ?? 10);
-                $sort = $validated['sort'] ?? 'current_sales';
-                $direction = strtolower($validated['direction'] ?? 'desc');
-                $sortFields = [
-                    'current_sales' => 'current_month.sales_amount',
-                    'current_quantity' => 'current_month.quantity_sold',
-                    'previous_sales' => 'previous_month.sales_amount',
-                    'biggest_drop' => 'sales_drop',
-                    'rank_drop' => 'rank_drop',
-                ];
-                $sortedProducts = $direction === 'asc'
-                    ? $products->sortBy($sortFields[$sort])
-                    : $products->sortByDesc($sortFields[$sort]);
+                $productGroup = strtolower(trim((string) (
+                    $validated['product_group']
+                    ?? $validated['impact_group']
+                    ?? $validated['direction']
+                    ?? 'all'
+                )));
+                $productGroup = str_replace([' ', '-'], '_', $productGroup);
+                $productGroup = [
+                    'all_results' => 'all',
+                    'winning_products' => 'winning',
+                    'highest' => 'highest_sales',
+                    'highest_sales_products' => 'highest_sales',
+                    'new' => 'new_product',
+                    'new_products' => 'new_product',
+                    'lowest' => 'lowest_sales',
+                    'lowest_sales_products' => 'lowest_sales',
+                    'declining_products' => 'declining',
+                    'losing' => 'declining',
+                    'missing_products' => 'missing',
+                    // Old direction values now simply mean the default group.
+                    'asc' => 'all',
+                    'desc' => 'all',
+                ][$productGroup] ?? $productGroup;
+
+                if (!in_array($productGroup, ['all', 'winning', 'highest_sales', 'new_product', 'lowest_sales', 'declining', 'missing'], true)) {
+                    return response()->json([
+                        'message' => 'The selected product group is invalid.',
+                        'errors' => [
+                            'product_group' => ['Use all, winning, highest_sales, new_product, lowest_sales, declining, or missing.'],
+                        ],
+                    ], 422);
+                }
+
+                $filteredProducts = $products;
+                if ($productGroup === 'winning') {
+                    $filteredProducts = $filteredProducts->where('impact_status', 'WINNING');
+                } elseif ($productGroup === 'new_product') {
+                    $filteredProducts = $filteredProducts->where('impact_status', 'NEW_PRODUCT');
+                } elseif ($productGroup === 'lowest_sales') {
+                    $filteredProducts = $filteredProducts->where('impact_status', '!=', 'MISSING');
+                } elseif ($productGroup === 'declining') {
+                    $filteredProducts = $filteredProducts->where('impact_status', 'DECLINING');
+                } elseif ($productGroup === 'missing') {
+                    $filteredProducts = $filteredProducts->where('impact_status', 'MISSING');
+                }
+
+                if ($productGroup === 'lowest_sales') {
+                    $filteredProducts = $filteredProducts->sortBy('current_month.sales_amount');
+                } elseif ($productGroup === 'declining') {
+                    $filteredProducts = $filteredProducts->sortBy('sales_impact');
+                } elseif ($productGroup === 'missing') {
+                    $filteredProducts = $filteredProducts->sortByDesc('previous_three_month_average_sales');
+                } elseif ($productGroup === 'winning') {
+                    $filteredProducts = $filteredProducts->sortByDesc('sales_impact');
+                } else {
+                    $filteredProducts = $filteredProducts->sortByDesc('current_month.sales_amount');
+                }
+                $filteredProducts = $filteredProducts->values();
+                $filteredTotal = $filteredProducts->count();
 
                 $decliningProducts = $products
                     ->filter(function ($product) {
-                        return $product['sales_change'] < 0;
+                        return $product['impact_status'] === 'DECLINING';
                     })
                     ->sort(function ($left, $right) {
                         return [$right['sales_drop'], $left['previous_rank']]
@@ -1038,14 +1133,23 @@ class ShopOrderTransactionController extends Controller
                     'comparison_months' => $months->slice(1)->values(),
                     'filters' => [
                         'limit' => $limit,
-                        'sort' => $sort,
-                        'direction' => $direction,
+                        'product_group' => $productGroup,
                         'type' => strtoupper($validated['type'] ?? 'ALL'),
                         'supplier_id' => $validated['supplier_id'] ?? null,
                         'category_id' => $validated['category_id'] ?? null,
                     ],
                     'total_products' => $products->count(),
-                    'data' => $sortedProducts->take($limit)->values(),
+                    'filtered_total' => $filteredTotal,
+                    'product_group_counts' => [
+                        'all' => $products->count(),
+                        'winning' => $products->where('impact_status', 'WINNING')->count(),
+                        'highest_sales' => $products->count(),
+                        'new_product' => $products->where('impact_status', 'NEW_PRODUCT')->count(),
+                        'lowest_sales' => $products->where('impact_status', '!=', 'MISSING')->count(),
+                        'declining' => $products->where('impact_status', 'DECLINING')->count(),
+                        'missing' => $products->where('impact_status', 'MISSING')->count(),
+                    ],
+                    'data' => $filteredProducts->take($limit)->values(),
                     'top_products' => $products->sortByDesc('current_month.sales_amount')->take($limit)->values(),
                     'declining_products' => $decliningProducts,
                     'code' => 200,
@@ -1321,6 +1425,12 @@ class ShopOrderTransactionController extends Controller
                     'limit' => 'nullable|integer|min:1|max:5000',
                     'supplier_id' => 'nullable|integer|min:1',
                     'category_id' => 'nullable|integer|min:1',
+                    'impact_group' => 'nullable|string|max:50',
+                    'product_impact_group' => 'nullable|string|max:50',
+                    'customer_impact_group' => 'nullable|string|max:50',
+                    'search' => 'nullable|string|max:100',
+                    'product_search' => 'nullable|string|max:100',
+                    'customer_search' => 'nullable|string|max:100',
                 ]);
 
                 $limit = (int) ($validated['limit'] ?? 10);
@@ -1431,11 +1541,17 @@ class ShopOrderTransactionController extends Controller
                         'p.product_name',
                         'p.packaging',
                         'p.variation',
+                        'p.created_at as product_created_at',
                     ], $salesCases, $quantityCases))
-                    ->groupBy('p.id', 'p.product_name', 'p.packaging', 'p.variation')
+                    ->groupBy('p.id', 'p.product_name', 'p.packaging', 'p.variation', 'p.created_at')
                     ->get()
-                    ->map(function ($product) {
-                        return $this->buildMonthlyImpactItem($product, 'product', false);
+                    ->map(function ($product) use ($reportMonth) {
+                        return $this->buildMonthlyImpactItem(
+                            $product,
+                            'product',
+                            false,
+                            $reportMonth
+                        );
                     });
 
                 $customers = $baseQuery()
@@ -1445,15 +1561,55 @@ class ShopOrderTransactionController extends Controller
                         'c.first_name',
                         'c.last_name',
                         'c.store_name',
+                        'c.created_at as customer_created_at',
                     ], $salesCases, $quantityCases))
-                    ->groupBy('c.id', 'c.first_name', 'c.last_name', 'c.store_name')
+                    ->groupBy('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.created_at')
                     ->get()
-                    ->map(function ($customer) {
-                        return $this->buildMonthlyImpactItem($customer, 'customer', true);
+                    ->map(function ($customer) use ($reportMonth) {
+                        return $this->buildMonthlyImpactItem(
+                            $customer,
+                            'customer',
+                            true,
+                            $reportMonth
+                        );
                     });
 
-                $productDrivers = $this->buildImpactDrivers($products, $limit);
-                $customerDrivers = $this->buildImpactDrivers($customers, $limit);
+                $products = $this->addMonthlyImpactRanks($products);
+                $customers = $this->addMonthlyImpactRanks($customers);
+
+                $defaultImpactGroup = $validated['impact_group'] ?? 'all';
+                $productImpactGroup = $this->normalizeMonthlyImpactGroup(
+                    $validated['product_impact_group'] ?? $defaultImpactGroup
+                );
+                $customerImpactGroup = $this->normalizeMonthlyImpactGroup(
+                    $validated['customer_impact_group'] ?? $defaultImpactGroup
+                );
+
+                if ($productImpactGroup === null || $customerImpactGroup === null) {
+                    return response()->json([
+                        'message' => 'The selected impact group is invalid.',
+                        'errors' => [
+                            'impact_group' => [
+                                'Use winning, new_customer, new_product, highest_sales, lowest_sales, declining, missing, or all.',
+                            ],
+                        ],
+                    ], 422);
+                }
+
+                $productDrivers = $this->buildImpactDrivers(
+                    $products,
+                    $limit,
+                    $productImpactGroup,
+                    $validated['product_search'] ?? ($validated['search'] ?? null),
+                    'product'
+                );
+                $customerDrivers = $this->buildImpactDrivers(
+                    $customers,
+                    $limit,
+                    $customerImpactGroup,
+                    $validated['customer_search'] ?? ($validated['search'] ?? null),
+                    'customer'
+                );
                 $salesGap = round($current['total_sales'] - $averageSales, 2);
                 $lastMonthGap = round($current['total_sales'] - $lastMonth['total_sales'], 2);
 
@@ -1465,7 +1621,13 @@ class ShopOrderTransactionController extends Controller
                         'type' => 'ALL',
                         'supplier_id' => $validated['supplier_id'] ?? null,
                         'category_id' => $validated['category_id'] ?? null,
+                        'product_impact_group' => $productImpactGroup,
+                        'customer_impact_group' => $customerImpactGroup,
+                        'product_search' => $validated['product_search'] ?? ($validated['search'] ?? null),
+                        'customer_search' => $validated['customer_search'] ?? ($validated['search'] ?? null),
                     ],
+                    'impact_benchmark' => 'PREVIOUS_THREE_MONTH_AVERAGE',
+                    'rank_scope' => 'all_filtered_sales',
                     'sales_summary' => [
                         'sales_basis' => $usesReceivedPaymentSales
                             ? 'RECEIVED_PAYMENTS'
@@ -1490,8 +1652,10 @@ class ShopOrderTransactionController extends Controller
                         'product_net_impact' => round($products->sum('sales_impact'), 2),
                         'customer_net_impact' => round($customers->sum('sales_impact'), 2),
                         'missing_customer_count' => $customers->where('status', 'MISSING')->count(),
+                        'new_customer_count' => $customers->where('status', 'NEW_CUSTOMER')->count(),
                         'declining_customer_count' => $customers->where('status', 'DECLINING')->count(),
                         'missing_product_count' => $products->where('status', 'MISSING')->count(),
+                        'new_product_count' => $products->where('status', 'NEW_PRODUCT')->count(),
                         'declining_product_count' => $products->where('status', 'DECLINING')->count(),
                     ],
                     'product_impact' => $productDrivers,
@@ -1501,7 +1665,12 @@ class ShopOrderTransactionController extends Controller
                 ]);
             }
 
-            private function buildMonthlyImpactItem($row, $kind, $includeCustomerName)
+            private function buildMonthlyImpactItem(
+                $row,
+                $kind,
+                $includeCustomerName,
+                $reportMonth = null
+            )
             {
                 $sales = collect([1, 2, 3, 4])->map(function ($number) use ($row) {
                     return round((float) ($row->{"month_{$number}_sales"} ?? 0), 2);
@@ -1526,6 +1695,25 @@ class ShopOrderTransactionController extends Controller
                     $status = 'UNCHANGED';
                 }
 
+                $isNewCustomer = $includeCustomerName
+                    && $reportMonth !== null
+                    && !empty($row->customer_created_at)
+                    && Carbon::parse($row->customer_created_at)->format('Y-m') === $reportMonth->format('Y-m');
+                $isNewProduct = !$includeCustomerName
+                    && $reportMonth !== null
+                    && !empty($row->product_created_at)
+                    && Carbon::parse($row->product_created_at)->format('Y-m') === $reportMonth->format('Y-m');
+
+                if ($isNewCustomer) {
+                    $status = 'NEW_CUSTOMER';
+                } elseif ($includeCustomerName && $status === 'NEW_OR_RETURNING') {
+                    $status = 'RETURNING_CUSTOMER';
+                } elseif ($isNewProduct) {
+                    $status = 'NEW_PRODUCT';
+                } elseif (!$includeCustomerName && $status === 'NEW_OR_RETURNING') {
+                    $status = 'RETURNING_PRODUCT';
+                }
+
                 $item = [
                     $kind.'_id' => (int) $row->{$kind.'_id'},
                     'status' => $status,
@@ -1544,24 +1732,167 @@ class ShopOrderTransactionController extends Controller
                     $item['customer_name'] = $name;
                     $item['store_name'] = $row->store_name;
                     $item['display_name'] = $row->store_name ? $name.' ('.$row->store_name.')' : $name;
+                    $item['customer_created_at'] = $row->customer_created_at;
+                    $item['is_new_customer'] = $isNewCustomer;
                 } else {
                     $item['product_name'] = $row->product_name;
                     $item['packaging'] = $row->packaging;
                     $item['variation'] = $row->variation;
+                    $item['product_created_at'] = $row->product_created_at;
+                    $item['is_new_product'] = $isNewProduct;
                 }
 
                 return $item;
             }
 
-            private function buildImpactDrivers($items, $limit)
+            private function addMonthlyImpactRanks($items)
             {
+                $sortBySales = function ($first, $second, $field) {
+                    $salesComparison = $second[$field] <=> $first[$field];
+                    if ($salesComparison !== 0) {
+                        return $salesComparison;
+                    }
+
+                    $firstId = $first['product_id'] ?? $first['customer_id'];
+                    $secondId = $second['product_id'] ?? $second['customer_id'];
+
+                    return $firstId <=> $secondId;
+                };
+
+                $currentRanks = $items->sort(function ($first, $second) use ($sortBySales) {
+                    return $sortBySales($first, $second, 'current_sales');
+                })
+                    ->values()
+                    ->mapWithKeys(function ($item, $index) {
+                        $id = $item['product_id'] ?? $item['customer_id'];
+
+                        return [$id => $index + 1];
+                    });
+                $previousRanks = $items->sort(function ($first, $second) use ($sortBySales) {
+                    return $sortBySales($first, $second, 'last_month_sales');
+                })
+                    ->values()
+                    ->mapWithKeys(function ($item, $index) {
+                        $id = $item['product_id'] ?? $item['customer_id'];
+
+                        return [$id => $index + 1];
+                    });
+
+                return $items->map(function ($item) use ($currentRanks, $previousRanks) {
+                    $id = $item['product_id'] ?? $item['customer_id'];
+                    $item['rank'] = $currentRanks->get($id);
+                    $item['current_rank'] = $item['rank'];
+                    $item['previous_rank'] = $previousRanks->get($id);
+                    $item['last_month_rank'] = $item['previous_rank'];
+                    $item['rank_change'] = $item['previous_rank'] - $item['rank'];
+                    $item['rank_movement'] = $item['rank_change'];
+                    $item['rank_movement_direction'] = $item['rank_change'] > 0
+                        ? 'UP'
+                        : ($item['rank_change'] < 0 ? 'DOWN' : 'UNCHANGED');
+
+                    return $item;
+                });
+            }
+
+            private function normalizeMonthlyImpactGroup($impactGroup)
+            {
+                $impactGroup = strtolower(trim((string) $impactGroup));
+                $impactGroup = str_replace([' ', '-'], '_', $impactGroup);
+                $impactGroup = [
+                    'winning_products' => 'winning',
+                    'winning_customers' => 'winning',
+                    'new' => 'new_customer',
+                    'new_customers' => 'new_customer',
+                    'new_product' => 'new_product',
+                    'new_products' => 'new_product',
+                    'highest' => 'highest_sales',
+                    'highest_products' => 'highest_sales',
+                    'highest_customers' => 'highest_sales',
+                    'highest_sales_products' => 'highest_sales',
+                    'highest_sales_customers' => 'highest_sales',
+                    'lowest' => 'lowest_sales',
+                    'lowest_products' => 'lowest_sales',
+                    'lowest_customers' => 'lowest_sales',
+                    'lowest_sales_products' => 'lowest_sales',
+                    'lowest_sales_customers' => 'lowest_sales',
+                    'lowest_declining' => 'declining',
+                    'losing' => 'declining',
+                    'declining_products' => 'declining',
+                    'declining_customers' => 'declining',
+                    'missing_products' => 'missing',
+                    'missing_customers' => 'missing',
+                    'all_results' => 'all',
+                ][$impactGroup] ?? $impactGroup;
+
+                return in_array(
+                    $impactGroup,
+                    ['winning', 'new_customer', 'new_product', 'highest_sales', 'lowest_sales', 'declining', 'missing', 'all'],
+                    true
+                ) ? $impactGroup : null;
+            }
+
+            private function buildImpactDrivers($items, $limit, $impactGroup = 'all', $search = null, $kind = null)
+            {
+                $filtered = $items;
+
+                if ($impactGroup === 'winning') {
+                    $filtered = $filtered->where('sales_impact', '>', 0);
+                } elseif ($impactGroup === 'new_customer') {
+                    $filtered = $filtered->where('status', 'NEW_CUSTOMER');
+                } elseif ($impactGroup === 'new_product') {
+                    $filtered = $filtered->where('status', 'NEW_PRODUCT');
+                } elseif ($impactGroup === 'declining') {
+                    $filtered = $filtered->where('status', 'DECLINING');
+                } elseif ($impactGroup === 'missing') {
+                    $filtered = $filtered->where('status', 'MISSING');
+                }
+
+                if ($search !== null && trim($search) !== '') {
+                    $needle = strtolower(trim($search));
+                    $filtered = $filtered->filter(function ($item) use ($needle, $kind) {
+                        $values = $kind === 'product'
+                            ? [$item['product_name'] ?? '', $item['packaging'] ?? '', $item['variation'] ?? '']
+                            : [$item['customer_name'] ?? '', $item['store_name'] ?? '', $item['display_name'] ?? ''];
+
+                        return collect($values)->contains(function ($value) use ($needle) {
+                            return str_contains(strtolower((string) $value), $needle);
+                        });
+                    });
+                }
+
+                if ($impactGroup === 'lowest_sales') {
+                    $filtered = $filtered->sortBy('current_sales');
+                } elseif ($impactGroup === 'declining' || $impactGroup === 'missing') {
+                    $filtered = $filtered->sortBy('sales_impact');
+                } else {
+                    $filtered = $filtered->sortByDesc('current_sales');
+                }
+
+                $filtered = $filtered->values();
+                $filteredTotal = $filtered->count();
+
                 return [
                     'total_count' => $items->count(),
+                    'filtered_total' => $filteredTotal,
+                    'impact_group' => $impactGroup,
+                    'counts' => [
+                        'winning' => $items->where('sales_impact', '>', 0)->count(),
+                        'new_customer' => $items->where('status', 'NEW_CUSTOMER')->count(),
+                        'new_product' => $items->where('status', 'NEW_PRODUCT')->count(),
+                        'declining' => $items->where('status', 'DECLINING')->count(),
+                        'missing' => $items->where('status', 'MISSING')->count(),
+                        'all' => $items->count(),
+                    ],
                     'negative_net_impact' => round($items->where('sales_impact', '<', 0)->sum('sales_impact'), 2),
                     'positive_net_impact' => round($items->where('sales_impact', '>', 0)->sum('sales_impact'), 2),
                     'biggest_declines' => $items->where('sales_impact', '<', 0)->sortBy('sales_impact')->take($limit)->values(),
                     'missing' => $items->where('status', 'MISSING')->sortBy('sales_impact')->take($limit)->values(),
                     'biggest_growth' => $items->where('sales_impact', '>', 0)->sortByDesc('sales_impact')->take($limit)->values(),
+                    'new_customers' => $items->where('status', 'NEW_CUSTOMER')->sortByDesc('current_sales')->take($limit)->values(),
+                    'new_products' => $items->where('status', 'NEW_PRODUCT')->sortByDesc('current_sales')->take($limit)->values(),
+                    'highest_sales' => $items->sortByDesc('current_sales')->take($limit)->values(),
+                    'lowest_sales' => $items->sortBy('current_sales')->take($limit)->values(),
+                    'data' => $filtered->take($limit)->values(),
                 ];
             }
 
