@@ -91,6 +91,11 @@ class OrderSupplierController extends Controller
         
         $products->save();
 
+        // status always pending
+        $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
+        $orderSupplierTransaction->approval_status = 'PENDING';
+        $orderSupplierTransaction->save();
+
         return  response()->json($orderSupplier_result);
     }
 
@@ -506,7 +511,11 @@ class OrderSupplierController extends Controller
         $orderSupplier->enable = $request->input('enable');
 
         $orderSupplier->save();
-        // return redirect('/categories')->with('success', 'Categories Created');
+
+        $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('order_supplier_transaction_id'));
+        $orderSupplierTransaction->approval_status = 'PENDING';
+        $orderSupplierTransaction->save();
+
         return  response()->json($orderSupplier);
     }
 
@@ -590,8 +599,14 @@ class OrderSupplierController extends Controller
     public function destroy(OrderSupplier $orderSupplier)
     {
         $orderSupplier = OrderSupplier::find($orderSupplier->id);
+        
+        $orderSupplierTransaction = OrderSupplierTransaction::find($orderSupplier->order_supplier_transaction_id);
+        $orderSupplierTransaction->approval_status = 'PENDING';
+        $orderSupplierTransaction->save();
+
         $orderSupplier->delete();
- 
+
+
         return response()->json($orderSupplier);
     }
 }

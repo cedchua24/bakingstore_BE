@@ -701,6 +701,7 @@ class OrderSupplierTransactionController extends Controller
                 $orderSupplierTransaction->status = 'COMPLETED';
                 $orderSupplierTransaction->checker = $request->input('checker');
                 $orderSupplierTransaction->receiver = $request->input('receiver');
+                $orderSupplierTransaction->receiver_user_id  = $request->input('receiver_user_id');
                 $orderSupplierTransaction->order_date = Carbon::now('GMT+8');
                 $orderSupplierTransaction->saveOrFail();
 
