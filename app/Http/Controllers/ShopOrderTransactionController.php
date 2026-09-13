@@ -580,13 +580,14 @@ class ShopOrderTransactionController extends Controller
             $lastMonthSalesImpact = round($current['sales_amount'] - $lastMonth['sales_amount'], 2);
             $lastMonthProfitImpact = round($current['profit_amount'] - $lastMonth['profit_amount'], 2);
 
-            if ($current['sales_amount'] == 0 && $averageSales > 0) {
+            // Primary comparisons use last month; three-month averages are informational.
+            if ($current['sales_amount'] == 0 && $lastMonth['sales_amount'] > 0) {
                 $status = 'MISSING';
-            } elseif ($averageSales == 0 && $current['sales_amount'] > 0) {
+            } elseif ($lastMonth['sales_amount'] == 0 && $current['sales_amount'] > 0) {
                 $status = 'NEW_OR_RETURNING';
-            } elseif ($salesImpact > 0) {
+            } elseif ($lastMonthSalesImpact > 0) {
                 $status = 'ABOVE_USUAL';
-            } elseif ($salesImpact < 0) {
+            } elseif ($lastMonthSalesImpact < 0) {
                 $status = 'BELOW_USUAL';
             } else {
                 $status = 'UNCHANGED';
@@ -630,20 +631,27 @@ class ShopOrderTransactionController extends Controller
                         ? round(($profitImpact / $averageProfit) * 100, 2)
                         : null,
                 ],
-                'sales_impact' => $salesImpact,
-                'sales_increase' => round(max(0, $salesImpact), 2),
-                'sales_drop' => round(max(0, -$salesImpact), 2),
-                'profit_impact' => $profitImpact,
-                'sales_change_percentage' => $averageSales > 0
-                    ? round(($salesImpact / $averageSales) * 100, 2)
+                'sales_impact' => $lastMonthSalesImpact,
+                'sales_increase' => round(max(0, $lastMonthSalesImpact), 2),
+                'sales_drop' => round(max(0, -$lastMonthSalesImpact), 2),
+                'profit_impact' => $lastMonthProfitImpact,
+                'sales_change_percentage' => $lastMonth['sales_amount'] > 0
+                    ? round(($lastMonthSalesImpact / $lastMonth['sales_amount']) * 100, 2)
                     : null,
             ];
         });
 
-        $currentRanks = $customers->sortByDesc('current_month.sales_amount')->values()
-            ->pluck('customer_id')->flip();
-        $previousRanks = $customers->sortByDesc('last_month.sales_amount')->values()
-            ->pluck('customer_id')->flip();
+        // Assign overall sales ranks before filtering, sorting, or limiting results.
+        // Customer ID breaks sales ties consistently across requests.
+        $rankByMonth = function ($month) use ($customers) {
+            return $customers->sort(function ($left, $right) use ($month) {
+                $salesOrder = $right[$month]['sales_amount'] <=> $left[$month]['sales_amount'];
+
+                return $salesOrder ?: ($left['customer_id'] <=> $right['customer_id']);
+            })->values()->pluck('customer_id')->flip();
+        };
+        $currentRanks = $rankByMonth('current_month');
+        $previousRanks = $rankByMonth('last_month');
 
         $customers = $customers->map(function ($customer) use ($currentRanks, $previousRanks) {
             $customer['current_rank'] = $currentRanks[$customer['customer_id']] + 1;
@@ -708,7 +716,7 @@ class ShopOrderTransactionController extends Controller
         return response()->json([
             'report_month' => $months->first(),
             'comparison_months' => $months->slice(1)->values(),
-            'impact_benchmark' => 'PREVIOUS_THREE_MONTH_AVERAGE',
+            'impact_benchmark' => 'LAST_MONTH',
             'filters' => [
                 'limit' => $limit,
                 'sort' => $sort,
@@ -961,6 +969,19 @@ class ShopOrderTransactionController extends Controller
                     ])
                     ->groupBy('p.id', 'p.product_name', 'p.stock', 'p.stock_pc', 'p.packaging', 'p.variation', 'p.quantity', 'p.created_at');
 
+                // Rank across the unfiltered sales population so filters cannot change ranks.
+                $rankProducts = (clone $query)->get();
+                $rankByMonth = function ($field) use ($rankProducts) {
+                    return $rankProducts->sort(function ($left, $right) use ($field) {
+                        $salesOrder = round((float) $right->{$field}, 2)
+                            <=> round((float) $left->{$field}, 2);
+
+                        return $salesOrder ?: ((int) $left->product_id <=> (int) $right->product_id);
+                    })->values()->pluck('product_id')->flip();
+                };
+                $currentRanks = $rankByMonth('month_1_sales');
+                $previousRanks = $rankByMonth('month_2_sales');
+
                 if (!empty($validated['type']) && strtoupper($validated['type']) !== 'ALL') {
                     $query->where('mup.business_type', strtoupper($validated['type']));
                 }
@@ -996,17 +1017,18 @@ class ShopOrderTransactionController extends Controller
                     $previousThree = $history->slice(1, 3);
                     $averageSales = round((float) $previousThree->avg('sales_amount'), 2);
                     $averageQuantity = round((float) $previousThree->avg('quantity_sold'), 2);
-                    $salesImpact = round($current['sales_amount'] - $averageSales, 2);
+                    // Primary comparisons use last month; three-month averages are informational.
+                    $salesImpact = $salesGap;
                     $isNewProduct = !empty($product->product_created_at)
                         && Carbon::parse($product->product_created_at)->format('Y-m') === $reportMonth->format('Y-m');
 
                     if ($isNewProduct) {
                         $impactStatus = 'NEW_PRODUCT';
-                    } elseif ($current['sales_amount'] == 0.0 && $averageSales > 0) {
+                    } elseif ($current['sales_amount'] == 0.0 && $previous['sales_amount'] > 0) {
                         $impactStatus = 'MISSING';
-                    } elseif ($current['sales_amount'] > $averageSales) {
+                    } elseif ($salesGap > 0) {
                         $impactStatus = 'WINNING';
-                    } elseif ($current['sales_amount'] < $averageSales) {
+                    } elseif ($salesGap < 0) {
                         $impactStatus = 'DECLINING';
                     } else {
                         $impactStatus = 'UNCHANGED';
@@ -1039,11 +1061,6 @@ class ShopOrderTransactionController extends Controller
                         'trend' => $salesGap > 0 ? 'HIGHER' : ($salesGap < 0 ? 'LOWER' : 'UNCHANGED'),
                     ];
                 });
-
-                $currentRanks = $products->sortByDesc('current_month.sales_amount')->values()
-                    ->pluck('product_id')->flip();
-                $previousRanks = $products->sortByDesc('previous_month.sales_amount')->values()
-                    ->pluck('product_id')->flip();
 
                 $products = $products->map(function ($product) use ($currentRanks, $previousRanks) {
                     $product['current_rank'] = $currentRanks[$product['product_id']] + 1;
@@ -1096,7 +1113,7 @@ class ShopOrderTransactionController extends Controller
                 } elseif ($productGroup === 'new_product') {
                     $filteredProducts = $filteredProducts->where('impact_status', 'NEW_PRODUCT');
                 } elseif ($productGroup === 'lowest_sales') {
-                    $filteredProducts = $filteredProducts->where('impact_status', '!=', 'MISSING');
+                    $filteredProducts = $filteredProducts->where('current_month.sales_amount', '>', 0);
                 } elseif ($productGroup === 'declining') {
                     $filteredProducts = $filteredProducts->where('impact_status', 'DECLINING');
                 } elseif ($productGroup === 'missing') {
@@ -1108,7 +1125,7 @@ class ShopOrderTransactionController extends Controller
                 } elseif ($productGroup === 'declining') {
                     $filteredProducts = $filteredProducts->sortBy('sales_impact');
                 } elseif ($productGroup === 'missing') {
-                    $filteredProducts = $filteredProducts->sortByDesc('previous_three_month_average_sales');
+                    $filteredProducts = $filteredProducts->sortByDesc('previous_month.sales_amount');
                 } elseif ($productGroup === 'winning') {
                     $filteredProducts = $filteredProducts->sortByDesc('sales_impact');
                 } else {
@@ -1145,7 +1162,7 @@ class ShopOrderTransactionController extends Controller
                         'winning' => $products->where('impact_status', 'WINNING')->count(),
                         'highest_sales' => $products->count(),
                         'new_product' => $products->where('impact_status', 'NEW_PRODUCT')->count(),
-                        'lowest_sales' => $products->where('impact_status', '!=', 'MISSING')->count(),
+                        'lowest_sales' => $products->where('current_month.sales_amount', '>', 0)->count(),
                         'declining' => $products->where('impact_status', 'DECLINING')->count(),
                         'missing' => $products->where('impact_status', 'MISSING')->count(),
                     ],
@@ -1246,6 +1263,7 @@ class ShopOrderTransactionController extends Controller
                         'c.first_name',
                         'c.last_name',
                         'c.store_name',
+                        'c.created_at as customer_created_at',
                     ], $monthCases))
                     ->where('p.id', $validated['product_id'])
                     ->where('p.disabled', 0)
@@ -1255,13 +1273,13 @@ class ShopOrderTransactionController extends Controller
                         $months->last()['date_from'],
                         $months->first()['date_to'],
                     ])
-                    ->groupBy('c.id', 'c.first_name', 'c.last_name', 'c.store_name');
+                    ->groupBy('c.id', 'c.first_name', 'c.last_name', 'c.store_name', 'c.created_at');
 
                 if (!empty($validated['type']) && strtoupper($validated['type']) !== 'ALL') {
                     $customerQuery->where('mup.business_type', strtoupper($validated['type']));
                 }
 
-                $customers = $customerQuery->get()->map(function ($customer) use ($months) {
+                $customers = $customerQuery->get()->map(function ($customer) use ($months, $reportMonth) {
                     $history = $months->map(function ($month, $index) use ($customer) {
                         $number = $index + 1;
 
@@ -1291,14 +1309,19 @@ class ShopOrderTransactionController extends Controller
                     $quantityImpact = round($current['ordered_quantity'] - $usualQuantity, 2);
                     $lastMonthSalesImpact = round($current['sales_amount'] - $lastMonth['sales_amount'], 2);
                     $lastMonthQuantityImpact = round($current['ordered_quantity'] - $lastMonth['ordered_quantity'], 2);
+                    $isNewCustomer = !empty($customer->customer_created_at)
+                        && Carbon::parse($customer->customer_created_at)->format('Y-m') === $reportMonth->format('Y-m');
 
-                    if ($current['ordered_quantity'] == 0 && $usualQuantity > 0) {
+                    // Status and primary impact fields compare against last month.
+                    if ($isNewCustomer && $current['ordered_quantity'] > 0) {
+                        $status = 'NEW_CUSTOMER';
+                    } elseif ($current['ordered_quantity'] == 0 && $lastMonth['ordered_quantity'] > 0) {
                         $status = 'MISSING';
-                    } elseif ($usualQuantity == 0 && $current['ordered_quantity'] > 0) {
-                        $status = 'NEW_OR_RETURNING';
-                    } elseif ($quantityImpact > 0) {
+                    } elseif ($lastMonth['ordered_quantity'] == 0 && $current['ordered_quantity'] > 0) {
+                        $status = 'RETURNING';
+                    } elseif ($lastMonthQuantityImpact > 0) {
                         $status = 'ABOVE_USUAL';
-                    } elseif ($quantityImpact < 0) {
+                    } elseif ($lastMonthQuantityImpact < 0) {
                         $status = 'BELOW_USUAL';
                     } else {
                         $status = 'UNCHANGED';
@@ -1308,6 +1331,8 @@ class ShopOrderTransactionController extends Controller
 
                     return [
                         'customer_id' => (int) $customer->customer_id,
+                        'customer_created_at' => $customer->customer_created_at,
+                        'is_new_customer' => $isNewCustomer,
                         'customer_name' => $customerName,
                         'store_name' => $customer->store_name,
                         'display_name' => $customer->store_name
@@ -1349,14 +1374,14 @@ class ShopOrderTransactionController extends Controller
                                 ? round(($quantityImpact / $usualQuantity) * 100, 2)
                                 : null,
                         ],
-                        'sales_impact' => $salesImpact,
-                        'quantity_impact' => $quantityImpact,
-                        'pieces_impact' => round($current['pieces_sold'] - $usualPieces, 2),
-                        'sales_change_percentage' => $usualSales > 0
-                            ? round(($salesImpact / $usualSales) * 100, 2)
+                        'sales_impact' => $lastMonthSalesImpact,
+                        'quantity_impact' => $lastMonthQuantityImpact,
+                        'pieces_impact' => round($current['pieces_sold'] - $lastMonth['pieces_sold'], 2),
+                        'sales_change_percentage' => $lastMonth['sales_amount'] > 0
+                            ? round(($lastMonthSalesImpact / $lastMonth['sales_amount']) * 100, 2)
                             : null,
-                        'quantity_change_percentage' => $usualQuantity > 0
-                            ? round(($quantityImpact / $usualQuantity) * 100, 2)
+                        'quantity_change_percentage' => $lastMonth['ordered_quantity'] > 0
+                            ? round(($lastMonthQuantityImpact / $lastMonth['ordered_quantity']) * 100, 2)
                             : null,
                     ];
                 });
@@ -1395,7 +1420,7 @@ class ShopOrderTransactionController extends Controller
                     ],
                     'report_month' => $months->first(),
                     'comparison_months' => $months->slice(1)->values(),
-                    'impact_benchmark' => 'PREVIOUS_THREE_MONTH_AVERAGE',
+                    'impact_benchmark' => 'LAST_MONTH',
                     'filters' => [
                         'limit' => $limit,
                         'type' => strtoupper($validated['type'] ?? 'ALL'),
