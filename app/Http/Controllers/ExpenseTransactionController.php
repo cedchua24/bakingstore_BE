@@ -827,6 +827,8 @@ class ExpenseTransactionController extends Controller
      */
     public function destroy(ExpenseTransaction $expenseTransaction)
     {
-        //
+        $expenseTransaction = ExpenseTransaction::find($expenseTransaction->id);
+        $expenseTransaction->delete();
+        return response()->json($expenseTransaction);
     }
 }

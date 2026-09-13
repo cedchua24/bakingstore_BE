@@ -1295,6 +1295,15 @@ class ProductController extends Controller
 
         public function getUnsoldProducts(Request $request)
         {
+            $this->validate($request, [
+                'total_value_sort' => 'nullable|in:highest,lowest',
+                'stock_sort' => 'nullable|in:highest,lowest',
+                'last_sold_at_sort' => 'nullable|in:highest,lowest',
+            ]);
+
+            $totalValueSort = $request->input('total_value_sort');
+            $stockSort = $request->input('stock_sort');
+            $lastSoldAtSort = $request->input('last_sold_at_sort');
             $dateFrom = $request->input('dateFrom');
             $dateTo   = $request->input('dateTo');
             $supplier_id = $request->input('supplier_id');
@@ -1335,8 +1344,7 @@ class ProductController extends Controller
                                 WHERE so2.product_id = p.id
                             ) as last_sold_at
                         ")
-                    )
-                    ->orderBy('p.stock', 'desc');
+                    );
 
                 if ($supplier_id) {
                     $query->leftJoin('product_supplier as ps', 'ps.product_id', '=', 'p.id')
@@ -1346,6 +1354,23 @@ class ProductController extends Controller
 
                 if ($category_id) {
                     $query->where('p.category_id', $category_id);
+                }
+
+                // Sort priority: total value, stock, then last sold date.
+                if ($totalValueSort) {
+                    $query->orderBy('total_value', $totalValueSort === 'highest' ? 'desc' : 'asc');
+                }
+
+                if ($stockSort) {
+                    $query->orderBy('p.stock', $stockSort === 'highest' ? 'desc' : 'asc');
+                }
+
+                if ($lastSoldAtSort) {
+                    $query->orderBy('last_sold_at', $lastSoldAtSort === 'highest' ? 'desc' : 'asc');
+                }
+
+                if (!$totalValueSort && !$stockSort && !$lastSoldAtSort) {
+                    $query->orderBy('p.stock', 'desc');
                 }
 
                 $data = $query->get();
