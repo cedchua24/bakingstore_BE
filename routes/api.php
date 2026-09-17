@@ -121,6 +121,7 @@ Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController');
 
 
 Route::get('/products/fetchProductMonthlySales', [ProductController::class, 'fetchProductMonthlySales']);
+Route::match(['put', 'patch'], '/products/updateV2/{product}', [ProductController::class, 'updateV2']);
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::post('/products/searchProductByName', [ProductController::class, 'searchProductByName']);
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);

@@ -84,6 +84,13 @@ class AuthController extends Controller
 
         $user = User::where('email', strtolower($validated['email']))->first();
 
+        if ($user && $user->status === 1) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'Locked account',
+            ], 401);
+        }
+
         if (
             ! $user
             || $user->status !== User::STATUS_ACTIVE
