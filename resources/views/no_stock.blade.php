@@ -39,7 +39,11 @@
                         <div style="margin-top: 24px; padding: 18px 20px; border: 1px solid #dbe5fa; border-radius: 8px; background-color: #f5f8ff;">
                             <h2 style="margin: 0 0 14px; color: #2455a4; font-size: 16px; line-height: 24px;">{{ $hasSentOrder ? 'Replenishment ordered' : 'Purchase order pending' }}</h2>
                             @foreach ($pendingOrders as $order)
+<<<<<<< Updated upstream
                                 <div style="{{ !$loop->first ? 'margin-top: 16px; padding-top: 16px; border-top: 1px solid #dbe5fa;' : '' }}">
+=======
+                                <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #dbe5fa;">
+>>>>>>> Stashed changes
                                     <p style="margin: 0 0 6px; font-size: 14px; line-height: 22px; font-weight: bold;">{{ $order['supplier'] }}</p>
                                     <p style="margin: 0 0 8px; color: #647084; font-size: 12px; line-height: 20px;">PO #{{ $order['order_supplier_transaction_id'] }} &middot; {{ $order['date'] }}</p>
                                     <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #e7eefc; color: #2455a4; font-size: 11px; line-height: 16px; font-weight: bold;">{{ $order['status'] === 'SEND_TO_SUPPLIER' ? 'SENT TO SUPPLIER' : 'PENDING — NOT YET SENT' }}</span>
@@ -68,6 +72,10 @@
                         <p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: bold; overflow-wrap: anywhere;">
                             @if ($unitWeight !== null)
                                 {{ $quantity }} &times; {{ number_format($unitWeight, 2) }} {{ $params['variation'] ?? '' }}
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                             @else
                                 Not available
                             @endif
