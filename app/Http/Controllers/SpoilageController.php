@@ -28,8 +28,9 @@ class SpoilageController extends Controller
         ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
          'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
           'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note',
-          'so.id as stock_order_id', 'so.pack', 'so.stock_type', 'so.total_stock', 'so.stock as stock_quantity', 's.reason',
+          'so.user_id', 'so.id as stock_order_id', 'so.pack', 'so.stock_type', 'so.total_stock', 'so.stock as stock_quantity', 's.reason',
            's.total_cost', 's.id as spoilage_id', 's.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
         ->orderBy('s.id', 'DESC')
         ->get();
 
@@ -55,9 +56,11 @@ class SpoilageController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate(['user_id' => 'nullable|integer|exists:users,id']);
         $products = Product::find($request->input('id'));
 
         $stockOrder = new StockOrder;
+        $stockOrder->user_id = $request->input('user_id');
         $stockOrder->product_id = $request->input('id');
         if ($request->input('newStocks') != null) {
 
@@ -126,8 +129,9 @@ class SpoilageController extends Controller
             $data = DB::table('products as p')
             ->join('stock_order as so', 'so.product_id', '=', 'p.id')
             ->join('spoilage as s', 's.stock_order_id', '=', 'so.id')
-            ->select('so.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+            ->select('so.user_id', 'so.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at', 'so.pack', 's.reason' )
+            ->tap([StockOrder::class, 'withUserDetails'])
             ->orderBy('so.id', 'DESC')
             ->where('so.id', $id)
             ->first();
@@ -224,8 +228,9 @@ class SpoilageController extends Controller
       ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
        'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
         'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled', 'products.note',
-        'so.id as stock_order_id', 'so.pack', 'so.stock_type', 'so.total_stock', 'so.stock as stock_quantity', 's.reason',
+        'so.user_id', 'so.id as stock_order_id', 'so.pack', 'so.stock_type', 'so.total_stock', 'so.stock as stock_quantity', 's.reason',
          's.total_cost', 's.id as spoilage_id', 's.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
       ->orderBy('s.id', 'DESC')
       ->where('s.created_at', $date)
       ->get();

@@ -383,7 +383,11 @@ class ShopOrderController extends Controller
                     'emails' => $emails
                 ]);
 
-                Mail::send($html, ['params' => $request], function ($m) use ($emails, $subject) {
+                $pendingOrders = $html === 'no_stock'
+                    ? app(\App\Services\PendingSupplierOrderService::class)->forProduct($product->id)
+                    : collect();
+
+                Mail::send($html, ['params' => $request, 'pendingOrders' => $pendingOrders], function ($m) use ($emails, $subject) {
                     $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
                     $m->to($emails)->subject($subject);
                 });

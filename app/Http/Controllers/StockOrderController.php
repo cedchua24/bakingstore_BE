@@ -17,8 +17,9 @@ class StockOrderController extends Controller
     {
             $data = DB::table('products as p')
             ->join('stock_order as so', 'so.product_id', '=', 'p.id')
-            ->select('p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+            ->select('so.user_id', 'p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
             ->orderBy('p.updated_at', 'DESC')
             ->get();
             return response()->json($data);   
@@ -43,13 +44,15 @@ class StockOrderController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'stock' => 'required'
+            'stock' => 'required',
+            'user_id' => 'nullable|integer|exists:users,id'
         ]);
 
         // $item = UserProfile::create($data);
 
         // Create Post
         $stockOrder = new StockOrder;
+        $stockOrder->user_id = $request->input('user_id');
         $stockOrder->product_id = $request->input('product_id');
         $stockOrder->pack = $request->input('pack');
         $stockOrder->stock_type = $request->input('stock_type');
@@ -69,20 +72,22 @@ class StockOrderController extends Controller
     {
             $data = DB::table('products as p')
             ->join('stock_order as so', 'so.product_id', '=', 'p.id')
-            ->select('p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+            ->select('so.user_id', 'p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
             ->orderBy('p.updated_at', 'DESC')
-            ->where('p.id', $id)
+            ->where('so.id', $stockOrder->id)
             ->get();
             return response()->json($data); 
     }
 
         public function fetchById($id)
     {
-            $data = DB::table('products p')
-            ->join('stock_order so', 'so.product_id', '=', 'p.id')
-            ->select('p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+            $data = DB::table('products as p')
+            ->join('stock_order as so', 'so.product_id', '=', 'p.id')
+            ->select('so.user_id', 'p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
             ->orderBy('p.updated_at', 'DESC')
             ->where('p.id', $id)
             ->get();
@@ -97,10 +102,11 @@ class StockOrderController extends Controller
      */
     public function edit(StockOrder $stockOrder)
     {
-            $data = DB::table('products p')
-            ->join('stock_order so', 'so.product_id', '=', 'p.id')
-            ->select('p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
+            $data = DB::table('products as p')
+            ->join('stock_order as so', 'so.product_id', '=', 'p.id')
+            ->select('so.user_id', 'p.id', 'p.product_name', 'so.pack', 'so.stock_type', 'so.stock',
              'so.updated_at')
+            ->tap([StockOrder::class, 'withUserDetails'])
             ->orderBy('p.updated_at', 'DESC')
             ->where('p.id', $stockOrder->id)
             ->get();

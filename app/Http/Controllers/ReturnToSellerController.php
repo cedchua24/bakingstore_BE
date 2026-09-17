@@ -51,9 +51,11 @@ class ReturnToSellerController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate(['user_id' => 'nullable|integer|exists:users,id']);
         $products = Product::find($request->input('id'));
 
         $stockOrder = new StockOrder;
+        $stockOrder->user_id = $request->input('user_id');
         $stockOrder->product_id = $request->input('id');
         $stockOrder->stock_reason = $request->input('reason');
         $stockOrder->stock_type = $request->input('newStocks') > 0 ? 'Add' : 'Reduce';
@@ -139,6 +141,7 @@ class ReturnToSellerController extends Controller
      */
     public function update(Request $request, ReturnToSeller $returnToSeller)
     {
+        $request->validate(['user_id' => 'nullable|integer|exists:users,id']);
 
         $returnToSeller = ReturnToSeller::find($request->input('id'));
         
@@ -162,6 +165,7 @@ class ReturnToSellerController extends Controller
             $products->save();
 
             $stockOrder = new StockOrder;
+            $stockOrder->user_id = $request->input('user_id');
             $stockOrder->product_id = $request->input('product_id');
             $stockOrder->stock_reason = 'RECEIVED_TO_WAREHOUSE';
             $stockOrder->stock_type = 'Add';
