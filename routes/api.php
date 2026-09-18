@@ -396,6 +396,7 @@ Route::resource('/deliveryCustomer', 'App\Http\Controllers\DeliveryCustomerContr
 Route::get('/deliveryCustomer/fetchDeliveryById/{id}', [DeliveryCustomerController::class, 'fetchDeliveryById']);
 Route::delete('/deliveryCustomer/deleteTransaction/{id}', [DeliveryCustomerController::class, 'deleteTransaction']);
 
+Route::get('/shopOrder/fetchDiscountSummary', [ShopOrderController::class, 'fetchDiscountSummary']);
 Route::resource('/shopOrder', 'App\Http\Controllers\ShopOrderController');
 Route::get('/shopOrder/fetchShopOrderDTO/{id}', [ShopOrderController::class, 'fetchShopOrderDTO']);
 Route::get('/shopOrder/fetchShopOrder/{id}', [ShopOrderController::class, 'fetchShopOrder']);

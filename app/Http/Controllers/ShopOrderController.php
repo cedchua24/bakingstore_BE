@@ -21,6 +21,26 @@ use Carbon\Carbon;
 
 class ShopOrderController extends Controller
 {
+    public function fetchDiscountSummary(Request $request)
+    {
+        $validated = $request->validate([
+            'date_from' => 'required|date_format:Y-m-d',
+            'date_to' => 'required|date_format:Y-m-d|after_or_equal:date_from',
+        ]);
+
+        $summary = DB::table('discount')
+            ->join('shop_order', 'shop_order.id', '=', 'discount.shop_order_id')
+            ->join('shop_order_transaction as sot', 'sot.id', '=', 'shop_order.shop_transaction_id')
+            ->where('discount.loss_amount', '<', 0)
+            ->whereDate('sot.date', '>=', $validated['date_from'])
+            ->whereDate('sot.date', '<=', $validated['date_to'])
+            ->selectRaw('COALESCE(SUM(discount.loss_amount), 0) as loss_amount')
+            ->selectRaw('COALESCE(SUM(shop_order.shop_order_total_price), 0) as shop_order_total_price')
+            ->first();
+
+        return response()->json($summary);
+    }
+
     /**
      * Display a listing of the resource.
      *
