@@ -16,6 +16,7 @@ class UserRegistrationTest extends TestCase
     {
         $response = $this->postJson('/api/register', [
             'name' => 'Jane Baker',
+            'store_name' => 'Jane Bakery',
             'email' => 'Jane@example.com',
             'password' => 'Secure!Pass123',
             'password_confirmation' => 'Secure!Pass123',
@@ -24,12 +25,14 @@ class UserRegistrationTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('email', 'jane@example.com')
+            ->assertJsonPath('store_name', 'Jane Bakery')
             ->assertJsonPath('role_as', User::ROLE_USER)
             ->assertJsonStructure(['id', 'name', 'email', 'token', 'expires_at']);
 
         $user = User::where('email', 'jane@example.com')->firstOrFail();
 
         $this->assertTrue(Hash::check('Secure!Pass123', $user->password));
+        $this->assertSame('Jane Bakery', $user->store_name);
         $this->assertSame(User::ROLE_USER, $user->role_as);
         $this->assertSame(User::STATUS_ACTIVE, $user->status);
     }

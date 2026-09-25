@@ -12,4 +12,9 @@ class Product extends Model
     public $primaryKey ='id';
 
     public $timestamps = true;
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 }

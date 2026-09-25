@@ -67,6 +67,12 @@ use App\Http\Controllers\VipCustomerNoteController;
 use App\Http\Controllers\VipProductController;
 use App\Http\Controllers\VipProductTransactionController;
 use App\Http\Controllers\VipProductNoteController;
+use App\Http\Controllers\PrintingTransactionController;
+use App\Http\Controllers\PrintingTransactionCommentController;
+
+Route::get('printingTransaction/fetchByShopOrderTransactionId/{id}', [PrintingTransactionController::class, 'fetchByShopOrderTransactionId'])->whereNumber('id');
+Route::apiResource('printingTransaction', PrintingTransactionController::class);
+Route::apiResource('printingTransactionComment', PrintingTransactionCommentController::class);
 
 
 

@@ -12,4 +12,14 @@ class ShopOrderTransaction extends Model
     public $primaryKey ='id';
 
     public $timestamps = true;
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'requestor');
+    }
+
+    public function shopOrders()
+    {
+        return $this->hasMany(ShopOrder::class, 'shop_transaction_id')->orderBy('id');
+    }
 }

@@ -82,13 +82,17 @@ class OrderSupplierController extends Controller
  
         $orderSupplier->save();
 
-        $products = Product::find($request->input('product_id'));
-        if ($request->input('variation') === 'WHOLESALE') {
-            $products->price = $request->input('price');
-        } else {
-            $products->price = $request->input('price') * $products->quantity;
-        }
-        
+         $products = Product::find($request->input('product_id'));
+
+         // AUTO CHANGE AMOUNT PRODUCT
+         if($request->input('role_as') == 2) {
+            if ($request->input('variation') === 'WHOLESALE') {
+                $products->price = $request->input('price');
+            } else {
+                $products->price = $request->input('price') * $products->quantity;
+            }
+         }
+
         $products->save();
 
         // status always pending
@@ -509,6 +513,17 @@ class OrderSupplierController extends Controller
         $orderSupplier->total_price = $request->input('price') * $request->input('quantity');
         $orderSupplier->expiration = $request->input('expiration');
         $orderSupplier->enable = $request->input('enable');
+
+                 // AUTO CHANGE AMOUNT PRODUCT
+        $products = Product::find($request->input('product_id'));         
+         if($request->input('role_as') == 2) {
+            if ($orderSupplier->variation === 'WHOLESALE') {
+                $products->price = $request->input('price');
+            } else {
+                $products->price = $request->input('price') * $products->quantity;
+            }
+         }
+         $products->save();
 
         $orderSupplier->save();
 
