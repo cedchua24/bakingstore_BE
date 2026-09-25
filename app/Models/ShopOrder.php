@@ -12,4 +12,9 @@ class ShopOrder extends Model
     public $primaryKey ='id';
 
     public $timestamps = true;
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

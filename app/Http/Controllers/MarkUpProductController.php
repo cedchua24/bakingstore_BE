@@ -158,7 +158,8 @@ class MarkUpProductController extends Controller
                 'mup.business_type',
                 'p.sale_price',
                 'p.stock as product_stock',
-                'p.stock_pc as product_stock_pieces'
+                'p.stock_pc as product_stock_pieces',
+                'c.tags'
             )
             ->selectRaw("
                 CASE

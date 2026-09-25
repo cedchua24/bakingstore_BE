@@ -659,7 +659,7 @@ class OrderSupplierTransactionController extends Controller
                 $items = DB::table('order_supplier')
                     ->join('order_supplier_transaction', 'order_supplier_transaction.id', '=', 'order_supplier.order_supplier_transaction_id')
                     ->join('products', 'products.id', '=', 'order_supplier.product_id')
-                    ->select('order_supplier.order_supplier_transaction_id', 'order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation')
+                    ->select('order_supplier.order_supplier_transaction_id', 'order_supplier.product_id', 'order_supplier.quantity', 'order_supplier.variation', 'order_supplier.price')
                     ->where('order_supplier_transaction.id', $id)
                     ->orderBy('order_supplier.id')
                     ->get();
@@ -677,6 +677,7 @@ class OrderSupplierTransactionController extends Controller
                     $initialStock = $product->stock;
                     if ($row->variation === 'WHOLESALE') {
                         $product->stock = $initialStock + $row->quantity;
+                        $product->price = $row->price;
                         if ($product->quantity > 1) {
                             $newStock = $product->quantity * $row->quantity;
                             $product->stock_pc = $product->stock_pc + $newStock;
@@ -685,6 +686,15 @@ class OrderSupplierTransactionController extends Controller
                         $newStock = $product->stock_pc + $row->quantity;
                         $product->stock_pc = $newStock;
                         $product->stock = floor($product->stock_pc / $product->quantity);
+                        $product->price =  $row->price * $product->quantity;
+                    }
+
+                    
+
+                    if ($row->variation === 'WHOLESALE') {
+                        $product->price = $row->price;
+                    } else {
+                        $product->price =  $row->price * $product->quantity;
                     }
 
                     $product->saveOrFail();

@@ -4931,8 +4931,11 @@ class ShopOrderTransactionController extends Controller
          $shopOrderTransaction = DB::table('shop_order_transaction as sot')
             ->join('shop as s', 's.id', '=', 'sot.shop_id')
             ->join('shop_type as st', 'st.id', '=', 's.shop_type_id')
-            ->select('st.id')    
+            ->leftJoin('printing_transaction as pt', 'pt.shop_order_transaction_id', '=', 'sot.id')
+            ->select('st.id')
+            ->addSelect('pt.id as printing_transaction_id')
             ->where('sot.id', $id)
+            ->orderByDesc('pt.id')
             ->first();
 
         switch ($shopOrderTransaction->id) {
@@ -4991,6 +4994,7 @@ class ShopOrderTransactionController extends Controller
         }
 
         if ($data) {
+            $data->printing_transaction_id = $shopOrderTransaction->printing_transaction_id;
             $data->vip_customers = DB::table('vip_customer_transaction as vct')
                 ->join('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
                 ->select(
