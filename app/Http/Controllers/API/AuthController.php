@@ -17,7 +17,6 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:191'],
-            'store_name' => ['sometimes', 'nullable', 'string', 'max:191'],
             'email' => ['required', 'string', 'email:rfc', 'max:191', 'unique:users,email'],
             'password' => [
                 'required',
@@ -31,7 +30,6 @@ class AuthController extends Controller
         // Never accept role or status from a public registration request.
         $user = new User();
         $user->name = $validated['name'];
-        $user->store_name = $validated['store_name'] ?? null;
         $user->email = strtolower($validated['email']);
         $user->role_as = User::ROLE_USER;
         $user->status = User::STATUS_ACTIVE;
@@ -45,7 +43,6 @@ class AuthController extends Controller
             'id' => $user->id,
             'role_as' => $user->role_as,
             'name' => $user->name,
-            'store_name' => $user->store_name,
             'email' => $user->email,
             'default_color' => config('app.default_color'),
             'token' => $newToken->plainTextToken,
@@ -59,7 +56,7 @@ class AuthController extends Controller
     public function fetchUserList()
     {
         $users = User::where('status', User::STATUS_ACTIVE)
-            ->get(['id', 'name', 'store_name', 'email', 'role_as', 'status', 'created_at']);
+            ->get(['id', 'name', 'email', 'role_as', 'status', 'created_at']);
 
         return response()->json($users);
     }
@@ -116,7 +113,6 @@ class AuthController extends Controller
             'id' => $user->id,
             'username' => $user->name,
             'name' => $user->name,
-            'store_name' => $user->store_name,
             'email' => $user->email,
             'role_as' => $user->role_as,
             'default_color' => config('app.default_color'),
