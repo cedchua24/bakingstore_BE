@@ -16,7 +16,6 @@ class PrintingTransactionTest extends TestCase
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('store_name')->nullable();
         });
         Schema::create('customer', function (Blueprint $table) {
             $table->id();
@@ -81,7 +80,7 @@ class PrintingTransactionTest extends TestCase
             $table->integer('status')->default(1);
         });
         (require database_path('migrations/2026_09_21_000001_create_printing_transactions.php'))->up();
-        DB::table('users')->insert(['id' => 1, 'name' => 'Coordinator', 'store_name' => 'Coordinator Store']);
+        DB::table('users')->insert(['id' => 1, 'name' => 'Coordinator']);
         DB::table('shop_order_transaction')->insert(['id' => 1]);
     }
 
