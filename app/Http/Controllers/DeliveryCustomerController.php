@@ -39,7 +39,9 @@ class DeliveryCustomerController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'shop_order_transaction_id' => 'required'
+            'shop_order_transaction_id' => 'required',
+            'driver_id' => 'sometimes|nullable|integer',
+            'helper_id' => 'sometimes|nullable|integer',
         ]);
 
         // $item = UserProfile::create($data);
@@ -62,6 +64,13 @@ class DeliveryCustomerController extends Controller
         $deliveryCustomer->contact_number = $request->input('contact_number');
         $deliveryCustomer->address = $request->input('address');
         $deliveryCustomer->status = $request->input('status');
+        if ($request->has('driver_id')) {
+            $deliveryCustomer->driver_id = $request->input('driver_id');
+        }
+
+        if ($request->has('helper_id')) {
+            $deliveryCustomer->helper_id = $request->input('helper_id');
+        }
         $deliveryCustomer->save();
 
          $shopOrderTransaction = ShopOrderTransaction::find($request->input('shop_order_transaction_id'));
