@@ -214,7 +214,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as c', 'c.id', '=', 'sot.checker')
             ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
             ->select('sot.id', 'sot.shop_order_transaction_total_quantity',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at', 's.shop_name', 's.shop_type_id',
              'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor',
               'sot.status',  'sot.date', 'sot.profit', 'sr.first_name as sr_name')    
@@ -2186,6 +2186,7 @@ class ShopOrderTransactionController extends Controller
                 'sot.id',
                 'sot.shop_order_transaction_total_quantity',
                 'sot.shop_order_transaction_total_price',
+                'sot.print_count',
                 'sot.created_at',
                 'sot.updated_at',
                 'sot.is_pickup',
@@ -2989,6 +2990,7 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
                     'shop_order_transaction.shop_order_transaction_total_price',
+                    'shop_order_transaction.print_count',
                     'shop_order_transaction.created_at',
                     'shop_order_transaction.updated_at',
                     'shop_order_transaction.is_pickup',
@@ -3179,6 +3181,7 @@ class ShopOrderTransactionController extends Controller
                     'shop_order_transaction.id',
                     'shop_order_transaction.shop_order_transaction_total_quantity',
                     'shop_order_transaction.shop_order_transaction_total_price',
+                    'shop_order_transaction.print_count',
                     'shop_order_transaction.created_at',
                     'shop_order_transaction.updated_at',
                     'shop_order_transaction.is_pickup',
@@ -3324,7 +3327,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->join('delivery_customer as ds', 'ds.id', '=', 'shop_order_transaction.delivery_customer_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.shop_order_transaction_total_price', 'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
@@ -3396,7 +3399,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
             ->join('delivery_customer as ds', 'ds.id', '=', 'shop_order_transaction.delivery_customer_id')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.shop_order_transaction_total_price', 'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status', 'shop_order_transaction.date', 'shop_order_transaction.profit',
@@ -4659,7 +4662,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.shop_order_transaction_total_price', 'shop_order_transaction.print_count', 'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
@@ -4673,7 +4676,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
             ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
             ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-             'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
+             'shop_order_transaction.shop_order_transaction_total_price', 'shop_order_transaction.print_count', 'shop_order_transaction.created_at',
              'shop_order_transaction.updated_at', 'shop.shop_name', 'shop.shop_type_id',
              'r.name as requestor_name', 'c.name as checker_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor',
               'shop_order_transaction.status',  'shop_order_transaction.date', 'shop_order_transaction.profit')    
@@ -5062,6 +5065,7 @@ class ShopOrderTransactionController extends Controller
         $shopOrderTransaction->user_id = $request->input('user_id');
         $shopOrderTransaction->profit = 0;
         $shopOrderTransaction->status = 2;
+        $shopOrderTransaction->print_count = 0;
         $shopOrderTransaction->type = $request->input('type');
         $shopOrderTransaction->customer_type_id = $request->input('customer_type_id');
         $shopOrderTransaction->date = $request->input('date');
@@ -5190,6 +5194,17 @@ class ShopOrderTransactionController extends Controller
           ];
 
             return response()->json($response);
+    }
+
+    public function incrementPrintCount($id)
+    {
+        $shopOrderTransaction = ShopOrderTransaction::findOrFail($id);
+        $shopOrderTransaction->increment('print_count');
+
+        return response()->json([
+            'message' => 'Print count incremented successfully',
+            'print_count' => $shopOrderTransaction->print_count,
+        ]);
     }
 
 
