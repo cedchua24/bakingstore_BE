@@ -411,7 +411,7 @@ class ShopOrderTransactionController extends Controller
     {
 
            $data = DB::table('customer as c')
-            ->select('c.id as customer_id', 'sot.id', 'c.first_name', 'c.last_name', 
+            ->select('c.id as customer_id', 'sot.id', 'c.first_name', 'c.last_name',  'c.store_name',
             'sot.is_pickup', 'sot.date', 'sot.preparer_id', 'sot.checker_id', 'sot.dispatcher_id',
               DB::raw("IFNULL(c.address, '') as address"), 
               DB::raw("IFNULL(c.contact_number, '') as contact_number"), 
