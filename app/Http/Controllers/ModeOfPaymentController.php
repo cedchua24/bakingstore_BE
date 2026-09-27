@@ -118,6 +118,7 @@ class ModeOfPaymentController extends Controller
         if ($balance == 0) {
             $status = 1;
         }
+
             $request = new Request([
                 'id' => $request->input('shop_order_transaction_id'),             
                 'status' => $status         

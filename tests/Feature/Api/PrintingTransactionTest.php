@@ -30,8 +30,10 @@ class PrintingTransactionTest extends TestCase
             $table->unsignedBigInteger('user_id')->nullable();
             $table->integer('is_pickup')->default(0);
             $table->integer('status')->default(0);
+            $table->unsignedInteger('print_count')->default(0);
             $table->decimal('shop_order_transaction_total_price', 12, 2)->default(0);
             $table->unsignedBigInteger('requestor')->nullable();
+            $table->timestamps();
         });
         Schema::create('category', function (Blueprint $table) {
             $table->id();
@@ -108,6 +110,25 @@ class PrintingTransactionTest extends TestCase
             'sales_channel' => 'FACEBOOK',
             'order_date' => '2026-09-21',
         ];
+    }
+
+    public function test_print_count_can_be_incremented_from_its_own_endpoint(): void
+    {
+        $this->postJson('/api/shopOrderTransaction/1/incrementPrintCount')
+            ->assertOk()
+            ->assertJsonPath('print_count', 1);
+
+        $this->postJson('/api/shopOrderTransaction/1/incrementPrintCount')
+            ->assertOk()
+            ->assertJsonPath('print_count', 2);
+
+        $this->assertDatabaseHas('shop_order_transaction', [
+            'id' => 1,
+            'print_count' => 2,
+        ]);
+
+        $this->postJson('/api/shopOrderTransaction/999/incrementPrintCount')
+            ->assertNotFound();
     }
 
     public function test_optional_status_and_inclusive_date_range_filters(): void
