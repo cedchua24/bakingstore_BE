@@ -316,6 +316,7 @@ Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
+Route::post('/shopOrderTransaction/fetchOnlineShopMonthlySalesForecast', [ShopOrderTransactionController::class, 'fetchOnlineShopMonthlySalesForecast']);
 Route::post('/shopOrderTransaction/fetchSalesList', [ShopOrderTransactionController::class, 'fetchSalesList']);
 Route::post('/shopOrderTransaction/fetchSalesListV2', [ShopOrderTransactionController::class, 'fetchSalesListV2']);
 Route::post('/shopOrderTransaction/fetchEmployeePrepare', [ShopOrderTransactionController::class, 'fetchEmployeePrepare']);

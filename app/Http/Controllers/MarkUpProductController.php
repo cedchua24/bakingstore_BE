@@ -9,16 +9,26 @@ use Illuminate\Support\Facades\DB;
 class MarkUpProductController extends Controller
 {
     /**
-     * List active markup prices with optional price or profit sorting.
+     * List all active markup prices with optional markup sorting.
      */
     public function catalog(Request $request)
     {
+        if (is_string($request->input('business_type'))) {
+            $request->merge([
+                'business_type' => strtolower($request->input('business_type')),
+            ]);
+        }
+
         $validated = $request->validate([
-            'sort' => 'nullable|in:highest_price,lowest_price,highest_profit,lowest_profit',
-            'profit_type' => 'nullable|in:amount,margin',
+            'sort' => 'nullable|in:highest_markup,lowest_markup,highest_markup_margin,lowest_markup_margin',
+            'business_type' => 'nullable|in:wholesale,retail,all',
+            'limit' => 'nullable|in:all,10,20,50,100,200,500',
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
         ]);
 
-        $profitType = $validated['profit_type'] ?? 'amount';
+        $businessType = $validated['business_type'] ?? 'all';
+        $limit = $validated['limit'] ?? 'all';
 
         $query = DB::table('mark_up_product as mup')
             ->join('products as p', 'mup.product_id', '=', 'p.id')
@@ -57,63 +67,76 @@ class MarkUpProductController extends Controller
                     ELSE p.stock_pc
                 END as stock
             ")
-            ->selectRaw('(mup.new_price - mup.price) as profit_amount')
             ->selectRaw("
                 CASE
                     WHEN mup.price = 0 THEN NULL
-                    ELSE ROUND((mup.new_price - mup.price) / mup.price * 100, 2)
-                END as profit_margin_percent
+                    ELSE ROUND(mup.mark_up_price / mup.price * 100, 2)
+                END as mark_up_percentage
+            ")
+            ->selectRaw("
+                CASE
+                    WHEN mup.new_price = 0 THEN NULL
+                    ELSE ROUND(mup.mark_up_price / mup.new_price * 100, 2)
+                END as mark_up_margin_percent
             ")
             ->where('mup.status', 1)
             ->where('p.disabled', 0);
 
+        if ($businessType !== 'all') {
+            $query->where('mup.business_type', strtoupper($businessType));
+        }
+
+        if (isset($validated['category_id'])) {
+            $query->where('p.category_id', $validated['category_id']);
+        }
+
+        if (isset($validated['supplier_id'])) {
+            $query->whereExists(function ($supplierQuery) use ($validated) {
+                $supplierQuery->select(DB::raw(1))
+                    ->from('product_supplier as ps')
+                    ->whereColumn('ps.product_id', 'p.id')
+                    ->where('ps.supplier_id', $validated['supplier_id']);
+            });
+        }
+
         switch ($validated['sort'] ?? null) {
-            case 'highest_price':
-                $query->orderByDesc('mup.new_price');
+            case 'highest_markup':
+                $query->orderByRaw('CASE WHEN mup.price = 0 THEN 1 ELSE 0 END ASC');
+                $query->orderByRaw('(mup.mark_up_price / NULLIF(mup.price, 0)) DESC');
                 break;
-            case 'lowest_price':
-                $query->orderBy('mup.new_price');
+            case 'lowest_markup':
+                $query->orderByRaw('CASE WHEN mup.price = 0 THEN 1 ELSE 0 END ASC');
+                $query->orderByRaw('(mup.mark_up_price / NULLIF(mup.price, 0)) ASC');
                 break;
-            case 'highest_profit':
-                if ($profitType === 'margin') {
-                    $query->orderByRaw('CASE WHEN mup.price = 0 THEN 1 ELSE 0 END ASC');
-                    $query->orderByRaw("
-                        CASE
-                            WHEN mup.price = 0 THEN NULL
-                            ELSE (mup.new_price - mup.price) / mup.price
-                        END DESC
-                    ");
-                } else {
-                    $query->orderByRaw('(mup.new_price - mup.price) DESC');
-                }
+            case 'highest_markup_margin':
+                $query->orderByRaw('CASE WHEN mup.new_price = 0 THEN 1 ELSE 0 END ASC');
+                $query->orderByRaw('(mup.mark_up_price / NULLIF(mup.new_price, 0)) DESC');
                 break;
-            case 'lowest_profit':
-                if ($profitType === 'margin') {
-                    $query->orderByRaw('CASE WHEN mup.price = 0 THEN 1 ELSE 0 END ASC');
-                    $query->orderByRaw("
-                        CASE
-                            WHEN mup.price = 0 THEN NULL
-                            ELSE (mup.new_price - mup.price) / mup.price
-                        END ASC
-                    ");
-                } else {
-                    $query->orderByRaw('(mup.new_price - mup.price) ASC');
-                }
+            case 'lowest_markup_margin':
+                $query->orderByRaw('CASE WHEN mup.new_price = 0 THEN 1 ELSE 0 END ASC');
+                $query->orderByRaw('(mup.mark_up_price / NULLIF(mup.new_price, 0)) ASC');
                 break;
             default:
                 $query->orderBy('c.ordering', 'ASC');
                 break;
         }
 
-        $data = $query
-            ->orderBy('mup.id', 'DESC')
-            ->get();
+        $query->orderBy('mup.id', 'DESC');
+
+        if ($limit !== 'all') {
+            $query->limit((int) $limit);
+        }
+
+        $data = $query->get();
 
         return response()->json([
             'data' => $data,
             'count' => $data->count(),
             'sort' => $validated['sort'] ?? null,
-            'profit_type' => $profitType,
+            'business_type' => $businessType,
+            'limit' => $limit,
+            'category_id' => $validated['category_id'] ?? null,
+            'supplier_id' => $validated['supplier_id'] ?? null,
         ]);
     }
 
