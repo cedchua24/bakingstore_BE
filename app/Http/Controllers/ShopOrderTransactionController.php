@@ -4652,6 +4652,124 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);   
     }
 
+    public function fetchOnlineShopMonthlySalesForecast(Request $request)
+    {
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2000|max:'.Carbon::now('GMT+8')->year,
+        ]);
+
+        $year = (int) $validated['year'];
+        $currentDate = Carbon::now('GMT+8');
+        $lastActualMonth = $year < $currentDate->year ? 12 : $currentDate->month;
+        $driver = DB::connection()->getDriverName();
+        $monthExpression = $driver === 'sqlite'
+            ? "CAST(strftime('%m', sot.date) AS INTEGER)"
+            : 'MONTH(sot.date)';
+
+        $monthlyTotals = DB::table('shop_order_transaction as sot')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->selectRaw($monthExpression.' as month_number')
+            ->selectRaw('COUNT(sot.id) as total_count')
+            ->selectRaw('COALESCE(SUM(sot.shop_order_transaction_total_price), 0) as total_sales')
+            ->selectRaw('COALESCE(SUM(sot.profit), 0) as total_profit')
+            ->selectRaw('COALESCE(SUM(sot.total_cash), 0) as total_cash')
+            ->selectRaw('COALESCE(SUM(sot.total_online), 0) as total_online')
+            ->where('shop.shop_type_id', 3)
+            ->where('sot.status', 1)
+            ->whereBetween('sot.date', [
+                Carbon::create($year, 1, 1)->toDateString(),
+                Carbon::create($year, 12, 31)->toDateString(),
+            ])
+            ->groupByRaw($monthExpression)
+            ->orderByRaw($monthExpression)
+            ->get()
+            ->keyBy('month_number');
+
+        $actualSales = [];
+        $actualProfit = [];
+        for ($month = 1; $month <= $lastActualMonth; $month++) {
+            $totals = $monthlyTotals->get($month);
+            $actualSales[$month] = (float) ($totals->total_sales ?? 0);
+            $actualProfit[$month] = (float) ($totals->total_profit ?? 0);
+        }
+
+        $months = collect(range(1, 12))->map(function ($month) use (
+            $year,
+            $lastActualMonth,
+            $monthlyTotals,
+            $actualSales,
+            $actualProfit
+        ) {
+            $totals = $monthlyTotals->get($month);
+            $isForecast = $month > $lastActualMonth;
+
+            return [
+                'month_number' => $month,
+                'month' => Carbon::create($year, $month, 1)->format('F'),
+                'period' => sprintf('%d-%02d', $year, $month),
+                'type' => $isForecast ? 'forecast' : 'actual',
+                'total_sales' => $isForecast
+                    ? $this->forecastMonthlyValue($actualSales, $month)
+                    : round((float) ($totals->total_sales ?? 0), 2),
+                'total_profit' => $isForecast
+                    ? $this->forecastMonthlyValue($actualProfit, $month)
+                    : round((float) ($totals->total_profit ?? 0), 2),
+                'total_cash' => $isForecast ? null : round((float) ($totals->total_cash ?? 0), 2),
+                'total_online' => $isForecast ? null : round((float) ($totals->total_online ?? 0), 2),
+                'total_count' => $isForecast ? null : (int) ($totals->total_count ?? 0),
+            ];
+        });
+
+        return response()->json([
+            'data' => $months,
+            'year' => $year,
+            'forecast_method' => 'linear_trend',
+            'summary' => [
+                'actual_sales' => round($months->where('type', 'actual')->sum('total_sales'), 2),
+                'forecast_sales' => round($months->where('type', 'forecast')->sum('total_sales'), 2),
+                'projected_annual_sales' => round($months->sum('total_sales'), 2),
+                'actual_profit' => round($months->where('type', 'actual')->sum('total_profit'), 2),
+                'forecast_profit' => round($months->where('type', 'forecast')->sum('total_profit'), 2),
+                'projected_annual_profit' => round($months->sum('total_profit'), 2),
+            ],
+            'code' => 200,
+            'message' => 'Monthly online shop sales and forecast fetched successfully.',
+        ]);
+    }
+
+    private function forecastMonthlyValue(array $actualValues, int $targetMonth): float
+    {
+        $count = count($actualValues);
+
+        if ($count === 0) {
+            return 0.0;
+        }
+
+        if ($count === 1) {
+            return round(max(0, (float) reset($actualValues)), 2);
+        }
+
+        $sumX = array_sum(array_keys($actualValues));
+        $sumY = array_sum($actualValues);
+        $sumXY = 0.0;
+        $sumXSquare = 0.0;
+
+        foreach ($actualValues as $month => $value) {
+            $sumXY += $month * $value;
+            $sumXSquare += $month * $month;
+        }
+
+        $denominator = ($count * $sumXSquare) - ($sumX * $sumX);
+        if ($denominator == 0.0) {
+            return round(max(0, $sumY / $count), 2);
+        }
+
+        $slope = (($count * $sumXY) - ($sumX * $sumY)) / $denominator;
+        $intercept = ($sumY - ($slope * $sumX)) / $count;
+
+        return round(max(0, $intercept + ($slope * $targetMonth)), 2);
+    }
+
     public function fetchShopOrderTransactionListReportByDate(Request $request)
     {
       
