@@ -76,6 +76,15 @@ class OrderSupplierTransactionController extends Controller
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
             })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.approval_status', $request->input('approval_status'));
+            })
             ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
 
@@ -100,6 +109,15 @@ class OrderSupplierTransactionController extends Controller
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
             })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('ost.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('ost.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('ost.approval_status', $request->input('approval_status'));
+            })
             ->first();
 
            $total_paid = DB::table('order_supplier_transaction as ost')
@@ -107,6 +125,15 @@ class OrderSupplierTransactionController extends Controller
             ->where('ost.payment_status', 1)
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('ost.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('ost.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('ost.approval_status', $request->input('approval_status'));
             })
             ->first();
          } else {
@@ -119,6 +146,15 @@ class OrderSupplierTransactionController extends Controller
             ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('order_supplier_transaction.approval_status', $request->input('approval_status'));
             })
              ->orderBy('order_supplier_transaction.id', 'desc')
             ->get();
@@ -146,6 +182,15 @@ class OrderSupplierTransactionController extends Controller
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
             })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('ost.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('ost.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('ost.approval_status', $request->input('approval_status'));
+            })
             ->first();
 
            $total_paid = DB::table('order_supplier_transaction as ost')
@@ -155,6 +200,15 @@ class OrderSupplierTransactionController extends Controller
             ->where('ost.order_date', '<=', $request->input('dateTo'))
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('payment_status'), function ($query) use ($request) {
+                $query->where('ost.payment_status', $request->input('payment_status'));
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('ost.status', $request->input('status'));
+            })
+            ->when($request->filled('approval_status'), function ($query) use ($request) {
+                $query->where('ost.approval_status', $request->input('approval_status'));
             })
             ->first();            
 
