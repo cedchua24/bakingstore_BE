@@ -128,6 +128,11 @@ Route::resource('/salesRep', 'App\Http\Controllers\SalesRepController');
 
 Route::get('/products/fetchProductMonthlySales', [ProductController::class, 'fetchProductMonthlySales']);
 Route::match(['put', 'patch'], '/products/updateV2/{product}', [ProductController::class, 'updateV2']);
+Route::get('/products/fetchProducts', [ProductController::class, 'fetchProducts']);
+Route::get('/products/fetchStockWarnings', [ProductController::class, 'fetchStockWarnings']);
+Route::get('/products/fetchStocks', [ProductController::class, 'fetchStocks']);
+Route::get('/products/fetchProductListExpiration/{id?}', [ProductController::class, 'fetchProductListExpiration']);
+Route::get('/products/fetchOutOfStock/{id?}', [ProductController::class, 'fetchOutOfStock']);
 Route::resource('/products', 'App\Http\Controllers\ProductController');
 Route::post('/products/searchProductByName', [ProductController::class, 'searchProductByName']);
 Route::get('/products/fetchProductByCategoryId/{id}', [ProductController::class, 'fetchProductByCategoryId']);
@@ -142,7 +147,6 @@ Route::post('/products/fetchPendingProduct', [ProductController::class, 'fetchPe
 
 
 Route::get('/products/fetchProductListNote/{id}', [ProductController::class, 'fetchProductListNote']);
-Route::get('/products/fetchProductListExpiration/{id}', [ProductController::class, 'fetchProductListExpiration']);
 Route::get('/products/fetchOrderSupplierExpirationList/{id}', [ProductController::class, 'fetchOrderSupplierExpirationList']);
 Route::post('/products/testController', [ProductController::class, 'testController']);
 
@@ -170,7 +174,6 @@ Route::get('/products/fetchByStockWarning/{id}', [ProductController::class, 'fet
 Route::get('/products/fetchStockWarningPerSupplier/{id}', [ProductController::class, 'fetchStockWarningPerSupplier']);
 Route::get('/products/fetchStockPerSupplier/{id}', [ProductController::class, 'fetchStockPerSupplier']);
 Route::get('/products/fetchNoStockWarning/{id}', [ProductController::class, 'fetchNoStockWarning']);
-Route::get('/products/fetchOutOfStock/{id}', [ProductController::class, 'fetchOutOfStock']);
 Route::get('/products/fetchProductListDisabled/{id}', [ProductController::class, 'fetchProductListDisabled']);
 Route::get('/products/fetchModifiedStockDaily/{id}', [ProductController::class, 'fetchModifiedStockDaily']);
 Route::post('/products/fetchModifiedReportList', [ProductController::class, 'fetchModifiedReportList']);
@@ -354,6 +357,7 @@ Route::post('/shopOrderTransaction/fetchMonthlyProductSalesComparison', [ShopOrd
 Route::post('/shopOrderTransaction/fetchMonthlyProductCustomerImpact', [ShopOrderTransactionController::class, 'fetchMonthlyProductCustomerImpact']);
 Route::post('/shopOrderTransaction/fetchMonthlySalesImpactAnalysis', [ShopOrderTransactionController::class, 'fetchMonthlySalesImpactAnalysis']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
+Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDateV2', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDateV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);

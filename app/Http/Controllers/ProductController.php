@@ -96,6 +96,247 @@ class ProductController extends Controller
         return response()->json($data);
     }
 
+    public function fetchProducts(Request $request)
+    {
+        $this->validate($request, [
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
+            'search' => 'nullable|string|max:255',
+            'limit' => 'nullable|integer|min:1|max:1000',
+        ]);
+
+        $limit = (int) $request->input('limit', 200);
+
+        $query = DB::table('products')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(
+                'products.category_id',
+                'products.brand_id',
+                'products.variation',
+                'products.stock_warning',
+                'products.stock_warning_type',
+                'category.category_name',
+                'brand.brand_name',
+                'products.id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.weight',
+                'products.quantity',
+                'products.stock_pc',
+                'products.packaging',
+                'products.disabled',
+                'products.note'
+            )
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                $query->where('products.category_id', $request->input('category_id'));
+            })
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->whereExists(function ($supplierProducts) use ($request) {
+                    $supplierProducts
+                        ->select(DB::raw(1))
+                        ->from('product_supplier')
+                        ->whereColumn('product_supplier.product_id', 'products.id')
+                        ->where('product_supplier.supplier_id', $request->input('supplier_id'));
+                });
+            })
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(
+                    'products.product_name',
+                    'like',
+                    '%' . trim($request->input('search')) . '%'
+                );
+            });
+
+        $data = (clone $query)
+            ->orderBy('products.updated_at', 'DESC')
+            ->limit($limit)
+            ->get();
+
+        $totalValue = (clone $query)
+            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))
+            ->first();
+
+        $this->attachPendingSupplierOrders($data);
+
+        return response()->json([
+            'total_value' => $totalValue,
+            'data' => $data,
+            'filters' => [
+                'category_id' => $request->filled('category_id')
+                    ? (int) $request->input('category_id')
+                    : null,
+                'supplier_id' => $request->filled('supplier_id')
+                    ? (int) $request->input('supplier_id')
+                    : null,
+                'search' => $request->input('search'),
+                'limit' => $limit,
+            ],
+            'code' => 200,
+            'message' => 'Successfully fetched products',
+        ]);
+    }
+
+    public function fetchStockWarnings(Request $request)
+    {
+        $this->validate($request, [
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
+            'search' => 'nullable|string|max:255',
+        ]);
+
+        $data = DB::table('products')
+            ->leftJoin('product_supplier as ps', 'ps.product_id', '=', 'products.id')
+            ->leftJoin('supplier as s', 's.id', '=', 'ps.supplier_id')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(
+                's.id as supplier_id',
+                's.supplier_name',
+                'products.category_id',
+                'products.brand_id',
+                'products.variation',
+                'products.stock_warning',
+                'products.stock_warning_type',
+                'category.category_name',
+                'brand.brand_name',
+                'products.id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.weight',
+                'products.quantity',
+                'products.stock_pc',
+                'products.packaging',
+                'products.disabled',
+                'products.note'
+            )
+            ->where(function ($query) {
+                $query->where(function ($wholesale) {
+                    $wholesale
+                        ->where('products.stock_warning_type', 'WHOLESALE')
+                        ->where('products.stock', '!=', 0)
+                        ->whereColumn('products.stock', '<', 'products.stock_warning');
+                })->orWhere(function ($retail) {
+                    $retail
+                        ->where('products.stock_warning_type', '!=', 'WHOLESALE')
+                        ->where('products.stock_pc', '!=', 0)
+                        ->whereColumn('products.stock_pc', '<', 'products.stock_warning');
+                });
+            })
+            ->where('products.stock_warning', '!=', 0)
+            ->where('products.disabled', 0)
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                $query->where('products.category_id', $request->input('category_id'));
+            })
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ps.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(
+                    'products.product_name',
+                    'like',
+                    '%' . trim($request->input('search')) . '%'
+                );
+            })
+            ->orderBy('products.stock', 'ASC')
+            ->get();
+
+        $this->attachPendingSupplierOrders($data);
+
+        return response()->json([
+            'data' => $data,
+            'filters' => [
+                'category_id' => $request->filled('category_id')
+                    ? (int) $request->input('category_id')
+                    : null,
+                'supplier_id' => $request->filled('supplier_id')
+                    ? (int) $request->input('supplier_id')
+                    : null,
+                'search' => $request->input('search'),
+            ],
+            'date' => date('Y-m-d'),
+            'code' => 200,
+            'message' => 'Successfully fetched stock warnings',
+        ]);
+    }
+
+    public function fetchStocks(Request $request)
+    {
+        $this->validate($request, [
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
+            'search' => 'nullable|string|max:255',
+            'limit' => 'nullable|integer|min:1|max:1000',
+        ]);
+
+        $limit = (int) $request->input('limit', 200);
+
+        $data = DB::table('products')
+            ->leftJoin('product_supplier as ps', 'ps.product_id', '=', 'products.id')
+            ->leftJoin('supplier as s', 's.id', '=', 'ps.supplier_id')
+            ->join('category', 'category.id', '=', 'products.category_id')
+            ->join('brand', 'brand.id', '=', 'products.brand_id')
+            ->select(
+                's.id as supplier_id',
+                's.supplier_name',
+                'products.category_id',
+                'products.brand_id',
+                'products.variation',
+                'products.stock_warning',
+                'products.stock_warning_type',
+                'category.category_name',
+                'brand.brand_name',
+                'products.id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.weight',
+                'products.quantity',
+                'products.stock_pc',
+                'products.packaging',
+                'products.disabled',
+                'products.note',
+                'products.updated_at'
+            )
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                $query->where('products.category_id', $request->input('category_id'));
+            })
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ps.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(
+                    'products.product_name',
+                    'like',
+                    '%' . trim($request->input('search')) . '%'
+                );
+            })
+            ->orderBy('products.updated_at', 'DESC')
+            ->limit($limit)
+            ->get();
+
+        $this->attachPendingSupplierOrders($data);
+
+        return response()->json([
+            'data' => $data,
+            'filters' => [
+                'category_id' => $request->filled('category_id')
+                    ? (int) $request->input('category_id')
+                    : null,
+                'supplier_id' => $request->filled('supplier_id')
+                    ? (int) $request->input('supplier_id')
+                    : null,
+                'search' => $request->input('search'),
+                'limit' => $limit,
+            ],
+            'date' => date('Y-m-d'),
+            'code' => 200,
+            'message' => 'Successfully fetched stocks',
+        ]);
+    }
+
         public function fetchProductEnabled()
     {
 
@@ -298,72 +539,89 @@ class ProductController extends Controller
         return response()->json($data);  
     }
 
-    public function fetchProductListExpiration($id)
+    public function fetchProductListExpiration(Request $request, $id = null)
     {
-        if ($id == 0) {
-          $data = DB::table('category')
+        $this->validate($request, [
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
+            'search' => 'nullable|string|max:255',
+        ]);
+
+        $categoryId = $request->filled('category_id')
+            ? $request->input('category_id')
+            : (($id !== null && (int) $id !== 0) ? $id : null);
+
+        $query = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
             ->join('order_supplier as os', 'os.product_id', '=', 'products.id')
             ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
-            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
-              'os.expiration', 'products.note')
             ->where('os.expiration', '!=', '0000-00-00')
-            ->where('os.enable', 1) 
-            ->where('ost.status', 'COMPLETED') 
-            ->where('products.disabled', '==', 0) 
-            ->where('products.stock', '!=', 0) 
+            ->where('os.enable', 1)
+            ->where('ost.status', 'COMPLETED')
+            ->where('products.disabled', 0)
+            ->where('products.stock', '!=', 0)
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('products.category_id', $categoryId);
+            })
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->where('ost.supplier_id', $request->input('supplier_id'));
+            })
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(
+                    'products.product_name',
+                    'like',
+                    '%' . trim($request->input('search')) . '%'
+                );
+            });
+
+        $data = (clone $query)
+            ->select(
+                'products.category_id',
+                'products.stock_warning',
+                'products.brand_id',
+                'products.variation',
+                'category.category_name',
+                'brand.brand_name',
+                'products.id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.weight',
+                'products.quantity',
+                'products.stock_pc',
+                'products.packaging',
+                'products.disabled',
+                'os.expiration',
+                'products.note'
+            )
             ->groupBy('products.id')
             ->orderBy('os.expiration', 'ASC')
             ->get();
-            
-            $total_value = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
+
+        $matchingProducts = (clone $query)
+            ->select('products.id', 'products.price', 'products.stock')
+            ->distinct();
+
+        $totalValue = DB::query()
+            ->fromSub($matchingProducts, 'matching_products')
+            ->select(DB::raw('SUM(price * stock) as total_price'))
             ->first();
 
-        } else {
-                        $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->join('order_supplier as os', 'os.product_id', '=', 'products.id')
-            ->join('order_supplier_transaction as ost', 'ost.id', '=', 'os.order_supplier_transaction_id')
-            ->select('products.category_id', 'products.stock_warning', 'products.brand_id', 'products.variation', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging', 'products.disabled',
-              'os.expiration', 'products.note')
-            ->where('os.expiration', '!=', '0000-00-00')
-            ->where('os.enable', 1) 
-            ->where('ost.status', 'COMPLETED') 
-            ->where('products.disabled', '==', 0) 
-            ->where('products.stock', '!=', 0) 
-            ->where('category.id',  $id)
-            ->groupBy('products.id')
-            ->orderBy('os.expiration', 'ASC')
-            ->get();
-            
-            $total_value = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select(DB::raw('SUM(products.price * products.stock) as total_price'))   
-            ->first();
-
-        }
-
-
-
-           $response = [
-              'total_value' =>$total_value,
-              'today' => date('Y-m-d'),
-              'data' => $data,
-              'code' => 200,
-              'message' => "Successfully Addedz"
-          ];
-
-          return response()->json($response);   
+        return response()->json([
+            'total_value' => $totalValue,
+            'today' => date('Y-m-d'),
+            'data' => $data,
+            'filters' => [
+                'category_id' => $categoryId ? (int) $categoryId : null,
+                'supplier_id' => $request->filled('supplier_id')
+                    ? (int) $request->input('supplier_id')
+                    : null,
+                'search' => $request->input('search'),
+            ],
+            'code' => 200,
+            'message' => 'Successfully fetched product expirations',
+        ]);
     }
 
         public function fetchProductValue($id)
@@ -441,46 +699,82 @@ class ProductController extends Controller
           return response()->json($response);   
     }
 
-          public function fetchOutOfStock($category_id)
+    public function fetchOutOfStock(Request $request, $category_id = null)
     {
-        if ($category_id == 0) {
-            $data = DB::table('category')
+        $this->validate($request, [
+            'category_id' => 'nullable|integer|exists:category,id',
+            'supplier_id' => 'nullable|integer|exists:supplier,id',
+            'search' => 'nullable|string|max:255',
+        ]);
+
+        $categoryId = $request->filled('category_id')
+            ? $request->input('category_id')
+            : (($category_id !== null && (int) $category_id !== 0) ? $category_id : null);
+
+        $query = DB::table('category')
             ->join('products', 'category.id', '=', 'products.category_id')
             ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note', 'products.updated_at')
+            ->select(
+                'products.category_id',
+                'products.brand_id',
+                'products.variation',
+                'products.stock_warning',
+                'category.category_name',
+                'brand.brand_name',
+                'products.id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.weight',
+                'products.quantity',
+                'products.stock_pc',
+                'products.packaging',
+                'products.disabled',
+                'products.note',
+                'products.updated_at'
+            )
             ->where('products.disabled', 0)
             ->where('products.stock', 0)
             ->where('products.stock_pc', 0)
-            ->orderBy('products.updated_at', 'desc')
-            ->get();
-        } else {
-            $data = DB::table('category')
-            ->join('products', 'category.id', '=', 'products.category_id')
-            ->join('brand', 'brand.id', '=', 'products.brand_id')
-            ->select('products.category_id', 'products.brand_id', 'products.variation', 'products.stock_warning', 'category.category_name',
-             'brand.brand_name', 'products.id', 'products.product_name', 'products.price',
-              'products.stock', 'products.weight', 'products.quantity', 'products.stock_pc', 'products.packaging',
-               'products.disabled', 'products.note', 'products.updated_at')
-            ->where('products.disabled',  0)
-            ->where('products.stock', 0)
-            ->where('products.stock_pc', 0)
-            ->where('category.id',  $category_id)
-            ->orderBy('products.stock', 'ASC')
-                ->get();
-        }
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('products.category_id', $categoryId);
+            })
+            ->when($request->filled('supplier_id'), function ($query) use ($request) {
+                $query->whereExists(function ($supplierProducts) use ($request) {
+                    $supplierProducts
+                        ->select(DB::raw(1))
+                        ->from('product_supplier')
+                        ->whereColumn('product_supplier.product_id', 'products.id')
+                        ->where('product_supplier.supplier_id', $request->input('supplier_id'));
+                });
+            })
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(
+                    'products.product_name',
+                    'like',
+                    '%' . trim($request->input('search')) . '%'
+                );
+            });
+
+        $data = $categoryId
+            ? $query->orderBy('products.stock', 'ASC')->get()
+            : $query->orderBy('products.updated_at', 'DESC')->get();
 
         $this->attachPendingSupplierOrders($data);
 
-        $response = [
-              'data' => $data,
-              'id' => $category_id,
-              'date' => date('Y-m-d'),
-              'message' => "Successfully Added"
-          ];
-            return response()->json($response);    
+        return response()->json([
+            'data' => $data,
+            'id' => $categoryId ?? 0,
+            'filters' => [
+                'category_id' => $categoryId ? (int) $categoryId : null,
+                'supplier_id' => $request->filled('supplier_id')
+                    ? (int) $request->input('supplier_id')
+                    : null,
+                'search' => $request->input('search'),
+            ],
+            'date' => date('Y-m-d'),
+            'message' => 'Successfully fetched out-of-stock products',
+        ]);
     }
 
        public function fetchStockWarningPerSupplier($supplier_id)

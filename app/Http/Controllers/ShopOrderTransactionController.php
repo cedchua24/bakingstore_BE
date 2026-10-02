@@ -1949,7 +1949,7 @@ class ShopOrderTransactionController extends Controller
             ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
             ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
             ->select('shop.shop_name','sot.id', 'sot.shop_order_transaction_total_quantity',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'c.created_at as customer_created_date', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit',
@@ -3758,7 +3758,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->select('mop.id', 'sot.id as transaction_id', 'mop.amount','sot.id as shop_order_transaction_id','sot.shop_order_transaction_total_quantity',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.created_at',
              'sot.updated_at', 'sot.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
              DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'sot.checker', 'sot.requestor',
               'sot.status', 'sot.date', 'sot.profit', 'mop.is_paid',
@@ -4816,6 +4816,50 @@ class ShopOrderTransactionController extends Controller
             return response()->json($response);
     }
 
+    public function fetchShopOrderTransactionListReportByDateV2(Request $request)
+    {
+        $shopOrderTransactionList = DB::table('shop_order_transaction')
+            ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
+            ->join('users as r', 'r.id', '=', 'shop_order_transaction.requestor')
+            ->join('users as c', 'c.id', '=', 'shop_order_transaction.checker')
+            ->select(
+                'shop_order_transaction.id',
+                'shop_order_transaction.shop_order_transaction_total_quantity',
+                'shop_order_transaction.shop_order_transaction_total_price',
+                'shop_order_transaction.print_count',
+                'shop_order_transaction.created_at',
+                'shop_order_transaction.updated_at',
+                'shop.shop_name',
+                'shop.shop_type_id',
+                'r.name as requestor_name',
+                'c.name as checker_name',
+                'shop_order_transaction.checker',
+                'shop_order_transaction.requestor',
+                'shop_order_transaction.status',
+                'shop_order_transaction.date',
+                'shop_order_transaction.profit'
+            )
+            ->where('shop_order_transaction.type', 1)
+            ->when(
+                $request->input('dateFrom') != '' || $request->input('dateTo') != '',
+                function ($query) use ($request) {
+                    $query->where('shop_order_transaction.date', '>=', $request->input('dateFrom'))
+                        ->where('shop_order_transaction.date', '<=', $request->input('dateTo'));
+                }
+            )
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('shop_order_transaction.status', $request->input('status'));
+            })
+            ->orderBy('shop_order_transaction.id', 'DESC')
+            ->get();
+
+        return response()->json([
+            'data' => $shopOrderTransactionList,
+            'code' => 200,
+            'message' => 'Successfully Addedz',
+        ]);
+    }
+
 
        public function fetchOnlineShopOrderTransactionListByDate($date)
     {
@@ -5066,7 +5110,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as r', 'r.id', '=', 'sot.requestor')
             ->join('users as c', 'c.id', '=', 'sot.checker')
             ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name', 's.shop_type_id', 's.status', 's.address', 's.contact_number', 
              'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
             ->where('sot.id', $id)
@@ -5078,7 +5122,7 @@ class ShopOrderTransactionController extends Controller
             ->join('users as r', 'r.id', '=', 'sot.requestor')
             ->join('users as c', 'c.id', '=', 'sot.checker')
             ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
             ->where('sot.id', $id)
@@ -5091,7 +5135,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
             ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
             ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sr.first_name as sr_name', 'sot.date',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'ct.customer_type', 'sot.status'
              , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
@@ -5103,7 +5147,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop as s', 's.id', '=', 'sot.shop_id')
             ->join('customer as r', 'r.id', '=', 'sot.requestor')
             ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
-             'sot.shop_order_transaction_total_price',  'sot.created_at',
+             'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'sot.status'
              , DB::raw('CONCAT(r.first_name, " ", r.last_name) AS requestor_name'))   
