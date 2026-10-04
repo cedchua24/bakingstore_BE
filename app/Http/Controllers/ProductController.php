@@ -1832,9 +1832,13 @@ class ProductController extends Controller
              $emails = DB::table('email')
                         ->where('status', 1)
                         ->pluck('email')
+                        ->map(fn ($email) => trim((string) $email))
+                        ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL) !== false)
+                        ->unique()
+                        ->values()
                         ->toArray();
 
-                $request->mergeIfMissing([
+                $request->merge([
                     'email_total_cost' => $stockOrder->total_cost,
                     'email_price' => $stockOrder->price,
                     'email_date' => Carbon::now('GMT+8'),
@@ -1852,11 +1856,13 @@ class ProductController extends Controller
                     'email_date' => Carbon::now('GMT+8'),
                 ]);
 
-                    Mail::send('modify_stock_v2', ['params' => $emailParams, 'modifiedBy' => $modifiedBy], function ($m) use ($request) {
+                if (!empty($emails)) {
+                    Mail::send('modify_stock_v2', ['params' => $emailParams, 'modifiedBy' => $modifiedBy], function ($m) use ($emails) {
                         $m->from(env('MAIL_FROM_ADDRESS'), env('SHOP_NAME'));
-                        $m->to($request->input('emails'))
+                        $m->to($emails)
                         ->subject('Modified Stock');
                     });
+                }
 
         $stockOrder->save();
       }
