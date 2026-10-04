@@ -129,6 +129,7 @@ class ProductController extends Controller
                 'products.disabled',
                 'products.note'
             )
+            ->where('products.disabled', 0)
             ->when($request->filled('category_id'), function ($query) use ($request) {
                 $query->where('products.category_id', $request->input('category_id'));
             })
