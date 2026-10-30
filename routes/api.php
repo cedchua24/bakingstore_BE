@@ -249,6 +249,7 @@ Route::put('/orderSupplierTransaction/setToCancelTransaction/{id}', [OrderSuppli
 Route::post('/orderSupplierTransaction/orderSupplierApproval', [OrderSupplierTransactionController::class, 'orderSupplierApproval']);
 Route::post('/orderSupplierTransaction/updateDateOrderSupplier', [OrderSupplierTransactionController::class, 'updateDateOrderSupplier']);
 Route::put('/orderSupplierTransaction/setToCompletePaymentTransaction/{id}', [OrderSupplierTransactionController::class, 'setToCompletePaymentTransaction']);
+Route::put('/orderSupplierTransaction/updateCentralAccountingPaymentStatus/{id}', [OrderSupplierTransactionController::class, 'updateCentralAccountingPaymentStatus']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDate/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDate']);
 Route::get('/orderSupplierTransaction/fetchOrderSupplierByDateV2/{id}', [OrderSupplierTransactionController::class, 'fetchOrderSupplierByDateV2']);
 Route::post('/orderSupplierTransaction/fetchPendingOrderSupplier', [OrderSupplierTransactionController::class, 'fetchPendingOrderSupplier']);
@@ -361,6 +362,7 @@ Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDateV2',
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderRefundTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderRefundTransactionListV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdV2/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdV2'])->whereNumber('id');
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransactionV2']);
@@ -398,6 +400,7 @@ Route::get('/shopOrderTransaction/fetchShopOrderTransaction/{id}', [ShopOrderTra
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransaction']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatus/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatus']);
 Route::put('/shopOrderTransaction/updateShopOrderTransactionStatusV2/{id}', [ShopOrderTransactionController::class, 'updateShopOrderTransactionStatusV2']);
+Route::put('/shopOrderTransaction/updateCentralAccountingStatus/{id}', [ShopOrderTransactionController::class, 'updateCentralAccountingStatus'])->whereNumber('id');
 Route::post('/shopOrderTransaction/{id}/incrementPrintCount', [ShopOrderTransactionController::class, 'incrementPrintCount'])->whereNumber('id');
 Route::put('/shopOrderTransaction/updateShopBranchStatus/{id}', [ShopOrderTransactionController::class, 'updateShopBranchStatus']);
 Route::delete('/shopOrderTransaction/cancel/{shopOrderTransaction}', [ShopOrderTransactionController::class, 'cancel']);

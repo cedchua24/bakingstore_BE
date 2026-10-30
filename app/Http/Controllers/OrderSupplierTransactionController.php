@@ -875,6 +875,18 @@ class OrderSupplierTransactionController extends Controller
         return response()->json($orderSupplierTransaction);
     }
 
+    public function updateCentralAccountingPaymentStatus(Request $request, $id)
+    {
+        $data = $request->validate([
+            'payment_status' => ['required', 'integer', 'in:0,1'],
+        ]);
+        $orderSupplierTransaction = OrderSupplierTransaction::findOrFail($id);
+        $orderSupplierTransaction->payment_status = $data['payment_status'];
+        $orderSupplierTransaction->save();
+
+        return response()->json($orderSupplierTransaction);
+    }
+
       public function setSendtoSupplierStatus(Request $request)
     {
         $orderSupplierTransaction = OrderSupplierTransaction::find($request->input('id'));

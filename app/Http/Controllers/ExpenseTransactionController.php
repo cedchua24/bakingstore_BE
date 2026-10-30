@@ -715,12 +715,13 @@ class ExpenseTransactionController extends Controller
             ->join('expenses_v2 as e', 'e.id', '=', 'et.expense_id')
             ->join('expenses_category_v2 as ec', 'ec.id', '=', 'e.expense_category_id')
             ->join('expenses_type_v2 as ett', 'ett.id', '=', 'ec.expense_type_id')
+            ->join('chart_of_accounts as coa', 'coa.id', '=', 'ett.chart_of_account_id')
             ->join('users as u', 'u.id', '=', 'et.user_id')
             ->join('users as us', 'us.id', '=', 'et.approver_id')
             ->leftJoin('payment_type_po as ptp', 'ptp.id', '=', 'et.payment_type_po_id')
             ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
             ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
-            ->select('et.id', 'et.amount', 'et.details', 'et.shop_id', 'et.approval_status', 'et.approver_id', 'et.status', 'et.is_received', 'et.payment_type_po_id', 'et.expense_date', 'e.expense_name', 'e.is_hidden', 'ec.expense_category_name', 'ett.expense_type',
+            ->select('et.id', 'et.amount', 'et.details', 'et.shop_id', 'et.approval_status', 'et.approver_id', 'et.status', 'et.is_received', 'et.payment_type_po_id', 'et.expense_date', 'e.expense_name', 'e.is_hidden', 'ec.expense_category_name', 'ett.expense_type', 'coa.id as chart_of_account_id', 'coa.chart_of_account_name',
             'u.name as requestor_name', 'us.name as approver_name', 'pt.payment_term', 'b.bank_name', 'ptp.account_name', 'ptp.account_description', 'ptp.account_number')      
             ->where('et.id', $id)   
             ->first(); 

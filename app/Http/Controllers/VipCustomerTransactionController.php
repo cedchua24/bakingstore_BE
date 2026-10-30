@@ -139,6 +139,7 @@ class VipCustomerTransactionController extends Controller
                 'vct_draft.customer_id',
                 DB::raw('MAX(sot_draft.date) as draft_order_date'),
                 DB::raw('GROUP_CONCAT(sot_draft.date ORDER BY sot_draft.date ASC) as draft_order_dates'),
+                DB::raw('GROUP_CONCAT(sot_draft.id ORDER BY sot_draft.id ASC) as draft_order_ids'),
                 DB::raw('SUM(sot_draft.shop_order_transaction_total_price) as draft_order_total_price')
             )
             ->where('sot_draft.type', 0)
@@ -243,6 +244,7 @@ class VipCustomerTransactionController extends Controller
                 DB::raw('MAX(sot.date) as last_order_date'),
                 DB::raw("COALESCE(draft_orders.draft_order_date, '') as draft_order_date"),
                 DB::raw("COALESCE(draft_orders.draft_order_dates, '') as draft_order_dates"),
+                DB::raw("COALESCE(draft_orders.draft_order_ids, '') as draft_order_ids"),
                 DB::raw('COALESCE(draft_orders.draft_order_total_price, 0) as draft_order_total_price'),
                 DB::raw("COALESCE(draft_orders.draft_order_date, MAX(sot.date)) as latest_order_date"),
                 DB::raw('COALESCE(total_orders.total_order_price, 0) as total_order_price'),
@@ -261,6 +263,9 @@ class VipCustomerTransactionController extends Controller
         foreach ($data as $item) {
             $item->draft_order_dates = $item->draft_order_dates != ''
                 ? explode(',', $item->draft_order_dates)
+                : [];
+            $item->draft_order_ids = $item->draft_order_ids != ''
+                ? array_map('intval', explode(',', $item->draft_order_ids))
                 : [];
         }
 

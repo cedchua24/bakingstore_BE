@@ -2424,6 +2424,50 @@ class ShopOrderTransactionController extends Controller
         ]);
     }
 
+    public function fetchOnlineShopOrderRefundTransactionListV2()
+    {
+        $paymentTotals = DB::table('mode_of_payment')
+            ->select(
+                'shop_order_transaction_id',
+                DB::raw('SUM(amount) as total_account')
+            )
+            ->groupBy('shop_order_transaction_id');
+
+        $transactions = DB::table('shop_order_transaction as sot')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->joinSub($paymentTotals, 'payments', function ($join) {
+                $join->on('payments.shop_order_transaction_id', '=', 'sot.id');
+            })
+            ->where('shop.shop_type_id', 3)
+            ->whereColumn('payments.total_account', '>', 'sot.shop_order_transaction_total_price')
+            ->select(
+                'sot.id as transaction_id',
+                'sot.date',
+                'sot.shop_order_transaction_total_price as total_amount',
+                'payments.total_account'
+            )
+            ->orderBy('sot.date', 'DESC')
+            ->orderBy('sot.id', 'DESC')
+            ->get()
+            ->map(function ($transaction) {
+                $transaction->total_amount = (float) $transaction->total_amount;
+                $transaction->total_account = (float) $transaction->total_account;
+                $transaction->refund_amount = round(
+                    $transaction->total_account - $transaction->total_amount,
+                    2
+                );
+
+                return $transaction;
+            });
+
+        return response()->json([
+            'total_count' => $transactions->count(),
+            'data' => $transactions,
+            'code' => 200,
+            'message' => 'Successfully fetched online shop order transactions for refund',
+        ]);
+    }
+
     public function fetchOnlineShopOrderTransactionListByIdV2($id, Request $request)
     {
         if (!ctype_digit((string) $id) || (int) $id < 1) {
@@ -4268,6 +4312,23 @@ class ShopOrderTransactionController extends Controller
         return $this->updateShopOrderTransactionStatus($id, $request);
     }
 
+    public function updateCentralAccountingStatus($id, Request $request)
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'integer', 'in:0,1'],
+        ]);
+
+        $shopOrderTransaction = ShopOrderTransaction::findOrFail($id);
+        $shopOrderTransaction->status = $validated['status'];
+        $shopOrderTransaction->save();
+
+        return response()->json([
+            'message' => 'Shop order status synchronized with Central Accounting.',
+            'id' => $shopOrderTransaction->id,
+            'status' => $shopOrderTransaction->status,
+        ]);
+    }
+
        public function fetchOnlineShopOrderTransactionListReport()
     {
       
@@ -5109,7 +5170,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop as s', 's.id', '=', 'sot.shop_id')
             ->join('users as r', 'r.id', '=', 'sot.requestor')
             ->join('users as c', 'c.id', '=', 'sot.checker')
-            ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
+            ->select('sot.id', 'sot.shop_id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
              'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name', 's.shop_type_id', 's.status', 's.address', 's.contact_number', 
              'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
@@ -5121,7 +5182,7 @@ class ShopOrderTransactionController extends Controller
             ->join('shop as s', 's.id', '=', 'sot.shop_id')
             ->join('users as r', 'r.id', '=', 'sot.requestor')
             ->join('users as c', 'c.id', '=', 'sot.checker')
-            ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
+            ->select('sot.id', 'sot.shop_id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
              'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.name as requestor_name', 'c.name as checker_name', 'sot.checker', 'sot.requestor', 'sot.status')    
@@ -5134,7 +5195,7 @@ class ShopOrderTransactionController extends Controller
             ->join('customer as r', 'r.id', '=', 'sot.requestor')
             ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
             ->leftJoin('sales_rep as sr', 'sr.id', '=', 'sot.sales_rep_id')
-            ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sr.first_name as sr_name', 'sot.date',
+            ->select('sot.id', 'sot.shop_id', 'sot.shop_order_transaction_total_quantity', 'sr.first_name as sr_name', 'sot.date',
              'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'ct.customer_type', 'sot.status'
@@ -5146,7 +5207,7 @@ class ShopOrderTransactionController extends Controller
           $data = DB::table('shop_order_transaction as sot')
             ->join('shop as s', 's.id', '=', 'sot.shop_id')
             ->join('customer as r', 'r.id', '=', 'sot.requestor')
-            ->select('sot.id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
+            ->select('sot.id', 'sot.shop_id', 'sot.shop_order_transaction_total_quantity', 'sot.date',
              'sot.shop_order_transaction_total_price', 'sot.print_count', 'sot.created_at',
              'sot.updated_at',  's.shop_name','s.shop_type_id', 's.status', 's.address', 's.contact_number',
              'r.first_name as requestor_name', 'sot.checker', 'sot.requestor', 'sot.status'

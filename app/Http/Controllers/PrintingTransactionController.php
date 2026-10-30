@@ -46,6 +46,10 @@ class PrintingTransactionController extends Controller
             ->select('so.shop_transaction_id')
             ->selectRaw('MAX(category.tags) as tags, SUM(so.shop_order_total_price) as shop_order_total_price')
             ->groupBy('so.shop_transaction_id');
+        $legacyPayments = DB::table('mode_of_payment')
+            ->select('shop_order_transaction_id')
+            ->selectRaw('COUNT(*) as legacy_payment_count')
+            ->groupBy('shop_order_transaction_id');
 
         $qualifiedFilters = [];
         foreach ($filters as $field => $value) {
@@ -68,6 +72,9 @@ class PrintingTransactionController extends Controller
             ->leftJoinSub($printingOrders, 'printing_orders', function ($join) {
                 $join->on('printing_orders.shop_transaction_id', '=', 'sot.id');
             })
+            ->leftJoinSub($legacyPayments, 'legacy_payments', function ($join) {
+                $join->on('legacy_payments.shop_order_transaction_id', '=', 'sot.id');
+            })
             ->select('printing_transaction.*', 'coordinator.name as order_coordinator_name',
                 'customer.store_name as store_name',
                 'sot.status as payment_status',
@@ -75,6 +82,7 @@ class PrintingTransactionController extends Controller
                 'customer.first_name as customer_first_name',
                 'customer.last_name as customer_last_name', 'printing_orders.tags')
             ->selectRaw('COALESCE(printing_orders.shop_order_total_price, 0) as shop_order_total_price')
+            ->selectRaw('COALESCE(legacy_payments.legacy_payment_count, 0) as legacy_payment_count')
             ->withCount('comments')->where($qualifiedFilters)
             ->when($dateFrom, function ($query) use ($dateFrom) {
                 $query->where('printing_transaction.order_date', '>=', $dateFrom);

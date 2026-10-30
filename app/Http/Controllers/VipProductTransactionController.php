@@ -143,6 +143,7 @@ class VipProductTransactionController extends Controller
             ->leftJoin('mark_up_product as mup_sold', 'mup_sold.id', '=', 'so_sold.mark_up_product_id')
             ->select(
                 'so_sold.product_id',
+                DB::raw('GROUP_CONCAT(DISTINCT sot_sold.id ORDER BY sot_sold.id ASC) as customer_order_ids'),
                 DB::raw('COUNT(DISTINCT sot_sold.requestor) as sold_customer_count'),
                 DB::raw('MAX(sot_sold.date) as last_customer_order_date'),
                 DB::raw("
@@ -210,6 +211,7 @@ class VipProductTransactionController extends Controller
                 'p.disabled',
                 DB::raw("COALESCE(product_business_types.business_types, '') as business_type"),
                 DB::raw('COALESCE(customer_sales.total_sold, 0) as total_sold'),
+                DB::raw("COALESCE(customer_sales.customer_order_ids, '') as customer_order_ids"),
                 DB::raw('COALESCE(customer_sales.sold_customer_count, 0) as sold_customer_count'),
                 DB::raw("COALESCE(customer_sales.last_customer_order_date, '') as last_customer_order_date"),
                 DB::raw("COALESCE(completed_supplier_orders.last_order_date, '') as last_order_date"),
@@ -233,6 +235,9 @@ class VipProductTransactionController extends Controller
         foreach ($data as $item) {
             $item->business_type = $item->business_type != ''
                 ? explode(',', $item->business_type)
+                : [];
+            $item->customer_order_ids = $item->customer_order_ids != ''
+                ? array_map('intval', explode(',', $item->customer_order_ids))
                 : [];
             $item->pending_order_transaction_ids = $item->pending_order_transaction_ids != ''
                 ? array_map('intval', explode(',', $item->pending_order_transaction_ids))
@@ -570,6 +575,21 @@ class VipProductTransactionController extends Controller
         $hasOlderComparison = $comparisonPage < 40
             && $earliestSaleDate
             && Carbon::parse($earliestSaleDate)->startOfMonth()->lt($oldestComparisonMonth);
+        $currentMonthOrderIds = DB::table('shop_order as accounting_so')
+            ->join('shop_order_transaction as accounting_sot', 'accounting_sot.id', '=', 'accounting_so.shop_transaction_id')
+            ->join('vip_product_transaction as accounting_vpt', 'accounting_vpt.product_id', '=', 'accounting_so.product_id')
+            ->where('accounting_vpt.vip_product_id', $id)
+            ->where('accounting_sot.type', 0)
+            ->where('accounting_sot.status', 1)
+            ->whereBetween('accounting_sot.date', [
+                $reportMonth->copy()->startOfMonth()->toDateString(),
+                $reportMonth->copy()->endOfMonth()->toDateString(),
+            ])
+            ->distinct()
+            ->orderBy('accounting_sot.id')
+            ->pluck('accounting_sot.id')
+            ->map(fn ($orderId) => (int) $orderId)
+            ->values();
 
         return response()->json([
             'report_month' => $months->first(),
@@ -592,6 +612,7 @@ class VipProductTransactionController extends Controller
             'impact_counts' => $impactCounts,
             'filtered_total' => $filteredTotal,
             'rank_scope' => 'vip_product_group',
+            'current_month_order_ids' => $currentMonthOrderIds,
             'current_month' => $currentMonth,
             'previous_months' => $previousMonthTotals,
             'average_sales' => $averageSales,

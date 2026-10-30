@@ -1910,7 +1910,6 @@ public function customerLastOrderList($idParam, Request $request) {
                 ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
             ->leftJoin('bank as payment_bank', 'payment_bank.id', '=', 'ptp.bank_id')
             ->leftJoin('payment_term as payment_term', 'payment_term.id', '=', 'ptp.payment_term_id')
-                ->where('ptp.id', '!=', 1)
                 ->where('mop.shop_order_transaction_id', $sotl->id)
                 ->get();
 
