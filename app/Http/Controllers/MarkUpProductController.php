@@ -476,7 +476,9 @@ class MarkUpProductController extends Controller
         $priceChanges = $priceChanges
             ->groupBy('product_id')
             ->filter(function ($markups) use ($request) {
-                $currentProductPrice = (float) $markups->first()->product_price;
+                $currentProductPrice = $this->toWholePrice(
+                    $markups->first()->product_price
+                );
 
                 if ($request->boolean('include_unchanged')) {
                     return true;
@@ -485,10 +487,9 @@ class MarkUpProductController extends Controller
                 $wholesaleMarkup = $markups->firstWhere('business_type', 'WHOLESALE');
 
                 return $wholesaleMarkup
-                    && abs(
-                        $currentProductPrice
-                        - (float) $wholesaleMarkup->mark_up_product_price
-                    ) > 0.00001;
+                    && $currentProductPrice !== $this->toWholePrice(
+                        $wholesaleMarkup->mark_up_product_price
+                    );
             })
             ->flatten(1)
             ->values();
@@ -542,10 +543,18 @@ class MarkUpProductController extends Controller
 
         $priceChanges->transform(function ($item) use ($incomingOrders, $latestReceivedOrders) {
             $latestReceivedOrder = $latestReceivedOrders->get($item->product_id);
-            $item->product_price = (float) $item->product_price;
-            $item->mark_up_product_price = (float) $item->mark_up_product_price;
+            $item->product_price = $this->toWholePrice($item->product_price);
+            $item->current_sale_price = $this->toWholePrice($item->current_sale_price);
+            $item->mark_up_product_price = $this->toWholePrice(
+                $item->mark_up_product_price
+            );
+            $item->mark_up_price = $this->toWholePrice($item->mark_up_price);
+            $item->new_price = $this->toWholePrice($item->new_price);
+            $item->profit = $this->toWholePrice($item->profit);
             $comparableProductPrice = $item->business_type === 'RETAIL'
-                ? $item->product_price / max((int) $item->pieces_per_pack, 1)
+                ? $this->toWholePrice(
+                    $item->product_price / max((int) $item->pieces_per_pack, 1)
+                )
                 : $item->product_price;
             $item->price_difference = $comparableProductPrice - $item->mark_up_product_price;
             $item->price_change_percent = $item->mark_up_product_price == 0
@@ -572,12 +581,24 @@ class MarkUpProductController extends Controller
                 : 0;
             $item->old_stock_consumed = $item->old_stock_remaining_pieces <= 0;
             $item->can_change_selling_price = $item->old_stock_consumed;
+
+            if ($latestReceivedOrder) {
+                $latestReceivedOrder->price = $this->toWholePrice(
+                    $latestReceivedOrder->price
+                );
+                $latestReceivedOrder->completed_price_per_pack = $this->toWholePrice(
+                    $latestReceivedOrder->completed_price_per_pack
+                );
+            }
+
             $item->latest_received_order = $latestReceivedOrder;
             $item->incoming_orders = $incomingOrders
                 ->get($item->product_id, collect())
                 ->map(function ($order) {
-                    $order->upcoming_price = (float) $order->upcoming_price;
-                    $order->upcoming_price_per_pack = (float) $order->upcoming_price_per_pack;
+                    $order->upcoming_price = $this->toWholePrice($order->upcoming_price);
+                    $order->upcoming_price_per_pack = $this->toWholePrice(
+                        $order->upcoming_price_per_pack
+                    );
                     $order->incoming_stock = (float) $order->incoming_stock;
                     $order->incoming_stock_pieces = (int) $order->incoming_stock_pieces;
 
@@ -596,6 +617,14 @@ class MarkUpProductController extends Controller
             'as_of_date' => now('Asia/Singapore')->toDateString(),
             'message' => 'Markup price differences fetched successfully.',
         ]);
+    }
+
+    /**
+     * Convert a monetary amount to the whole-peso value used by product pricing.
+     */
+    private function toWholePrice($price): int
+    {
+        return (int) round((float) $price, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
