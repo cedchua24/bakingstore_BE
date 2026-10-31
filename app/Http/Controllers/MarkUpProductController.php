@@ -207,7 +207,7 @@ class MarkUpProductController extends Controller
             ->get()
             ->groupBy('product_id')
             ->map(function ($markups) {
-                return (float) $markups->first()->price;
+                return $this->toWholePrice($markups->first()->price);
             });
 
         $latestReceivedOrders = DB::table('order_supplier as os')
@@ -255,17 +255,18 @@ class MarkUpProductController extends Controller
             $currentStockPieces = (int) $item->product_stock_pieces;
             $wholesaleCost = $wholesaleCosts->get($item->product_id);
             $latestReceivedOrder = $latestReceivedOrders->get($item->product_id);
+            $currentProductPrice = $this->toWholePrice($item->product_price);
             $newStockPieces = $latestReceivedOrder
                 ? (int) $latestReceivedOrder->received_stock_pieces
                 : 0;
             $oldStockRemainingPieces = max($currentStockPieces - $newStockPieces, 0);
             $completedPricePerPack = $latestReceivedOrder
-                ? (float) $latestReceivedOrder->completed_price_per_pack
+                ? $this->toWholePrice($latestReceivedOrder->completed_price_per_pack)
                 : null;
             $priceUpdateRequired = $wholesaleCost !== null
                 && $completedPricePerPack !== null
-                && abs($completedPricePerPack - (float) $item->product_price) <= 0.00001
-                && abs((float) $item->product_price - $wholesaleCost) > 0.00001;
+                && $completedPricePerPack === $currentProductPrice
+                && $currentProductPrice !== $wholesaleCost;
 
             $availableStock = $item->business_type === 'WHOLESALE'
                 ? (int) $item->product_stock
@@ -274,6 +275,12 @@ class MarkUpProductController extends Controller
                 ? (int) floor($oldStockRemainingPieces / $piecesPerPack)
                 : $oldStockRemainingPieces;
 
+            $item->price = $this->toWholePrice($item->price);
+            $item->product_price = $currentProductPrice;
+            $item->profit = $this->toWholePrice($item->profit);
+            $item->mark_up_price = $this->toWholePrice($item->mark_up_price);
+            $item->new_price = $this->toWholePrice($item->new_price);
+            $item->sale_price = $this->toWholePrice($item->sale_price);
             $item->price_update_required = $priceUpdateRequired;
             $item->completed_capital_price = $completedPricePerPack;
             $item->new_stock_pieces = $newStockPieces;
@@ -293,6 +300,14 @@ class MarkUpProductController extends Controller
             $item->sale_block_reason = $item->sale_blocked
                 ? 'Update the selling price before selling newly received stock.'
                 : null;
+
+            if ($latestReceivedOrder) {
+                $latestReceivedOrder->price = $this->toWholePrice(
+                    $latestReceivedOrder->price
+                );
+                $latestReceivedOrder->completed_price_per_pack = $completedPricePerPack;
+            }
+
             $item->latest_received_order = $latestReceivedOrder;
 
             return $item;
