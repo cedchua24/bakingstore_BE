@@ -5344,6 +5344,19 @@ class ShopOrderTransactionController extends Controller
         return  response()->json($shopOrderTransaction);
     }
 
+    public function updateDate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        $shopOrderTransaction = ShopOrderTransaction::findOrFail($id);
+        $shopOrderTransaction->date = $validated['date'];
+        $shopOrderTransaction->save();
+
+        return response()->json($shopOrderTransaction);
+    }
+
 
         public function pickUpAndCustomerUpdate(Request $request)
     {

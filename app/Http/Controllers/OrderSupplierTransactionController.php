@@ -66,6 +66,11 @@ class OrderSupplierTransactionController extends Controller
 
         public function fetchAllOrderSupplier(Request $request)
     {
+         $validated = $request->validate([
+             'dateField' => ['nullable', 'in:order_date,updated_at'],
+         ]);
+         $dateField = $validated['dateField'] ?? 'order_date';
+
          if ( $request->input('dateFrom') == '' &&  $request->input('dateTo') == '' ) {
 
             $data = DB::table('order_supplier_transaction')
@@ -142,8 +147,8 @@ class OrderSupplierTransactionController extends Controller
             ->select('order_supplier_transaction.payment_status', 'order_supplier_transaction.invoice_number', 'order_supplier_transaction.id', 'order_supplier_transaction.supplier_id', 'order_supplier_transaction.withTax',  'order_supplier_transaction.total_transaction_price',
              'order_supplier_transaction.order_date','order_supplier_transaction.created_at', 'order_supplier_transaction.updated_at', 'order_supplier_transaction.send_date',  'order_supplier_transaction.note',
                'order_supplier_transaction.approval', 'order_supplier_transaction.approval_status', 'order_supplier_transaction.requestor', 'supplier.supplier_name', 'order_supplier_transaction.status', 'order_supplier_transaction.stock_status')    
-            ->where('order_supplier_transaction.order_date', '>=', $request->input('dateFrom'))
-            ->where('order_supplier_transaction.order_date', '<=', $request->input('dateTo'))
+            ->whereDate('order_supplier_transaction.'.$dateField, '>=', $request->input('dateFrom'))
+            ->whereDate('order_supplier_transaction.'.$dateField, '<=', $request->input('dateTo'))
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('order_supplier_transaction.supplier_id', $request->input('supplier_id'));
             })
@@ -177,8 +182,8 @@ class OrderSupplierTransactionController extends Controller
            $total_balance = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_balance'))   
             ->where('ost.payment_status', 0)
-            ->where('ost.order_date', '>=', $request->input('dateFrom'))
-            ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->whereDate('ost.'.$dateField, '>=', $request->input('dateFrom'))
+            ->whereDate('ost.'.$dateField, '<=', $request->input('dateTo'))
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
             })
@@ -196,8 +201,8 @@ class OrderSupplierTransactionController extends Controller
            $total_paid = DB::table('order_supplier_transaction as ost')
             ->select(DB::raw('COUNT(ost.total_transaction_price) as total_count'), DB::raw('SUM(ost.total_transaction_price) as total_paid'))   
             ->where('ost.payment_status', 1)
-            ->where('ost.order_date', '>=', $request->input('dateFrom'))
-            ->where('ost.order_date', '<=', $request->input('dateTo'))
+            ->whereDate('ost.'.$dateField, '>=', $request->input('dateFrom'))
+            ->whereDate('ost.'.$dateField, '<=', $request->input('dateTo'))
             ->when($request->filled('supplier_id'), function ($query) use ($request) {
                 $query->where('ost.supplier_id', $request->input('supplier_id'));
             })
@@ -213,6 +218,16 @@ class OrderSupplierTransactionController extends Controller
             ->first();            
 
         }
+
+          if ($dateField === 'updated_at') {
+              $data->transform(function ($transaction) {
+                  if ($transaction->updated_at !== null) {
+                      $transaction->updated_at = Carbon::parse($transaction->updated_at)->toDateString();
+                  }
+
+                  return $transaction;
+              });
+          }
 
           $response = [
               'data' => $data,
