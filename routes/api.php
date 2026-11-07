@@ -320,6 +320,7 @@ Route::get('/shop/test/{id}', [ShopController::class, 'test']);
 Route::resource('/shopOrderTransaction', 'App\Http\Controllers\ShopOrderTransactionController');
 Route::get('/shopOrderTransaction/fetchShopOrderTransactionList/{id}', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDate']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReportByDateV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReportByDateV2']);
 Route::post('/shopOrderTransaction/fetchOnlineShopMonthlySalesForecast', [ShopOrderTransactionController::class, 'fetchOnlineShopMonthlySalesForecast']);
 Route::post('/shopOrderTransaction/fetchSalesList', [ShopOrderTransactionController::class, 'fetchSalesList']);
 Route::post('/shopOrderTransaction/fetchSalesListV2', [ShopOrderTransactionController::class, 'fetchSalesListV2']);
@@ -362,7 +363,11 @@ Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDateV2',
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
+<<<<<<< Updated upstream
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderRefundTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderRefundTransactionListV2']);
+=======
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionPaidOutsideDateV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionPaidOutsideDateV2']);
+>>>>>>> Stashed changes
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdV2/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdV2'])->whereNumber('id');
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransactionV2']);

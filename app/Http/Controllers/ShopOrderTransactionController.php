@@ -2250,22 +2250,12 @@ class ShopOrderTransactionController extends Controller
             })
             ->sum('so.shop_order_profit');
 
-        $totalSalesCompleted = DB::table('shop_order_transaction as sot')
-            ->join('shop', 'shop.id', '=', 'sot.shop_id')
-            ->where('shop.shop_type_id', 3)
-            ->where('sot.status', 1)
-            ->where('sot.date', $date)
-            ->when($transactionId !== null, function ($query) use ($transactionId) {
-                $query->where('sot.id', $transactionId);
-            })
-            ->sum('sot.shop_order_transaction_total_price');
-
         $paymentSummary = DB::table('shop_order_transaction as sot')
             ->join('shop', 'shop.id', '=', 'sot.shop_id')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
-            ->where('mop.created_at', $date)
+            ->whereDate('mop.created_at', $date)
             ->when($transactionId !== null, function ($query) use ($transactionId) {
                 $query->where('sot.id', $transactionId);
             })
@@ -2278,36 +2268,61 @@ class ShopOrderTransactionController extends Controller
             )
             ->first();
 
-        $outdatedPaymentSummary = DB::table('shop_order_transaction as sot')
+        $paidDateTransactions = DB::table('mode_of_payment as mop')
+            ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->join('shop', 'shop.id', '=', 'sot.shop_id')
-            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
             ->where('shop.shop_type_id', 3)
-            ->where('mop.created_at', '>', $date)
-            ->where('sot.date', $date)
+            ->whereDate('mop.created_at', $date)
             ->when($transactionId !== null, function ($query) use ($transactionId) {
                 $query->where('sot.id', $transactionId);
             })
-            ->selectRaw(
-                'SUM(CASE WHEN ptp.payment_term_id = 1 THEN mop.amount ELSE 0 END) as total_cash_outdated,
-                 SUM(CASE WHEN ptp.payment_term_id <> 1 THEN mop.amount ELSE 0 END) as total_online_outdated,
-                 SUM(mop.amount) as total_paid_outdated'
+            ->select(
+                'sot.id as transaction_id',
+                'sot.date as transaction_date',
+                'sot.shop_order_transaction_total_price as transaction_total',
+                'sot.status',
+                DB::raw('DATE(mop.created_at) as payment_date'),
+                DB::raw('SUM(mop.amount) as paid_amount')
             )
-            ->first();
+            ->groupBy(
+                'sot.id',
+                'sot.date',
+                'sot.shop_order_transaction_total_price',
+                'sot.status',
+                DB::raw('DATE(mop.created_at)')
+            )
+            ->orderByDesc('sot.id')
+            ->get();
 
-        $totalPaid = DB::table('mode_of_payment as mop')
+        foreach ($paidDateTransactions as $paidDateTransaction) {
+            $paidDateTransaction->payment_period = $paidDateTransaction->transaction_date === $date
+                ? 'inside'
+                : 'outside';
+        }
+
+        $paidInsidePeriodTransactions = $paidDateTransactions
+            ->where('payment_period', 'inside')
+            ->values();
+        $paidOutsidePeriodTransactions = $paidDateTransactions
+            ->where('payment_period', 'outside')
+            ->values();
+
+        $totalPaid = $paidInsidePeriodTransactions->sum('paid_amount');
+        $totalPaidOutsidePeriod = $paidOutsidePeriodTransactions->sum('paid_amount');
+        $totalPaidPrev = $paidOutsidePeriodTransactions
+            ->where('transaction_date', '<', $date)
+            ->sum('paid_amount');
+        $totalPaidAdvance = $paidOutsidePeriodTransactions
+            ->where('transaction_date', '>', $date)
+            ->sum('paid_amount');
+        $totalPaidToday = $totalPaid + $totalPaidOutsidePeriod;
+
+        $totalPostPaid = DB::table('mode_of_payment as mop')
             ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->where('mop.created_at', $date)
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->where('shop.shop_type_id', 3)
             ->where('sot.date', $date)
-            ->when($transactionId !== null, function ($query) use ($transactionId) {
-                $query->where('sot.id', $transactionId);
-            })
-            ->sum('mop.amount');
-
-        $totalPaidPrev = DB::table('mode_of_payment as mop')
-            ->join('shop_order_transaction as sot', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            ->where('mop.created_at', $date)
-            ->where('sot.date', '<', $date)
+            ->whereDate('mop.created_at', '>', $date)
             ->when($transactionId !== null, function ($query) use ($transactionId) {
                 $query->where('sot.id', $transactionId);
             })
@@ -2316,9 +2331,11 @@ class ShopOrderTransactionController extends Controller
         $paymentTypes = DB::table('shop_order_transaction as sot')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
             ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
             ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
             ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
-            ->where('mop.created_at', $date)
+            ->where('shop.shop_type_id', 3)
+            ->whereDate('mop.created_at', $date)
             ->when($transactionId !== null, function ($query) use ($transactionId) {
                 $query->where('sot.id', $transactionId);
             })
@@ -2404,18 +2421,25 @@ class ShopOrderTransactionController extends Controller
         return response()->json([
             'shop_name' => $shopOrderTransactionList->count() !== 0 ? $shopOrderTransactionList[0]->shop_name : '',
             'emails' => $emails,
-            'total_sales_completed' => $totalSalesCompleted ?: 0,
             'total_profit' => $totalProfit ?: 0,
             'total_count' => $shopOrderTransactionList->count(),
             'total_cash' => $paymentSummary->total_cash ?? 0,
             'total_cash_prev' => $paymentSummary->total_cash_prev ?? 0,
-            'total_cash_outdated' => $outdatedPaymentSummary->total_cash_outdated ?? 0,
             'total_online' => $paymentSummary->total_online ?? 0,
             'total_online_prev' => $paymentSummary->total_online_prev ?? 0,
-            'total_online_outdated' => $outdatedPaymentSummary->total_online_outdated ?? 0,
             'total_paid' => $totalPaid ?: 0,
             'total_paid_prev' => $totalPaidPrev ?: 0,
-            'total_paid_outdated' => $outdatedPaymentSummary->total_paid_outdated ?? 0,
+            'total_paid_advance' => $totalPaidAdvance ?: 0,
+            'total_paid_today' => $totalPaidToday ?: 0,
+            'total_paid_inside_period' => $totalPaid ?: 0,
+            'total_paid_outside_period' => $totalPaidOutsidePeriod ?: 0,
+            'total_paid_inside_period_count' => $paidInsidePeriodTransactions->count(),
+            'total_paid_outside_period_count' => $paidOutsidePeriodTransactions->count(),
+            'total_received' => $totalPaidToday ?: 0,
+            'total_post_paid' => $totalPostPaid ?: 0,
+            'total_paid_outdated' => $totalPostPaid ?: 0,
+            'paid_inside_period_transactions' => $paidInsidePeriodTransactions,
+            'paid_outside_period_transactions' => $paidOutsidePeriodTransactions,
             'data' => $shopOrderTransactionList,
             'payment' => $paymentTypes,
             'code' => 200,
@@ -2424,6 +2448,7 @@ class ShopOrderTransactionController extends Controller
         ]);
     }
 
+<<<<<<< Updated upstream
     public function fetchOnlineShopOrderRefundTransactionListV2()
     {
         $paymentTotals = DB::table('mode_of_payment')
@@ -2465,6 +2490,132 @@ class ShopOrderTransactionController extends Controller
             'data' => $transactions,
             'code' => 200,
             'message' => 'Successfully fetched online shop order transactions for refund',
+=======
+    public function fetchOnlineShopOrderTransactionPaidOutsideDateV2(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+            'status' => 'nullable|integer',
+        ]);
+
+        $date = $validated['date'];
+
+        $paymentsOnDate = DB::table('mode_of_payment as mop')
+            ->select(
+                'mop.shop_order_transaction_id',
+                DB::raw('SUM(mop.amount) as paid_amount'),
+                DB::raw('COUNT(mop.id) as payment_count')
+            )
+            ->whereDate('mop.created_at', $date)
+            ->groupBy('mop.shop_order_transaction_id');
+
+        $transactions = DB::table('shop_order_transaction as sot')
+            ->joinSub($paymentsOnDate, 'payments_on_date', function ($join) {
+                $join->on('payments_on_date.shop_order_transaction_id', '=', 'sot.id');
+            })
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
+            ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'sot.id')
+            ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+            ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
+            ->select(
+                'shop.shop_name',
+                'sot.id',
+                'sot.shop_order_transaction_total_quantity',
+                'sot.shop_order_transaction_total_price',
+                'sot.print_count',
+                'sot.created_at',
+                'sot.updated_at',
+                'sot.is_pickup',
+                'shop.shop_type_id',
+                DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                'c.store_name',
+                'c.created_at as customer_created_date',
+                'sot.checker',
+                'sot.requestor',
+                'sot.status',
+                'sot.date',
+                'sot.profit',
+                'sot.total_cash',
+                'sot.total_online',
+                'ct.customer_type',
+                'sot.rider_name',
+                'sot.delivery_customer_id',
+                'ds.status as delivery_status',
+                'payments_on_date.paid_amount',
+                'payments_on_date.payment_count',
+                DB::raw("'{$date}' as payment_date"),
+                DB::raw("CASE WHEN sot.date < '{$date}' THEN 'previous' ELSE 'advance' END as payment_timing"),
+                DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+            )
+            ->where('shop.shop_type_id', 3)
+            ->where('sot.date', '<>', $date)
+            ->when(isset($validated['status']), function ($query) use ($validated) {
+                $query->where('sot.status', $validated['status']);
+            })
+            ->groupBy('sot.id')
+            ->orderByDesc('sot.id')
+            ->get();
+
+        foreach ($transactions as $transaction) {
+            $vipCustomers = [];
+
+            if ($transaction->vip_customer_list != '') {
+                foreach (explode('||', $transaction->vip_customer_list) as $vipCustomer) {
+                    $details = explode('::', $vipCustomer);
+
+                    if (isset($details[0]) && $details[0] != '') {
+                        $vipCustomers[] = [
+                            'vip_customer_transaction_id' => $details[0],
+                            'vip_customer_id' => $details[1] ?? '',
+                            'vip_name' => $details[2] ?? '',
+                            'vip_color' => $details[3] ?? '',
+                        ];
+                    }
+                }
+            }
+
+            $transaction->vip_customers = $vipCustomers;
+            unset($transaction->vip_customer_list);
+
+            $transaction->mode_of_payment = DB::table('mode_of_payment as mop')
+                ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+                ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+                ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+                ->where('mop.shop_order_transaction_id', $transaction->id)
+                ->whereDate('mop.created_at', $date)
+                ->select(
+                    'mop.id',
+                    'mop.payment_type_id',
+                    'mop.amount',
+                    'mop.is_paid',
+                    'mop.created_at as payment_date',
+                    'ptp.payment_term_id',
+                    'ptp.bank_id',
+                    'ptp.account_number',
+                    'ptp.account_name',
+                    'ptp.account_description',
+                    'b.bank_name',
+                    'pt.payment_term'
+                )
+                ->get();
+        }
+
+        return response()->json([
+            'data' => $transactions,
+            'date' => $date,
+            'total_transactions' => $transactions->count(),
+            'total_payments' => $transactions->sum('payment_count'),
+            'total_paid' => $transactions->sum('paid_amount'),
+            'code' => 200,
+            'message' => 'Successfully fetched other-date transactions paid on the selected date',
+>>>>>>> Stashed changes
         ]);
     }
 
@@ -4555,6 +4706,8 @@ class ShopOrderTransactionController extends Controller
 
       public function fetchSalesList(Request $request)
     {
+        $dateFrom = $request->input('dateFrom');
+        $dateTo = $request->input('dateTo');
 
         $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
             ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
@@ -4565,35 +4718,110 @@ class ShopOrderTransactionController extends Controller
                 DB::raw('SUM(mop.amount) as total_sales'),
                 DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as total_cash'),
                 DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online'),
-                DB::raw('COUNT(sot.id) as total_count'),
+                DB::raw('COUNT(DISTINCT sot.id) as total_count'),
+            )
+            ->selectRaw(
+                'SUM(CASE WHEN sot.date BETWEEN ? AND ? THEN mop.amount ELSE 0 END) as total_paid_inside_period',
+                [$dateFrom, $dateTo]
+            )
+            ->selectRaw(
+                'SUM(CASE WHEN sot.date < ? OR sot.date > ? THEN mop.amount ELSE 0 END) as total_paid_outside_period',
+                [$dateFrom, $dateTo]
+            )
+            ->selectRaw(
+                'COUNT(DISTINCT CASE WHEN sot.date BETWEEN ? AND ? THEN sot.id END) as total_paid_inside_period_count',
+                [$dateFrom, $dateTo]
+            )
+            ->selectRaw(
+                'COUNT(DISTINCT CASE WHEN sot.date < ? OR sot.date > ? THEN sot.id END) as total_paid_outside_period_count',
+                [$dateFrom, $dateTo]
             )
             ->where('shop.shop_type_id', 3)
-            ->whereBetween('mop.created_at', [
-                $request->input('dateFrom'),
-                $request->input('dateTo')
-            ])
+            ->whereDate('mop.created_at', '>=', $dateFrom)
+            ->whereDate('mop.created_at', '<=', $dateTo)
             ->groupBy(DB::raw('DATE(mop.created_at)'))
             ->orderBy('date', 'DESC')
             ->get();
+
+        $paid_period_transactions = DB::table('shop_order_transaction as sot')
+            ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
+            ->joinSub($this->paymentTypeSource(), 'pt', 'mop.payment_type_id', '=', 'pt.id')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->select(
+                'sot.id as transaction_id',
+                'sot.date as transaction_date',
+                'sot.shop_order_transaction_total_price as transaction_total',
+                'sot.status',
+                DB::raw('DATE(mop.created_at) as payment_date'),
+                DB::raw('SUM(mop.amount) as paid_amount'),
+                DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as paid_cash'),
+                DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as paid_online')
+            )
+            ->where('shop.shop_type_id', 3)
+            ->whereDate('mop.created_at', '>=', $dateFrom)
+            ->whereDate('mop.created_at', '<=', $dateTo)
+            ->groupBy(
+                'sot.id',
+                'sot.date',
+                'sot.shop_order_transaction_total_price',
+                'sot.status',
+                DB::raw('DATE(mop.created_at)')
+            )
+            ->orderByDesc('payment_date')
+            ->orderByDesc('sot.id')
+            ->get();
+
+        foreach ($paid_period_transactions as $transaction) {
+            $transaction->payment_period = $transaction->transaction_date >= $dateFrom
+                && $transaction->transaction_date <= $dateTo
+                ? 'inside'
+                : 'outside';
+        }
+
+        $paid_inside_period_transactions = $paid_period_transactions
+            ->where('payment_period', 'inside')
+            ->values();
+        $paid_outside_period_transactions = $paid_period_transactions
+            ->where('payment_period', 'outside')
+            ->values();
 
 
             $total_sales = 0;
             $total_cash = 0;
             $total_online = 0;
-            foreach ($shop_order_transaction_list as $datavals) {  
+            $total_paid_inside_period = 0;
+            $total_paid_outside_period = 0;
+            $total_paid_inside_period_count = 0;
+            $total_paid_outside_period_count = 0;
+            foreach ($shop_order_transaction_list as $datavals) {
                 $total_sales += $datavals->total_sales;
                 $total_cash += $datavals->total_cash;
                 $total_online += $datavals->total_online;
+                $total_paid_inside_period += $datavals->total_paid_inside_period;
+                $total_paid_outside_period += $datavals->total_paid_outside_period;
+                $total_paid_inside_period_count += $datavals->total_paid_inside_period_count;
+                $total_paid_outside_period_count += $datavals->total_paid_outside_period_count;
             }
+
+            $total_received = $total_paid_inside_period + $total_paid_outside_period;
 
 
            $response = [
               'data' => $shop_order_transaction_list,
+              'paid_inside_period_transactions' => $paid_inside_period_transactions,
+              'paid_outside_period_transactions' => $paid_outside_period_transactions,
+              'paid_previous_transactions' => $paid_outside_period_transactions,
               'code' => 200,
               'total_sales' => $total_sales,
               'total_cash' => $total_cash,
               'total_online' => $total_online,
-              'total_cash' =>$total_cash,
+              'total_paid_inside_period' => $total_paid_inside_period,
+              'total_paid_outside_period' => $total_paid_outside_period,
+              'total_paid_inside_period_count' => $total_paid_inside_period_count,
+              'total_paid_outside_period_count' => $total_paid_outside_period_count,
+              'total_received' => $total_received,
+              'total_paid_prev' => $total_paid_outside_period,
+              'total_paid_prev_count' => $total_paid_outside_period_count,
               'message' => "Successfully Added"
           ];
 
@@ -4620,45 +4848,6 @@ class ShopOrderTransactionController extends Controller
             ->orderBy('sot.date', 'DESC')
             ->groupBy('sot.date')
             ->get();
-
-            //         $shop_order_transaction_list = DB::table('shop_order_transaction')
-            // ->join('shop', 'shop.id', '=', 'shop_order_transaction.shop_id')
-            // ->join('customer as c', 'c.id', '=', 'shop_order_transaction.requestor')
-            // ->join('customer_type as ct', 'ct.id', '=', 'shop_order_transaction.customer_type_id')
-            // ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'shop_order_transaction.id')
-            // ->select('shop_order_transaction.id', 'shop_order_transaction.shop_order_transaction_total_quantity',
-            //  'shop_order_transaction.shop_order_transaction_total_price',  'shop_order_transaction.created_at',
-            //  'shop_order_transaction.updated_at', 'shop_order_transaction.is_pickup',  'shop.shop_name', 'shop.shop_type_id',
-            //  DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"), 'c.store_name', 'shop_order_transaction.checker', 'shop_order_transaction.requestor', 'shop_order_transaction.status', 
-            //  'shop_order_transaction.date', 'shop_order_transaction.profit','shop_order_transaction.total_cash',
-            //  'shop_order_transaction.total_online', 'ct.customer_type', 'shop_order_transaction.rider_name', 'shop_order_transaction.delivery_customer_id', 'ds.status as delivery_status' ) 
-                
-            //  ->where('shop.shop_type_id', 3)
-            //  ->where('shop_order_transaction.date', $date)
-            //  ->orderBy('shop_order_transaction.id', 'DESC')
-            // ->get();
-
-
-
-            // $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
-            // ->join('mode_of_payment as mop', 'mop.shop_order_transaction_id', '=', 'sot.id')
-            // ->join('payment_type as pt', 'mop.payment_type_id', '=', 'pt.id')
-            // ->join('shop', 'shop.id', '=', 'sot.shop_id')
-            // ->select(
-            //     DB::raw('DATE(mop.created_at) as date'),
-            //     DB::raw('SUM(mop.amount) as total_sales'),
-            //     DB::raw('SUM(CASE WHEN pt.type = 1 THEN mop.amount ELSE 0 END) as total_cash'),
-            //     DB::raw('SUM(CASE WHEN pt.type = 2 THEN mop.amount ELSE 0 END) as total_online')
-            // )
-            // ->where('shop.shop_type_id', 3)
-            // ->whereBetween('mop.created_at', [
-            //     $request->input('dateFrom'),
-            //     $request->input('dateTo')
-            // ])
-            // ->groupBy(DB::raw('DATE(mop.created_at)'))
-            // ->orderBy('date', 'DESC')
-            // ->get();
-
 
             $expenses_mandatory = DB::table('expenses as e')
             ->select(DB::raw('SUM(e.amount) as total_expenses'))  
@@ -4711,6 +4900,76 @@ class ShopOrderTransactionController extends Controller
 
 
             return response()->json($response);   
+    }
+
+    public function fetchOnlineShopOrderTransactionListReportByDateV2(Request $request)
+    {
+        $shop_order_transaction_list = DB::table('shop_order_transaction as sot')
+            ->select(
+                DB::raw('COUNT(sot.id) as total_count'),
+                DB::raw('SUM(sot.shop_order_transaction_total_price) as total_sales'),
+                DB::raw('SUM(sot.profit) as total_profit'),
+                DB::raw('sot.date'),
+                DB::raw('SUM(sot.total_cash) as total_cash'),
+                DB::raw('SUM(sot.total_online) as total_online')
+            )
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->where('shop.shop_type_id', 3)
+            ->whereBetween('sot.date', [
+                $request->input('dateFrom'),
+                $request->input('dateTo'),
+            ])
+            ->orderBy('sot.date', 'DESC')
+            ->groupBy('sot.date')
+            ->get();
+
+        $expenses_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('e.date', '>=', $request->input('dateFrom'))
+            ->where('e.date', '<=', $request->input('dateTo'))
+            ->where('ec.id', '<=', 1)
+            ->first();
+
+        $expenses_non_mandatory = DB::table('expenses as e')
+            ->select(DB::raw('SUM(e.amount) as total_expenses'))
+            ->join('expenses_type as ep', 'ep.id', '=', 'e.expenses_type_id')
+            ->join('expenses_category as ec', 'ec.id', '=', 'ep.expenses_category_id')
+            ->where('e.date', '>=', $request->input('dateFrom'))
+            ->where('e.date', '<=', $request->input('dateTo'))
+            ->where('ec.id', '<=', 2)
+            ->first();
+
+        $total_sales = 0;
+        $total_profit = 0;
+        $total_cash = 0;
+        $total_online = 0;
+        $total_count = 0;
+
+        foreach ($shop_order_transaction_list as $datavals) {
+            $total_sales += $datavals->total_sales;
+            $total_profit += $datavals->total_profit;
+            $total_cash += $datavals->total_cash;
+            $total_online += $datavals->total_online;
+            $total_count += $datavals->total_count;
+        }
+
+        $response = [
+            'data' => $shop_order_transaction_list,
+            'code' => 200,
+            'total_sales' => $total_sales,
+            'total_profit' => $total_profit,
+            'total_cash' => $total_cash,
+            'total_online' => $total_online,
+            'total_count' => $total_count,
+            'expenses_mandatory' => $expenses_mandatory->total_expenses,
+            'expenses_non_mandatory' => $expenses_non_mandatory->total_expenses,
+            'total_expenses' => $expenses_non_mandatory->total_expenses + $expenses_mandatory->total_expenses,
+            'message' => 'Successfully Added',
+        ];
+
+        return response()->json($response);
     }
 
     public function fetchOnlineShopMonthlySalesForecast(Request $request)
