@@ -359,10 +359,12 @@ Route::post('/shopOrderTransaction/fetchMonthlyProductCustomerImpact', [ShopOrde
 Route::post('/shopOrderTransaction/fetchMonthlySalesImpactAnalysis', [ShopOrderTransactionController::class, 'fetchMonthlySalesImpactAnalysis']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDate', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDate']);
 Route::post('/shopOrderTransaction/fetchShopOrderTransactionListReportByDateV2', [ShopOrderTransactionController::class, 'fetchShopOrderTransactionListReportByDateV2']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionAwaitingCompletionV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionAwaitingCompletionV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionPaidOutsideDateV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionPaidOutsideDateV2']);
+Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionPaidOutsidePeriodV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionPaidOutsidePeriodV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdV2/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdV2'])->whereNumber('id');
 Route::post('/shopOrderTransaction/fetctProductOrderTransaction/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransaction']);
 Route::post('/shopOrderTransaction/fetctProductOrderTransactionV2/{id}', [ShopOrderTransactionController::class, 'fetctProductOrderTransactionV2']);
