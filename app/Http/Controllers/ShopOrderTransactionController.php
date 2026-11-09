@@ -2619,6 +2619,154 @@ class ShopOrderTransactionController extends Controller
         ]);
     }
 
+    public function fetchOnlineShopOrderTransactionPaidOutsidePeriodV2(Request $request)
+    {
+        $validated = $request->validate([
+            'dateFrom' => 'required|date_format:Y-m-d',
+            'dateTo' => 'required|date_format:Y-m-d|after_or_equal:dateFrom',
+            'status' => 'nullable|integer',
+        ]);
+
+        $dateFrom = $validated['dateFrom'];
+        $dateTo = $validated['dateTo'];
+
+        $paymentsWithinPeriod = DB::table('mode_of_payment as mop')
+            ->select(
+                'mop.shop_order_transaction_id',
+                DB::raw('SUM(mop.amount) as paid_amount'),
+                DB::raw('COUNT(mop.id) as payment_count')
+            )
+            ->whereDate('mop.created_at', '>=', $dateFrom)
+            ->whereDate('mop.created_at', '<=', $dateTo)
+            ->groupBy('mop.shop_order_transaction_id');
+
+        $transactions = DB::table('shop_order_transaction as sot')
+            ->joinSub($paymentsWithinPeriod, 'payments_within_period', function ($join) {
+                $join->on('payments_within_period.shop_order_transaction_id', '=', 'sot.id');
+            })
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
+            ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'sot.id')
+            ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+            ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
+            ->select(
+                'shop.shop_name',
+                'sot.id',
+                'sot.shop_order_transaction_total_quantity',
+                'sot.shop_order_transaction_total_price',
+                'sot.print_count',
+                'sot.created_at',
+                'sot.updated_at',
+                'sot.is_pickup',
+                'shop.shop_type_id',
+                DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                'c.store_name',
+                'c.created_at as customer_created_date',
+                'sot.checker',
+                'sot.requestor',
+                'sot.status',
+                'sot.date',
+                'sot.profit',
+                'sot.total_cash',
+                'sot.total_online',
+                'ct.customer_type',
+                'sot.rider_name',
+                'sot.delivery_customer_id',
+                'ds.status as delivery_status',
+                'payments_within_period.paid_amount',
+                'payments_within_period.payment_count',
+                DB::raw("CASE WHEN sot.date < '{$dateFrom}' THEN 'before_period' ELSE 'after_period' END as payment_timing"),
+                DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+            )
+            ->where('shop.shop_type_id', 3)
+            ->where(function ($query) use ($dateFrom, $dateTo) {
+                $query->where('sot.date', '<', $dateFrom)
+                    ->orWhere('sot.date', '>', $dateTo);
+            })
+            ->when(isset($validated['status']), function ($query) use ($validated) {
+                $query->where('sot.status', $validated['status']);
+            })
+            ->groupBy('sot.id')
+            ->orderByDesc('sot.date')
+            ->orderByDesc('sot.id')
+            ->get();
+
+        foreach ($transactions as $transaction) {
+            $vipCustomers = [];
+
+            if ($transaction->vip_customer_list != '') {
+                foreach (explode('||', $transaction->vip_customer_list) as $vipCustomer) {
+                    $details = explode('::', $vipCustomer);
+
+                    if (isset($details[0]) && $details[0] != '') {
+                        $vipCustomers[] = [
+                            'vip_customer_transaction_id' => $details[0],
+                            'vip_customer_id' => $details[1] ?? '',
+                            'vip_name' => $details[2] ?? '',
+                            'vip_color' => $details[3] ?? '',
+                        ];
+                    }
+                }
+            }
+
+            $transaction->vip_customers = $vipCustomers;
+            unset($transaction->vip_customer_list);
+
+            $transaction->mode_of_payment = DB::table('mode_of_payment as mop')
+                ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+                ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+                ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+                ->where('mop.shop_order_transaction_id', $transaction->id)
+                ->whereDate('mop.created_at', '>=', $dateFrom)
+                ->whereDate('mop.created_at', '<=', $dateTo)
+                ->select(
+                    'mop.id',
+                    'mop.payment_type_id',
+                    'mop.amount',
+                    'mop.is_paid',
+                    'mop.created_at as payment_date',
+                    'ptp.payment_term_id',
+                    'ptp.bank_id',
+                    'ptp.account_number',
+                    'ptp.account_name',
+                    'ptp.account_description',
+                    'b.bank_name',
+                    'pt.payment_term'
+                )
+                ->orderByDesc('mop.created_at')
+                ->get();
+
+            $transaction->payment_dates = $transaction->mode_of_payment
+                ->pluck('payment_date')
+                ->map(function ($paymentDate) {
+                    return Carbon::parse($paymentDate)->toDateString();
+                })
+                ->unique()
+                ->values();
+        }
+
+        return response()->json([
+            'data' => $transactions,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'total_transactions' => $transactions->count(),
+            'total_unique_transactions' => $transactions->count(),
+            'total_transaction_payment_dates' => $transactions->sum(function ($transaction) {
+                return $transaction->payment_dates->count();
+            }),
+            'total_payments' => $transactions->sum('payment_count'),
+            'total_paid' => $transactions->sum('paid_amount'),
+            'code' => 200,
+            'message' => 'Successfully fetched outside-period orders paid within the selected period',
+        ]);
+    }
+
     public function fetchOnlineShopOrderTransactionListByIdV2($id, Request $request)
     {
         if (!ctype_digit((string) $id) || (int) $id < 1) {
@@ -4970,6 +5118,145 @@ class ShopOrderTransactionController extends Controller
         ];
 
         return response()->json($response);
+    }
+
+    public function fetchOnlineShopOrderTransactionAwaitingCompletionV2(Request $request)
+    {
+        $validated = $request->validate([
+            'dateFrom' => 'required|date_format:Y-m-d',
+            'dateTo' => 'required|date_format:Y-m-d|after_or_equal:dateFrom',
+        ]);
+
+        $dateFrom = $validated['dateFrom'];
+        $dateTo = $validated['dateTo'];
+
+        $paymentTotals = DB::table('mode_of_payment as mop')
+            ->select(
+                'mop.shop_order_transaction_id',
+                DB::raw('SUM(mop.amount) as total_paid'),
+                DB::raw('COUNT(mop.id) as payment_count')
+            )
+            ->groupBy('mop.shop_order_transaction_id');
+
+        $transactions = DB::table('shop_order_transaction as sot')
+            ->join('shop', 'shop.id', '=', 'sot.shop_id')
+            ->join('customer as c', 'c.id', '=', 'sot.requestor')
+            ->join('customer_type as ct', 'ct.id', '=', 'sot.customer_type_id')
+            ->leftJoinSub($paymentTotals, 'payment_totals', function ($join) {
+                $join->on('payment_totals.shop_order_transaction_id', '=', 'sot.id');
+            })
+            ->leftJoin('delivery_customer as ds', 'ds.shop_order_transaction_id', '=', 'sot.id')
+            ->leftJoin('vip_customer_transaction as vct', 'vct.customer_id', '=', 'sot.requestor')
+            ->leftJoin('vip_customer as vc', 'vc.id', '=', 'vct.vip_customer_id')
+            ->leftJoin('shop_order as so', 'so.shop_transaction_id', '=', 'sot.id')
+            ->leftJoin('mark_up_product as mup', 'mup.id', '=', 'so.mark_up_product_id')
+            ->leftJoin('products as p', 'p.id', '=', 'mup.product_id')
+            ->leftJoin('category as category', 'category.id', '=', 'p.category_id')
+            ->select(
+                'shop.shop_name',
+                'sot.id',
+                'sot.shop_order_transaction_total_quantity',
+                'sot.shop_order_transaction_total_price',
+                'sot.print_count',
+                'sot.created_at',
+                'sot.updated_at',
+                'sot.is_pickup',
+                'shop.shop_type_id',
+                DB::raw("CONCAT(c.first_name, ' ', c.last_name) as requestor_name"),
+                'c.store_name',
+                'c.created_at as customer_created_date',
+                'sot.checker',
+                'sot.requestor',
+                'sot.status',
+                'sot.date',
+                'sot.profit',
+                'sot.total_cash',
+                'sot.total_online',
+                'ct.customer_type',
+                'sot.rider_name',
+                'sot.delivery_customer_id',
+                'ds.status as delivery_status',
+                DB::raw('COALESCE(payment_totals.total_paid, 0) as total_paid'),
+                DB::raw('COALESCE(payment_totals.payment_count, 0) as payment_count'),
+                DB::raw('GREATEST(sot.shop_order_transaction_total_price - COALESCE(payment_totals.total_paid, 0), 0) as outstanding_balance'),
+                DB::raw("GROUP_CONCAT(DISTINCT NULLIF(category.tags, '')) as tags"),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(vct.id, '::', vct.vip_customer_id, '::', COALESCE(vc.vip_name, ''), '::', COALESCE(vc.vip_color, '')) SEPARATOR '||') as vip_customer_list")
+            )
+            ->where('shop.shop_type_id', 3)
+            ->where('sot.status', 2)
+            ->whereBetween('sot.date', [$dateFrom, $dateTo])
+            ->groupBy('sot.id')
+            ->orderByDesc('sot.date')
+            ->orderByDesc('sot.id')
+            ->get();
+
+        foreach ($transactions as $transaction) {
+            $vipCustomers = [];
+
+            if ($transaction->vip_customer_list != '') {
+                foreach (explode('||', $transaction->vip_customer_list) as $vipCustomer) {
+                    $details = explode('::', $vipCustomer);
+
+                    if (isset($details[0]) && $details[0] != '') {
+                        $vipCustomers[] = [
+                            'vip_customer_transaction_id' => $details[0],
+                            'vip_customer_id' => $details[1] ?? '',
+                            'vip_name' => $details[2] ?? '',
+                            'vip_color' => $details[3] ?? '',
+                        ];
+                    }
+                }
+            }
+
+            $transaction->vip_customers = $vipCustomers;
+            unset($transaction->vip_customer_list);
+
+            $transaction->mode_of_payment = DB::table('mode_of_payment as mop')
+                ->join('payment_type_po as ptp', 'ptp.id', '=', 'mop.payment_type_id')
+                ->leftJoin('bank as b', 'b.id', '=', 'ptp.bank_id')
+                ->leftJoin('payment_term as pt', 'pt.id', '=', 'ptp.payment_term_id')
+                ->where('mop.shop_order_transaction_id', $transaction->id)
+                ->select(
+                    'mop.id',
+                    'mop.payment_type_id',
+                    'mop.amount',
+                    'mop.is_paid',
+                    'mop.created_at as payment_date',
+                    'ptp.payment_term_id',
+                    'ptp.bank_id',
+                    'ptp.account_number',
+                    'ptp.account_name',
+                    'ptp.account_description',
+                    'b.bank_name',
+                    'pt.payment_term'
+                )
+                ->orderByDesc('mop.created_at')
+                ->get();
+
+            $transaction->paid_amount = $transaction->total_paid;
+            $transaction->payment_dates = $transaction->mode_of_payment
+                ->pluck('payment_date')
+                ->map(function ($paymentDate) {
+                    return Carbon::parse($paymentDate)->toDateString();
+                })
+                ->unique()
+                ->values();
+        }
+
+        return response()->json([
+            'data' => $transactions,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'status' => 2,
+            'total_transactions' => $transactions->count(),
+            'total_payments' => $transactions->sum('payment_count'),
+            'potential_total_sales' => $transactions->sum('shop_order_transaction_total_price'),
+            'potential_total_profit' => $transactions->sum('profit'),
+            'total_paid' => $transactions->sum('total_paid'),
+            'total_outstanding_balance' => $transactions->sum('outstanding_balance'),
+            'code' => 200,
+            'message' => 'Successfully fetched transactions awaiting completion',
+        ]);
     }
 
     public function fetchOnlineShopMonthlySalesForecast(Request $request)
