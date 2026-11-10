@@ -364,9 +364,7 @@ Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionAwaitingComple
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListReport/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListReport']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionList', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionList']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListV2']);
-<<<<<<< Updated upstream
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderRefundTransactionListV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderRefundTransactionListV2']);
-=======
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionPaidOutsideDateV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionPaidOutsideDateV2']);
 Route::post('/shopOrderTransaction/fetchOnlineShopOrderTransactionPaidOutsidePeriodV2', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionPaidOutsidePeriodV2']);
 Route::get('/shopOrderTransaction/fetchOnlineShopOrderTransactionListByIdV2/{id}', [ShopOrderTransactionController::class, 'fetchOnlineShopOrderTransactionListByIdV2'])->whereNumber('id');

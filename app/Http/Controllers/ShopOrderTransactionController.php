@@ -2448,7 +2448,6 @@ class ShopOrderTransactionController extends Controller
         ]);
     }
 
-<<<<<<< Updated upstream
     public function fetchOnlineShopOrderRefundTransactionListV2()
     {
         $paymentTotals = DB::table('mode_of_payment')
@@ -2490,7 +2489,9 @@ class ShopOrderTransactionController extends Controller
             'data' => $transactions,
             'code' => 200,
             'message' => 'Successfully fetched online shop order transactions for refund',
-=======
+        ]);
+    }
+
     public function fetchOnlineShopOrderTransactionPaidOutsideDateV2(Request $request)
     {
         $validated = $request->validate([
@@ -2615,7 +2616,6 @@ class ShopOrderTransactionController extends Controller
             'total_paid' => $transactions->sum('paid_amount'),
             'code' => 200,
             'message' => 'Successfully fetched other-date transactions paid on the selected date',
->>>>>>> Stashed changes
         ]);
     }
 
