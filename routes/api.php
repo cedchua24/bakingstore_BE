@@ -69,6 +69,10 @@ use App\Http\Controllers\VipProductTransactionController;
 use App\Http\Controllers\VipProductNoteController;
 use App\Http\Controllers\PrintingTransactionController;
 use App\Http\Controllers\PrintingTransactionCommentController;
+use App\Http\Controllers\DatabaseExportController;
+
+Route::get('/database/export', DatabaseExportController::class)
+    ->middleware(['auth:sanctum', 'canExportDatabase', 'throttle:2,1']);
 
 Route::get('printingTransaction/fetchByShopOrderTransactionId/{id}', [PrintingTransactionController::class, 'fetchByShopOrderTransactionId'])->whereNumber('id');
 Route::apiResource('printingTransaction', PrintingTransactionController::class);

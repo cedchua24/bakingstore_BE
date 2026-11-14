@@ -15,7 +15,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('database:backup')
+            ->cron((string) config('database-backup-schedule.backup_cron'))
+            ->timezone((string) config('database-backup-schedule.timezone'))
+            ->withoutOverlapping();
+
+        $schedule->command('database:prune-backups')
+            ->cron((string) config('database-backup-schedule.cleanup_cron'))
+            ->timezone((string) config('database-backup-schedule.timezone'))
+            ->withoutOverlapping();
     }
 
     /**
